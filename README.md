@@ -34,6 +34,11 @@ After editing models or table metadata, regenerate the artifacts:
 uv run python -m scripts.export_contracts
 ```
 
+The companion static-site repository provides **Back Office: local stack** in
+VS Code. Its launcher starts local MetaTables, explicitly applies local migrations,
+and runs this API through [scripts/local_api.py](scripts/local_api.py). The local
+worker and developer-session adapters remain outside deployable `api/` entry points.
+
 ## Documentation
 
 - [Foundation implementation and migration guide](docs/foundation.md)

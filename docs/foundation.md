@@ -152,6 +152,13 @@ guidance: select the shared laptop runtime, inspect
 intended DataSource and ready bootstrap state before applying this provider.
 Do not switch to a hosted runtime to work around a local failure.
 
+The companion static site now includes a VS Code launcher for the full local
+stack. It uses this repository's `scripts/local_metatables.py` to start the installed
+MetaTables local worker, explicitly runs local migrations, and serves the real API
+through `scripts/local_api.py`. `scripts/developer_session.py` connects SDK clients
+to the renewing CLI session for the pinned package pair. The static site's
+`engineering/local-development.md` documents setup, process ownership and verification.
+
 Hosted migration is a Main Sequence deployment Job running
 [scripts/migrate_backoffice.py](../scripts/migrate_backoffice.py) from the candidate
 image. It calls `upgrade_application` explicitly. Do not run this entry point from
