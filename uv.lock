@@ -96,7 +96,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.110,<1" },
     { name = "mainsequence", extras = ["mcp"], specifier = "==9.0.29" },
     { name = "mainsequence-metatable", specifier = "==0.1.49" },
-    { name = "ms-tau-sdk", specifier = "==2.0.19" },
+    { name = "ms-tau-sdk", specifier = "==2.0.20" },
     { name = "pillow", specifier = ">=11,<13" },
     { name = "pydantic", specifier = ">=2.13.5,<3" },
     { name = "pypdf", specifier = ">=6,<7" },
@@ -1272,7 +1272,7 @@ wheels = [
 
 [[package]]
 name = "ms-tau-sdk"
-version = "2.0.19"
+version = "2.0.20"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1290,9 +1290,9 @@ dependencies = [
     { name = "tau-ai" },
     { name = "uvicorn", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/50/a9/161c392c1bea111e706e055bc951782b05d3f231bacdfa1371ec21c8e21b/ms_tau_sdk-2.0.19.tar.gz", hash = "sha256:d435ec06848e8cf745c3134893602c016e6d216a7d0410e84d6331547a8a0829", size = 326765, upload-time = "2026-10-19T06:42:44.022Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/45/6a384907d8bb3c6b5f418263a2ff127b30a5b22d7cb86d943701c3c0c891/ms_tau_sdk-2.0.20.tar.gz", hash = "sha256:23f03a558decf4c70b7fef3eca5910ed5d9c46d7707c20a10c8d2f410c9f29e9", size = 326999, upload-time = "2026-10-19T15:51:20.821Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/a4/7ec7924e2837cc842db4a5f57d6e3b3b8cc873bf6cf426b51d969370f2d7/ms_tau_sdk-2.0.19-py3-none-any.whl", hash = "sha256:5302637ba728a3924bd1cc35ce933d8d72ab3ca7214ba581ae07380e19d8463d", size = 349377, upload-time = "2026-10-19T06:42:42.214Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/ec/019cc0ae2c32177db5605ac79cc13cba3903822c850a65b377e86d32f4ba/ms_tau_sdk-2.0.20-py3-none-any.whl", hash = "sha256:e205c8c91a32dd5a18ca5ec13be89d06b66f37b9ad96b25dc449306bfbfa96a2", size = 349377, upload-time = "2026-10-19T15:51:19.325Z" },
 ]
 
 [[package]]

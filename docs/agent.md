@@ -1,6 +1,6 @@
 # Back Office helper agent
 
-The dedicated `api/tau/main.py` exports the app returned by `ms-tau-sdk==2.0.19`.
+The dedicated `api/tau/main.py` exports the app returned by `ms-tau-sdk==2.0.20`.
 It disables coding tools and the central Main Sequence MCP with explicit settings;
 the deployment workflow declares the same flags. The SDK owns authentication,
 requester delegation, model credentials, session lifecycle and health endpoints.
@@ -47,7 +47,7 @@ local conversation while preserving its history. Availability for the hosted
 Environment and its session principals must be verified separately. Credentials
 are supplied by the platform, never committed.
 
-With SDK 2.0.18–2.0.19 and Tau 0.4.2, replayed conversation history can override the
+With SDK 2.0.18–2.0.20 and Tau 0.4.2, replayed conversation history can override the
 bootstrap's selected model in the inference engine. `src/backoffice_agent/runtime.py`
 uses the SDK's services factory and Tau's public model setter to align the idle
 engine with the model authorized by the SDK bootstrap before a turn. It retains
@@ -66,14 +66,22 @@ postdeployment rollback remain follow-up integration work.
 
 ## Chat file support
 
-The published SDK 2.0.19 still converts chat input to text before starting a turn.
+The published SDK 2.0.20 still converts chat input to text before starting a turn.
 Its chat request parser ignores file parts, and a file-only message has no usable
 prompt. The SDK exposes no attachment upload route. Command Center SDK 0.5.18
-and Command Center AI 0.0.15 are also the latest published frontend versions
-checked on 2026-10-19; the AI conversation contract excludes attachments.
+and Command Center AI 0.0.16 are the latest published frontend versions checked
+on 2026-10-19. AI 0.0.16 ships the proposed attachment ADR 018 as documentation
+only; its changelog explicitly says no attachment feature ships.
 Assistant file input therefore awaits compatible package releases. Business
 document processing is a separate API capability and does not add chat attachments
 or expand this helper's read-only tool permissions.
+
+The local 2.0.20/0.0.16 check used the actual SDK Vite proxy and live runtime.
+A synthetic file-only chat payload returned HTTP 400 with
+`Request does not contain a user message`. A text-plus-file payload reached the
+model without its file content: the reply was `NO ATTACHMENT CONTENT`, and SDK
+history did not contain the synthetic file token. The real browser composer had
+no file input. These are capability failures, not successful uploads.
 
 ## Local verification
 
@@ -90,6 +98,10 @@ focused tests. An isolated loopback runtime also returned a real GPT-5.6 Luna
 reply, retained its conversation across a process restart, and answered a second
 turn in that same conversation. Both replies were present in SDK history afterward.
 This verifies local chat and persistence, not file attachments or hosted delegation.
+
+The subsequent 2.0.20 upgrade on the same date passed the ten-tool contract check
+and all 27 focused tests again. The upgraded local frontend rendered a real
+GPT-5.6 Luna reply through the SDK proxy. File-input failures are recorded above.
 
 The policy tests use fake requester identities and native Tau hook types; they make
 no model calls and do not seed cases. Local Tau mode has no hosted requester binding,
