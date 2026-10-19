@@ -118,10 +118,16 @@ retain exact inputs even if assignment membership later changes.
 ## Dependency and guidance evidence
 
 The tested pair is `mainsequence[mcp]==9.0.29` and
-`mainsequence-metatable==0.1.47`. Exact transitive dependencies are in `uv.lock`.
-MetaTables `0.1.47` imports `ShareableObjectMixin`, absent from SDK `9.0.30`;
+`mainsequence-metatable==0.1.48`. Exact transitive dependencies are in `uv.lock`.
+MetaTables `0.1.48` imports `ShareableObjectMixin`, absent from SDK `9.0.30`;
 dependency resolution alone does not establish import compatibility. Upgrade the
 pair together and rerun tests before changing these pins.
+
+The 0.1.48 update passes the SDK capability check, all 60 backend tests, all 11
+static-site launcher tests, and generated-contract checks. A full local-stack
+verification was attempted against the isolated test runtime but could not finish:
+the configured Main Sequence platform API at `127.0.0.1:8000` reset connections
+during `/api/v1/users/me/`. Repeat the stack verification once that API responds.
 
 Authoring follows `metatables migrations scaffold --help` and the guidance shipped
 with the installed MetaTables package under
@@ -169,8 +175,10 @@ Before that deployment milestone:
 
 1. Discover the selected Environment's MetaTables runtime and check existing
    `backoffice` bindings before claiming the namespace or publishing definitions.
-2. Have a human create the namespace and hold `owner`; grant the migration workload
-   `editor` and row-writing workloads `data_writer`. A Team is optional.
+2. The first migration creates an absent namespace and grants the migration Job
+   `editor`. A person who manages the Job then grants row-writing workloads
+   `data_writer` and grants themselves or a Team `owner`. If the namespace already
+   exists, its owner must grant the Job `editor`. A Team is optional.
 3. Declare platform `reader` access to the MetaTables branch on consuming resources.
 4. Validate the workflow against the branch's current template. The installed
    guidance uses workflow API `3.0.0`: prepare the candidate image, run migration,

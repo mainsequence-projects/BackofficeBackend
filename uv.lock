@@ -88,7 +88,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.110,<1" },
     { name = "mainsequence", extras = ["mcp"], specifier = "==9.0.29" },
-    { name = "mainsequence-metatable", specifier = "==0.1.47" },
+    { name = "mainsequence-metatable", specifier = "==0.1.48" },
     { name = "pydantic", specifier = ">=2.13.5,<3" },
     { name = "sqlalchemy", specifier = ">=2.1,<3" },
     { name = "uvicorn", specifier = "==0.52.4" },
@@ -803,7 +803,7 @@ mcp = [
 
 [[package]]
 name = "mainsequence-metatable"
-version = "0.1.47"
+version = "0.1.48"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "alembic" },
@@ -835,9 +835,9 @@ dependencies = [
     { name = "urllib3" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/83/51bda40eb178c6f5b8c93489001ce38f72cf8547630ded9cb78667f4bdaa/mainsequence_metatable-0.1.47.tar.gz", hash = "sha256:890979f3109afa10918c1f7338adda4425cdb169b58242019342b26a635a9587", size = 1279438, upload-time = "2026-10-19T08:16:26.59Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/04/ff/893ee56cb82c70d8675e605241a2e59e8cbe7aeff520af1fefa7339ff4b0/mainsequence_metatable-0.1.48.tar.gz", hash = "sha256:b919f353f7c5104594492fc71820bbe8018c3b71847e88cbe29676c60ed27f9b", size = 1283147, upload-time = "2026-10-19T12:14:00.958Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/1a/40b7568d74d0d00b0cd0a2cc2c5141368594ccbe237a4bb3e1035aaea93c/mainsequence_metatable-0.1.47-py3-none-any.whl", hash = "sha256:ca2d7deb6d2f0f5124b62b1e767cbd3ed2f80762bb2287ada120f822bbeb4190", size = 2453906, upload-time = "2026-10-19T08:16:24.066Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/5d/ca7113f8080916251c4a79f4e74b37932e91e8c048becacd2d40bf14f388/mainsequence_metatable-0.1.48-py3-none-any.whl", hash = "sha256:b247d067b68530bb17bc82063fe316f8dcad73baa79637afa6e370e661075bae", size = 2461633, upload-time = "2026-10-19T12:13:58.697Z" },
 ]
 
 [[package]]

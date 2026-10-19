@@ -19,7 +19,7 @@ against the selected Environment before delivery.
 | `@dev-mainsequence/command-center-ai` | Frontend conversations with Main Sequence Agents. |
 
 The tested foundation uses `mainsequence[mcp]==9.0.29` with
-`mainsequence-metatable==0.1.47`, locked in `uv.lock`. The published MetaTables
+`mainsequence-metatable==0.1.48`, locked in `uv.lock`. The published MetaTables
 package fails to import against SDK `9.0.30` because `ShareableObjectMixin` was
 removed; keep this compatible pair until an upgrade passes the contract suite.
 The agent milestone will add and verify `ms-tau-sdk`. Hosted API compatibility
@@ -57,13 +57,15 @@ application-prefixed version table. The deployment workflow's migration Job call
 The API and agent deploy steps depend on successful migration. Migrations are an
 explicit deployment operation; application startup does not execute them.
 
-In each Environment, a human creates the application namespace and becomes its
-`owner`. Grant the migration Job workload `editor` and row-writing workloads
-`data_writer`. A Team is an optional way to group principals, not a prerequisite.
+In each Environment, the first migration creates an absent application namespace
+and grants the migration Job `editor`. A person who manages that Job then grants
+row-writing workloads `data_writer` and grants themselves or a Team `owner`.
+For an existing namespace, its owner grants the migration Job `editor` before
+retrying. A Team is an optional way to group principals, not a prerequisite.
 Resources also need the platform `reader` policy on the MetaTables branch to
 discover its release. Record namespace, workload, runtime and release bindings
 using non-secret identifiers. This follows the deployment guidance bundled with
-MetaTables `0.1.47`, including workflow API `3.0.0`.
+MetaTables `0.1.48`, including workflow API `3.0.0`.
 
 Applied migrations remain immutable. Use additive changes while the previous
 release can still serve requests. A deployment rollback does not roll back table

@@ -261,7 +261,7 @@ backofficebackend/
 
 The backend dependency plan includes explicit, compatible pins for `mainsequence`,
 `mainsequence-metatable`, `ms-tau-sdk`, Pydantic, the MCP server library, and FastAPI.
-The foundation pins `mainsequence[mcp]==9.0.29` and `mainsequence-metatable==0.1.47`,
+The foundation pins `mainsequence[mcp]==9.0.29` and `mainsequence-metatable==0.1.48`,
 with a committed `uv.lock`. The agent milestone will add a compatible `ms-tau-sdk`
 version and verify its runtime contract. Refresh managed guidance when changing
 package versions.
