@@ -4,14 +4,7 @@ import unicodedata
 from datetime import date
 
 from ..models.document_set import DocumentSet
-
-
-def field(value, path):
-    for part in path.split("."):
-        if not isinstance(value, dict):
-            return None
-        value = value.get(part)
-    return value
+from .document_dates import calendar_date, document_dates, field
 
 
 def normalized(value):
@@ -41,13 +34,21 @@ def assess(document, option, person, today):
             return "failed", "DOCUMENT_EXPIRED", ["expiration_date"]
         if payload.get("issue_date") and date.fromisoformat(payload["issue_date"]) > today:
             return "failed", "DOCUMENT_NOT_YET_VALID", ["issue_date"]
-    if option.max_age_days is not None:
-        value = field(payload, option.freshness_field)
-        if not value:
+    dates = document_dates(document, option, today)
+    if option.freshness_field:
+        if dates["freshness_date"] is None:
             return "needs_information", "FRESHNESS_DATE_MISSING", [option.freshness_field]
-        age = (today - date.fromisoformat(value)).days
-        if age < 0 or age > option.max_age_days:
+        if today < calendar_date(dates["freshness_date"]) or today > calendar_date(
+            dates["fresh_until"]
+        ):
             return "failed", "DOCUMENT_OUTSIDE_FRESHNESS_WINDOW", [option.freshness_field]
+    if option.renewal_interval_months is not None:
+        if dates["renewal_from"] is None:
+            return "needs_information", "RENEWAL_DATE_MISSING", [option.renewal_basis]
+        if calendar_date(dates["renewal_from"]) > today:
+            return "needs_information", "RENEWAL_DATE_IN_FUTURE", [option.renewal_basis]
+        if today >= calendar_date(dates["renewal_due_on"]):
+            return "failed", "DOCUMENT_RENEWAL_DUE", [option.renewal_basis]
     names = []
     for key in ("full_name", "employee_name", "taxpayer_name", "owner_name", "account_holder_name"):
         if payload.get(key):
@@ -84,7 +85,7 @@ def assess(document, option, person, today):
     return "satisfied", "QUALIFYING_DOCUMENT", []
 
 
-def reconcile(snapshot):
+def reconcile(snapshot, *, diagnostics=False):
     policy = DocumentSet.model_validate(snapshot["policy"])
     person, today = snapshot["person"], date.fromisoformat(snapshot["evaluation_date"])
     findings, used = [], set()
@@ -93,6 +94,7 @@ def reconcile(snapshot):
         status, code, paths, refs = "missing", "EVIDENCE_MISSING", [], []
         condition = requirement.condition
         applies = True
+        eligible = []
         if condition:
             value = person.get(condition.field)
             if value is None:
@@ -126,6 +128,7 @@ def reconcile(snapshot):
                     "document_uid": document["uid"],
                     "revision": document["revision"],
                     "review_uid": (document["latest_review"] or {}).get("uid"),
+                    "dates": document_dates(document, option, today),
                 }
                 if result[0] != "satisfied":
                     failures.append((*result, ref))
@@ -182,10 +185,53 @@ def reconcile(snapshot):
                 "document_references": refs,
             }
         )
+        if diagnostics:
+            findings[-1].update(
+                mandatory=requirement.mandatory,
+                applicable=applies,
+                alternatives=[option.model_dump(mode="json") for option in requirement.options],
+                required_count=requirement.min_count,
+                qualifying_count=len(eligible) if applies is True else None,
+                shortfall=max(0, requirement.min_count - len(eligible))
+                if applies is True
+                else None,
+                next_action=next_action(status, code),
+            )
+    scheduled = [
+        ref["dates"]["action_due_on"]
+        for finding in findings
+        for ref in finding["document_references"]
+        if ref["dates"]["action_due_on"]
+    ]
     return findings, {
         "complete": mandatory_total == satisfied_total,
         "mandatory_requirements": mandatory_total,
         "satisfied_requirements": satisfied_total,
         "evaluation_date": today.isoformat(),
         "policy_notice": policy.description,
+        "next_action_due_on": min(scheduled) if scheduled else None,
     }
+
+
+def next_action(status, code):
+    """Explain the evaluator's primary reason without inventing further defects."""
+    actions = {
+        "APPLICABILITY_UNKNOWN": "Provide the referenced person field to determine applicability.",
+        "DRAFT_NOT_SUBMITTED": "Complete and submit the referenced draft before review.",
+        "DOCUMENT_REJECTED": "Inspect the review reason and correct or replace the evidence.",
+        "DOCUMENT_EXPIRED": "Provide currently valid evidence from an accepted alternative.",
+        "DOCUMENT_NOT_YET_VALID": "Provide evidence valid on the evaluation date.",
+        "DOCUMENT_OUTSIDE_FRESHNESS_WINDOW": "Provide evidence within the required freshness window.",
+        "DOCUMENT_RENEWAL_DUE": "Renew the evidence using the policy's review or submission basis.",
+        "DUPLICATE_EVIDENCE_OR_PERIOD": "Provide distinct evidence or a distinct reporting period.",
+    }
+    if code in actions:
+        return actions[code]
+    return {
+        "satisfied": "No outstanding action for this requirement.",
+        "not_applicable": "No evidence needed under the resolved condition.",
+        "missing": "Provide enough distinct qualifying documents from the accepted alternatives.",
+        "pending_review": "Ask an authorized reviewer to review the submitted evidence.",
+        "needs_information": "Provide or correct the referenced fields, then reassess.",
+        "failed": "Resolve the reported inconsistency in the referenced evidence, then reassess.",
+    }[status]

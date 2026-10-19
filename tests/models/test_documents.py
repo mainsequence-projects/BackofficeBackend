@@ -145,6 +145,9 @@ def test_acceptance_is_derived_from_exact_revision(document_fixture):
         uid=uid,
         person_uid=uuid4(),
         revision=1,
+        created_at="2026-10-01T08:00:00Z",
+        revision_created_at="2026-10-01T08:00:00Z",
+        submitted_at="2026-10-01T08:00:00Z",
         data=document_fixture("passport"),
         raw_document_refs=[{"raw_document_uid": uuid4()}],
     )

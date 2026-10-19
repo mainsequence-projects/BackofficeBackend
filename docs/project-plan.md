@@ -4,7 +4,15 @@ Status: accepted product design. The Pydantic contracts, example requirement set
 16 MetaTable declarations, and initial migration are now implemented in code.
 See the [foundation guide](foundation.md) for verification and current limits.
 Business services and REST operations are implemented; see [API contracts](api.md).
-Hosted activation, MCP adapters and the Tau agent are separate delivery checks.
+Ten read-only [MCP queries](mcp.md) are implemented. Hosted activation, remaining
+MCP commands and the Tau agent are separate delivery checks.
+
+[ADR 0001](adr/0001-back-office-helper-mcp-and-document-processing.md) defines the
+next implementation contract for the full Back Office helper, REST/MCP tool parity,
+live missing-requirement queries, and bucket-backed classification/extraction.
+Its target design supersedes the initial raw-content storage target below; the
+chunk-backed implementation remains supported during transition. The ADR is planning,
+not evidence that these new capabilities are implemented.
 
 The platform evaluates whether a person has the documents required by an assigned
 document set. Every result must identify the applicable requirement, the submitted

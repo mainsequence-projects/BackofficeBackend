@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.pool import StaticPool
 
-from api.app.main import app, application
+from api.app.main import app, application, create_app, router
 from src.backoffice.services.application import RUN, Application, publish_catalog
 from src.backoffice.services.storage import Storage
 from src.backoffice.tables import Base
@@ -50,7 +50,7 @@ def business():
     owner = Application(uuid4(), store=store)
     current = [owner]
     test_app = FastAPI()
-    test_app.include_router(app.router)
+    test_app.include_router(router)
     test_app.exception_handlers.update(app.exception_handlers)
     test_app.dependency_overrides[application] = lambda: current[0]
     with TestClient(test_app, raise_server_exceptions=True) as client:
@@ -429,7 +429,7 @@ def test_multichunk_resume_and_complete_download(business):
 def test_real_application_requires_verified_identity():
     # No dependency override: the installed Main Sequence middleware rejects an
     # unauthenticated request before any business route can read storage.
-    with TestClient(app) as client:
+    with TestClient(create_app()) as client:
         response = client.get("/persons")
     assert response.status_code in (401, 403)
 
@@ -630,3 +630,88 @@ def test_exact_revision_denies_foreign_cases_and_unknown_revisions(business, doc
     current[0] = Application(uuid4(), store=store)
     assert client.get(f"/documents/{uid}/revisions/1").status_code == 404
     assert client.get(f"/documents/{uid}/revisions/99").status_code == 404
+
+
+def test_versioned_catalog_dates_and_live_renewal(business, document_fixture):
+    from src.backoffice.policies.new_account_requirements import (
+        new_account_requirements,
+        policy_definition,
+    )
+    from src.backoffice.services.application import DR, RV, SETS
+
+    client, current, store = business
+    current[0].reviewer = True
+    original = store.one(SETS, set_key="new_account_requirements", version=1)
+    assert original["definition"] == policy_definition(new_account_requirements(1))
+    assert "max_age_months" not in original["definition"]["requirements"][0]["options"][0]
+    publish_catalog(store)
+    assert store.one(SETS, set_key="new_account_requirements", version=1) == original
+    assert [s["version"] for s in client.get("/document-sets").json()["items"]] == [2, 1]
+    person = make_person(client)
+    assignment = post(
+        client,
+        f"/persons/{person}/document-sets",
+        document_set_key="new_account_requirements",
+        document_set_version=2,
+    )
+    uid = document(
+        client, person, "national_identity_card", document_fixture("national_identity_card")
+    )
+    submitted = client.get(f"/documents/{uid}").json()
+    assert (
+        submitted["created_at"] and submitted["revision_created_at"] and submitted["submitted_at"]
+    )
+    review = post(
+        client,
+        f"/documents/{uid}/reviews",
+        expected_revision=1,
+        expected_decision_sequence=0,
+        decision="accepted",
+        reason="Verified source",
+    )
+    store.change(
+        RV,
+        {"uid": review["uid"]},
+        {"reviewed_at": (datetime.now(UTC) - timedelta(days=200)).isoformat()},
+    )
+    client.put(
+        f"/assignments/{assignment['uid']}/documents",
+        json=command(expected_revision=1, document_uids=[uid]),
+    )
+    saved = post(client, f"/assignments/{assignment['uid']}/evaluations", expected_revision=2)
+    saved_row = client.get(f"/evaluations/{saved['uid']}").json()
+    identity = next(f for f in saved_row["findings"] if f["requirement_key"] == "identity")
+    assert identity["reason_code"] == "DOCUMENT_RENEWAL_DUE"
+    assert identity["document_references"][0]["dates"]["due_status"] == "overdue"
+    post(
+        client,
+        f"/documents/{uid}/reviews",
+        expected_revision=1,
+        expected_decision_sequence=1,
+        decision="accepted",
+        reason="Periodic review completed",
+    )
+    live = client.get(f"/assignments/{assignment['uid']}/status").json()
+    assert (
+        next(f for f in live["findings"] if f["requirement_key"] == "identity")["status"]
+        == "satisfied"
+    )
+    retained = client.get(f"/evaluations/{saved['uid']}").json()
+    assert retained["stale"] is True
+    assert retained["findings"] == saved_row["findings"]
+    post(
+        client,
+        f"/documents/{uid}/revisions",
+        expected_revision=1,
+        payload=submitted["payload"],
+        raw_document_refs=submitted["raw_document_refs"],
+    )
+    draft = client.get(f"/documents/{uid}").json()
+    assert draft["submitted_at"] is None
+    assert draft["created_at"] == submitted["created_at"]
+    assert draft["revision_created_at"] == store.one(DR, document_uid=uid, revision=2)["created_at"]
+    retained = client.get(f"/documents/{uid}/revisions/1").json()
+    assert retained["revision_created_at"] == submitted["revision_created_at"]
+    assert retained["submitted_at"] == submitted["submitted_at"]
+    current[0] = Application(uuid4(), store=store)
+    assert client.get(f"/assignments/{assignment['uid']}/status").status_code == 404

@@ -36,10 +36,13 @@ All UIDs and operation keys are UUIDs. Each body rejects unknown attributes.
 | Readiness | `GET /readyz` | Verifies the ownership migration and explicitly published catalog; never runs setup. |
 | Document types | `GET /document-types` | Ten exact document/schema versions. |
 | Form schemas | `GET /document-types/{type}/schema?version=1`, `GET /person-schema` | Canonical/draft document schemas or editable reference-profile schema, preserving field descriptions. |
-| Document sets | `GET /document-sets` | Authored immutable requirement definitions, including the illustrative onboarding policy. |
+| Document sets | `GET /document-sets?search=&limit=50&offset=0` | Paginated published requirement definitions; literal key/name search. |
+| Exact document set | `GET /document-sets/{key}/versions/{version}` | Exact published definition; no fallback to the latest version. |
 | People | `GET /persons?search=&limit=50&offset=0`, `POST /persons` | Authorized search and creation. Create body: `operation_key`, `profile`. |
 | Person | `GET /persons/{uid}`, `PUT /persons/{uid}` | Replacement reference profile; update adds `expected_revision`. |
 | Assignments | `GET /persons/{uid}/assignments`, `POST /persons/{uid}/document-sets` | Assign exact `document_set_key` and `document_set_version` with an `operation_key`. |
+| Live assignment status | `GET /assignments/{uid}/status` | Fresh assessment with pinned policy, input revisions, counts, alternatives and next actions; no writes. |
+| Missing requirements | `GET /assignments/{uid}/missing-requirements` | Outstanding projection of the same live assessment, including optional requirements and primary blocking reasons. |
 | Assignment detail | `GET /assignments/{uid}` | Pinned policy version, assignment revision, selected `document_uids`. |
 | Assignment evidence | `PUT /assignments/{uid}/documents` | `operation_key`, `expected_revision`, complete selected `document_uids`. Version one permits adding membership; removal is explicitly rejected. |
 | Documents | `GET /persons/{uid}/documents`, `POST /persons/{uid}/documents` | Create with `operation_key`, `document_type`, `schema_version`, draft `payload`, `raw_document_refs`. |
@@ -139,7 +142,14 @@ to any of these make the stored result stale without rewriting it.
 The authored onboarding policy is explicitly illustrative. The service does not
 perform OCR, validate document authenticity or MRZ check digits, infer source-of-funds
 legitimacy, or make a legal onboarding decision. Human reviews and approved policy
-choices remain explicit. Tau extraction and MCP adapters are separate work.
+choices remain explicit. Ten read-only [MCP query tools](mcp.md) now share these services. Tau, extraction
+and mutation MCP adapters remain separate work.
+
+Live status reads compare two input collections and reject intervening changes with
+409 `assessment_inputs_changed_retry_query`. Findings expose the primary blocker per
+requirement (`diagnostics_complete: false`), not an exhaustive defect list. The missing
+view excludes satisfied/non-applicable requirements; pending review is distinct from
+missing evidence. See [MCP query semantics](mcp.md) for the shared result contract.
 
 ## Setup, deployment and verification
 

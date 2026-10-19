@@ -16,7 +16,8 @@ Implemented:
 - An illustrative `new_account_requirements` policy and offline contract/HTTP tests.
 
 The business API is implemented and verified against local Main Sequence MetaTables.
-MCP adapters and the Tau agent remain separate milestones. The deployment workflow
+Ten read-only MCP queries are implemented at `/mcp`; the remaining MCP commands
+and the Tau agent remain separate milestones. The deployment workflow
 gates the API on its explicit migration Job; hosted activation is verified separately.
 
 ## Development
@@ -45,7 +46,10 @@ worker and developer-session adapters remain outside deployable `api/` entry poi
 
 ## Documentation
 
+- [ADR 0001: Back Office helper, full MCP surface and document processing](docs/adr/0001-back-office-helper-mcp-and-document-processing.md)
+- [ADR 0002: Automatic deployment of the agent using only MCP tools](docs/adr/0002-automatic-deployment-of-mcp-only-helper-agent.md)
 - [Business API, permissions and operational contracts](docs/api.md)
+- [Implemented MCP query tools and missing requirements](docs/mcp.md)
 - [Namespace creation, workload roles and deployment](docs/namespace-workflow.md)
 - [Foundation implementation and migration guide](docs/foundation.md)
 - [Generated model reference](docs/model-reference.md)

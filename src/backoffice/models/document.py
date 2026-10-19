@@ -75,6 +75,18 @@ class DocumentInstance(ContractModel):
         title="Revision",
         description="Positive revision of the immutable submitted attributes and source references.",
     )
+    created_at: AwareDatetime = Field(
+        title="Document recorded at",
+        description="Server-recorded instant when the logical document was first created; not the evidence issue date.",
+    )
+    revision_created_at: AwareDatetime = Field(
+        title="Revision recorded at",
+        description="Server-recorded instant when this exact revision was created.",
+    )
+    submitted_at: AwareDatetime = Field(
+        title="Revision submitted at",
+        description="Server-recorded instant when this completed revision became immutable.",
+    )
     schema_version: Literal[1] = Field(
         default=1,
         title="Schema version",

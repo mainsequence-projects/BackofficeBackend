@@ -8,10 +8,12 @@ from ..models.document_set import (
 )
 
 
-def new_account_requirements() -> DocumentSet:
+def new_account_requirements(version: int = 1) -> DocumentSet:
     """Return a fresh policy instance, never a shared mutable singleton."""
+    if version not in (1, 2):
+        raise ValueError("Unknown new-account policy version")
     employed = RequirementCondition(field="employment_status", equals="employed")
-    return DocumentSet(
+    policy = DocumentSet(
         key="new_account_requirements",
         version=1,
         name="New account requirements",
@@ -77,3 +79,42 @@ def new_account_requirements() -> DocumentSet:
             ),
         ],
     )
+
+    if version == 2:
+        definition = policy.model_dump()
+        definition["version"] = 2
+        definition["description"] = (
+            "Illustrative account-opening policy with six-calendar-month address and questionnaire freshness, and identity review renewal every six calendar months."
+        )
+        for requirement in definition["requirements"]:
+            if requirement["key"] == "identity":
+                requirement["description"] = (
+                    "One currently valid accepted identity document, reviewed again every six calendar months."
+                )
+                for option in requirement["options"]:
+                    option["renewal_interval_months"] = 6
+            elif requirement["key"] == "address":
+                requirement["description"] = (
+                    "One accepted source with a matching address dated within six calendar months of evaluation."
+                )
+                for option in requirement["options"]:
+                    option["max_age_days"] = None
+                    option["max_age_months"] = 6
+            elif requirement["key"] == "customer_questionnaire":
+                requirement["description"] = (
+                    "One complete accepted questionnaire completed within six calendar months of evaluation."
+                )
+                requirement["options"][0].update(max_age_months=6, freshness_field="completed_at")
+        return DocumentSet.model_validate(definition)
+    return policy
+
+
+def policy_definition(policy: DocumentSet) -> dict:
+    """Preserve the exact already-published v1 JSON when adding optional rules."""
+    definition = policy.model_dump(mode="json")
+    if policy.version == 1:
+        for requirement in definition["requirements"]:
+            for option in requirement["options"]:
+                for key in ("max_age_months", "renewal_interval_months", "renewal_basis"):
+                    option.pop(key)
+    return definition

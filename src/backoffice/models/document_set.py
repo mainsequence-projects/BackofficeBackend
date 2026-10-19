@@ -56,7 +56,26 @@ class DocumentOption(ContractModel):
     freshness_field: NonEmptyStr | None = Field(
         default=None,
         title="Freshness date field",
-        description="Document date path used to measure age, such as issue_date; required with a maximum age.",
+        description="Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
+    )
+    max_age_months: int | None = Field(
+        default=None,
+        ge=1,
+        le=1200,
+        title="Maximum age in calendar months",
+        description="Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
+    )
+    renewal_interval_months: int | None = Field(
+        default=None,
+        ge=1,
+        le=1200,
+        title="Renewal interval in calendar months",
+        description="Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
+    )
+    renewal_basis: Literal["reviewed_at", "submitted_at"] = Field(
+        default="reviewed_at",
+        title="Renewal measured from",
+        description="Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
     )
 
     @model_validator(mode="after")
@@ -68,13 +87,18 @@ class DocumentOption(ContractModel):
             raise ValueError("required_fields must be unique")
         for path in self.required_fields:
             resolve_field_schema(model, path)
-        if (self.max_age_days is None) != (self.freshness_field is None):
-            raise ValueError("max_age_days and freshness_field must be supplied together")
+        if self.max_age_days is not None and self.max_age_months is not None:
+            raise ValueError("Choose max_age_days or max_age_months, not both")
+        has_age = self.max_age_days is not None or self.max_age_months is not None
+        if has_age != (self.freshness_field is not None):
+            raise ValueError("A maximum age and freshness_field must be supplied together")
+        if self.renewal_basis != "reviewed_at" and self.renewal_interval_months is None:
+            raise ValueError("renewal_basis requires renewal_interval_months")
         if self.freshness_field:
             field = resolve_field_schema(model, self.freshness_field)
             choices = field.get("anyOf", [field])
-            if not any(item.get("format") == "date" for item in choices):
-                raise ValueError("freshness_field must identify a calendar date")
+            if not any(item.get("format") in ("date", "date-time") for item in choices):
+                raise ValueError("freshness_field must identify a date or datetime")
         return self
 
 

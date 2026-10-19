@@ -1,0 +1,242 @@
+---
+name: tau-local-development
+description: Run and diagnose Main Sequence TAU SDK local mode, including live provider and MCP access, workspace SQLite persistence, and public local A2A Message and Task workflows.
+---
+
+# TAU Local Development
+
+Use this skill when developing a repository that embeds `ms-tau-sdk` without creating platform
+Agent or AgentSession runtime records. Local mode changes where runtime state is stored. It is not
+an offline, mock-provider, or mock-MCP mode.
+
+## Start the process
+
+The user logs in once with a Main Sequence CLI that provides `mainsequence auth token`. Local mode
+then asks that CLI for a short-lived access token, at startup and again when the token is about to
+expire. No token is exported and none is written to the project `.env`. The SDK does not install or
+import the `mainsequence` Python package and does not read the CLI's private credential store.
+
+```bash
+mainsequence login   # once; the session is kept by the CLI, not in .env
+
+export MAINSEQUENCE_AUTH_MODE=jwt
+export TAU_LOCAL_MODE=true
+export TAU_LOCAL_PROVIDER="<provider>"
+export TAU_LOCAL_MODEL="<model>"
+# Optional:
+export TAU_LOCAL_THINKING="<thinking-level>"
+
+uv run ms-tau
+```
+
+The SDK looks for the CLI in `MAINSEQUENCE_CLI`, then beside the Python interpreter that runs
+`ms-tau`, then on `PATH`. Launchers and CI can export `MAINSEQUENCE_ACCESS_TOKEN` and
+`MAINSEQUENCE_REFRESH_TOKEN` instead. With both set, the SDK uses that pair and never runs the
+CLI. Do not add token lines to `.env`. A pair found there still works, but it is deprecated and
+startup logs a warning. `mainsequence refresh-token` run in that directory removes the lines.
+
+Do not set `APP_NAME`, `FASTAPI_PUBLIC_BASE_URL`, `MAINSEQUENCE_CALLER_AUTH_MODE=assertion`, the
+`MAINSEQUENCE_CALLER_ASSERTION_*` variables or `MAINSEQUENCE_A2A_MESSAGE_LIMIT_SECONDS`. The
+platform sets them when it hosts a runtime, and local mode refuses to start with them.
+
+Set `MAINSEQUENCE_ENDPOINT` only for a non-default platform endpoint. The CLI session must be for
+the same endpoint. Local mode binds to `127.0.0.1:8787` by default. Treat an explicit public bind
+as privileged exposure: each accepted request can use the authenticated user's live Main Sequence
+permissions.
+
+Never place JWTs or provider credentials in source control, `.tau`, copied skills, command output,
+or debugging artifacts. Do not run `mainsequence auth token` to read its output: it prints the
+access token. The user JWT is sent only to Main Sequence. Main Sequence validates the
+explicit `TAU_LOCAL_PROVIDER` and `TAU_LOCAL_MODEL`, returns provider-control evidence, and hydrates
+the provider credential used for inference. Provider secrets are neither environment settings nor
+local state.
+
+## Exact local/remote boundary
+
+| Concern | Local-mode behavior |
+| --- | --- |
+| Agent or AgentSession registration | Never created or updated |
+| Chat history, snapshots, leases, activity, and cancellation | Workspace SQLite |
+| Public A2A Message and Task state | Workspace SQLite |
+| Main Sequence authentication and token refresh | Remote. The token comes from the Main Sequence CLI session, or from an exported JWT pair |
+| Provider authorization, hydration, and inference | Remote and real |
+| Main Sequence MCP catalog and tool calls | Remote and real; platform mutations remain possible |
+| Project instructions, skills, hooks, and extensions | Normal repository `.tau` composition |
+
+The database defaults to `~/.tau/mainsequence/<workspace-hash>/runtime.sqlite3`; override its
+parent only with `TAU_LOCAL_STATE_ROOT`. Local state is never uploaded or attached to a platform
+AgentSession when local mode is disabled. Stop all processes for the workspace before moving or
+deleting its workspace-hash directory.
+
+Local operational events are also written as structured JSON Lines to
+`~/.tau/mainsequence/<workspace-hash>/logs/tau.jsonl` (or beneath `TAU_LOCAL_STATE_ROOT`). The
+file sink is mandatory in local mode even when console logging is enabled. Read the current file
+and its five rotated backups when diagnosing startup, provider, MCP, A2A, or project-extension
+failures. The SDK log does not capture arbitrary extension `print()` output; project-owned code
+must use propagating Python logging and must not log secrets or prompt/tool payloads. A failure to
+open the file stops startup; the logs are never uploaded to an AgentSession.
+
+## Public local A2A contract
+
+An A2A protocol Task is local coordination state, not a platform `AgentTask`, and does not require
+a platform AgentSession. Local mode supports:
+
+- REST `POST /api/a2a/v1/message:send` and JSON-RPC `message/send` for Message or Task execution;
+- REST `POST /api/a2a/v1/message:stream` and JSON-RPC `message/stream` for SSE Task execution;
+- REST `GET /api/a2a/v1/tasks`, `GET /api/a2a/v1/tasks/{task_id}`,
+  `POST /api/a2a/v1/tasks/{task_id}:cancel`, and
+  `GET /api/a2a/v1/tasks/{task_id}:subscribe`;
+- JSON-RPC `tasks/list`, `tasks/get`, `tasks/cancel`, and `tasks/subscribe`;
+- subscription resumption with `afterSequence`;
+- continuation of a Task in `input_required` or `auth_required` by sending a new Message carrying
+  that `taskId`; and
+- Task status, messages, artifacts, attempts, and events surviving process restart, with the SDK
+  rescheduling safe unclaimed work and terminalizing stale uncertain work rather than replaying
+  possible side effects.
+
+For a chat UI over `POST /api/chat`, do not read `runtime.sqlite3` or keep a browser-only
+transcript either. List sessions with `GET /api/local/v1/chat-sessions?limit=<n>&cursor=<opaque>`
+and hydrate one with `GET /api/local/v1/chat-sessions/{sessionUid}/history`. The history has the
+platform's `GET /api/v1/agent-sessions/{uid}/history/` shape, including reasoning, tool calls with
+results, and a running turn in `inProgressMessage`, so one reader serves local and deployed
+Agents. Reuse the listed `sessionUid` in `POST /api/chat`. A local chat turn keeps running when
+the client disconnects or reloads; stop it only with `POST /api/chat/session/cancel`, and queue a
+new message while a session is `working` (`POST /api/chat` returns 409 `session_busy`). Title the
+UI from `GET /api/local/v1/agent`, which reads the workspace's `.agents/agent_card.json`.
+
+For the default direct Message flow, do not read `runtime.sqlite3` or keep a browser-only source of
+truth. Discover conversations with `GET /api/local/v1/conversations?limit=<n>&cursor=<opaque>` and
+hydrate the latest bounded Message tail with
+`GET /api/local/v1/conversations/{contextId}/messages?limit=<n>&beforeSequence=<n>`. Reuse the
+listed canonical `contextId` in `message:send`. These are Main Sequence local SDK extensions, not
+A2A v1 methods. They contain only persisted public `ROLE_USER`/`ROLE_AGENT` Messages and are
+separate from `Task.history`, Tau entries, tools, reasoning, events, and logs.
+
+To request a Task from `message:send`, send the response-kind extension header
+`A2A-Extensions: https://mainsequence.ai/a2a/extensions/response-kind/v1` together with
+`configuration.responseKind: "task"`. Omit that selection for the default completed Message
+response. `message:stream` is always Task-oriented and does not accept `responseKind` or
+`returnImmediately`.
+
+Local mode has no platform Message limit: a direct Message ends only at
+`MAINSEQUENCE_TAU_TURN_TIMEOUT_SECONDS`. A hosted Agent answers a direct Message within the
+platform's 90 seconds or with HTTP 504 `DEADLINE_EXCEEDED`, so design work that may take longer as
+a Task.
+
+Task terminality is derived only from its A2A state. `completed`, `failed`, `canceled`, and
+`rejected` are terminal; `input_required` and `auth_required` are resumable. A normal execution
+failure produces a durable failed Task and a standard responder `status.message`. A
+`task_terminalization_unknown` stream error means the terminal write itself could not be proven;
+retrieve or subscribe to the Task while recovery resolves it. Never treat an HTTP disconnect or
+bounded wait expiry as Task cancellation.
+
+Task responses include a bounded Message tail by default. Set `configuration.historyLength` on
+Message send/stream or `historyLength` on Task get/list: zero omits history and performs no tail
+read, while a positive value returns the latest Messages oldest-to-newest, capped at 100. History
+contains requester and deliberately durable responder/status Messages only. Final output remains
+under `artifacts`; Tau entries, tool activity, events, and logs never become public history. Public
+roles are `ROLE_USER`/`ROLE_AGENT`; the local SQLite binding stores requester/responder directions.
+
+Each local Task attempt reserves one immutable Tau turn. Its entries share that turn UID and remain
+inside the recorded half-open sequence interval. Completed and interrupted settlement requires a
+committed turn; failed, rejected, or canceled settlement can abandon a pending turn, after which
+late append or commit is rejected. An unresolved Task-owned turn prevents lease replacement until
+the local Task reconciler records its recovery outcome. Ordinary chat/direct-Message turns have no
+Task owner and retain normal lease cleanup.
+
+After restart, the local reconciler schedules an unclaimed `submitted` Task from its persisted
+request. It does not blindly rerun a stale `working` Task: once the old lease and stale interval
+expire, an attempt without replay-safe checkpoint evidence becomes failed with
+`ambiguous_execution_outcome`. Inspect the failure code, attempt, recovery owner, and correlation ID
+in Tau Board and the structured log.
+
+Incoming local A2A requests do not need managed-gateway `X-Caller-*` headers. TAU assigns
+workspace-local provenance and maps each supplied `contextId` into the same workspace-scoped local
+session namespace used by chat. A supplied `taskId` remains the public Task identifier. The local
+`GET /api/a2a/v1/extendedAgentCard` response advertises Message, Task, and streaming support while
+disabling push notifications.
+
+The following remain unavailable because they require registered platform routing or callback
+identity:
+
+- platform discovery of the unregistered local process;
+- `/internal/a2a` backend dispatch and caller-delivery hooks;
+- A2A push-notification configuration; and
+- `resume_caller` Task completion.
+
+These are the only A2A-adjacent capability boundaries; public local Message and Task requests must not return
+`local_mode_capability_unsupported`.
+
+Each standard A2A Task carries the time its current state was recorded in
+`task.status.timestamp`. For `TASK_STATE_COMPLETED`, that is the completion time. The A2A Task
+object has no standard top-level creation timestamp; Tau persists `created_at` in local SQLite,
+and Tau Board joins that local row when it displays the A2A Task list. Do not invent extra A2A
+wire fields for Board presentation.
+
+## Inspect and test with Tau Board
+
+Install `ms-tau-sdk[tau-board]`, run `tau-board` as a separate process, and connect it to the
+loopback local-mode Tau endpoint. The Agent tab requires an already loaded session: first send a
+Chat or A2A request, then select that session. It shows the effective Agent Card, loaded tools by
+source, project extension diagnostics, and registered project extension entry source.
+
+Only project-extension tools with an object JSON Schema are runnable in the workbench. Select the
+tool, fill its generated form or raw JSON, validate the exact canonical arguments, acknowledge
+the side-effect warning, then run it. Validation never calls the tool. Run invokes the exact
+loaded tool without a model call and without adding chat entries, A2A Tasks, or artifacts. The
+tool still has the Tau process's real filesystem, network, environment, and credential access;
+there is no automatic rollback. A busy session, stale catalog, expired confirmation, non-project
+tool, oversized output, timeout, or cancellation must fail explicitly.
+
+The Tasks tab is the primary inspection surface: Overview states the lifecycle, Conversation shows
+durable Messages, Result shows complete Artifacts, Execution uses exact attempt/turn correlation,
+and Technical retains mutation events and logs. **Open in A2A Console** is an action shortcut, not
+the Task explanation. Many `output_updated` records represent revisions of one Artifact and must
+not be interpreted as many agent responses.
+
+## Outbound A2A through Main Sequence MCP
+
+Keep the projected `a2a.send_message` tool available. A local agent may send a Message or create a
+Task for a deployed Agent using authenticated-user semantics. For a Task, use
+`completion_policy: "poll"` and use the returned Task handle with `a2a.wait_task`. Local mode rejects
+`completion_policy: "resume_caller"` because it has no registered callback target and never
+fabricates caller-session proof. Other live MCP tools remain available and can read or mutate real
+platform resources under the authenticated user's permissions.
+
+## Verify the runtime
+
+Check the process in this order:
+
+1. `GET /health` reports `mode: local`, safe composition diagnostics, and
+   `mainsequence_auth_source`: `cli`, `environment`, or `env_file`.
+2. `GET /ready` confirms user authentication, provider control, local storage, and MCP readiness.
+3. `GET /version` reports the expected installed SDK release.
+4. A chat request without `sessionUid` returns an effective identifier in
+   `X-Agent-Session-Uid`; reuse it to resume the conversation.
+5. A REST `POST /api/a2a/v1/message:send` without gateway caller headers returns a Message.
+6. Repeat it with the response-kind extension and `configuration.responseKind: "task"`; verify
+   the Task through `GET /api/a2a/v1/tasks/{task_id}` and after a process restart.
+7. Verify `POST /api/a2a/v1/message:stream`, cancellation, subscription, and continuation for the
+   project workflow being developed.
+
+## Classify failures
+
+- Startup setting failure: inspect the exact missing or conflicting environment variable.
+- Authentication failure: read the error, which names its remedy. The user runs
+  `mainsequence login`, upgrades a Main Sequence CLI that is too old for `auth token`, sets
+  `MAINSEQUENCE_CLI`, or provides the JWT pair. With an exported pair, export a fresh one. Do not
+  substitute a runtime credential in local mode.
+- Provider/model rejection: verify the exact configured names against the authenticated live
+  catalog; do not silently select a different model.
+- OpenAI-compatible transport failure: open the Task's failure incident in Tau Board. Use its
+  concrete HTTPX type, transport phase, attempt count, provider duration, failure UID, and bounded
+  traceback frames; expand raw JSON only for additional correlation fields. Do not infer a timeout
+  when the dependency explicitly reports that its cause was unavailable.
+- MCP failure: distinguish catalog/connectivity failure from server-side authorization. A tool
+  genuinely requiring caller AgentSession proof must fail explicitly without causing registration.
+- Session conflict: keep one provider/model/thinking selection for an existing local session or
+  intentionally use a new local state namespace.
+- Public local A2A capability error: treat it as a stale or defective SDK. Capability errors are
+  valid only at the unsupported routing/callback boundaries listed above.
+- Project behavior failure: inspect `.tau` resources and extension diagnostics using
+  `tau-project-customization`.

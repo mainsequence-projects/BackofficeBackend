@@ -85,7 +85,7 @@ class Storage:
     def rows(self, table, *conditions, limit=200, offset=0, order=None):
         statement = select(table).where(*conditions).limit(limit).offset(offset)
         if order is not None:
-            statement = statement.order_by(order)
+            statement = statement.order_by(*(order if isinstance(order, tuple) else (order,)))
         result = self.execute(statement)
         rows = result.get("rows", [])
         if result.get("pagination", {}).get("has_more") and len(rows) < limit:

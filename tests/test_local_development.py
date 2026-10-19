@@ -75,7 +75,7 @@ def gateway(app):
 def test_developer_credential_stays_server_side_and_actual_api_verifies_it(monkeypatch):
     from mainsequence.server import fastapi as sdk_identity
 
-    from api.app.main import app
+    from api.app.main import create_app
 
     uid = str(uuid4())
     monkeypatch.setenv("MAINSEQUENCE_ENDPOINT", "http://platform.invalid")
@@ -91,7 +91,7 @@ def test_developer_credential_stays_server_side_and_actual_api_verifies_it(monke
         return SimpleNamespace(status_code=200, json=lambda: {"uid": uid, "username": "developer"})
 
     monkeypatch.setattr(sdk_identity.requests, "get", verify)
-    with TestClient(gateway(app), base_url=API, client=("127.0.0.1", 49000)) as client:
+    with TestClient(gateway(create_app()), base_url=API, client=("127.0.0.1", 49000)) as client:
         response = client.get(
             "/",
             headers={

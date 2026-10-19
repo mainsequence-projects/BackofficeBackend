@@ -20,7 +20,7 @@ resources:
       cors_allowed_origins:
         - https://*.site-dev.main-sequence.app
       public_ingress: []
-      mcp_enabled: false
+      mcp_enabled: true
     access:
       branches:
         - repository: MetaTables

@@ -200,3 +200,41 @@ The deployment workflow is now authored and validated. Hosted activation is a
 separate operation; the explicit Job publishes the authored schemas and policy. Keep applied revisions immutable; later changes
 require new revisions. A release rollback does not undo schema changes; any
 downgrade requires an explicit data-preservation plan.
+
+## Evidence dates, freshness, and renewal
+
+`created_at` is the server timestamp for the logical document. The document API
+also exposes `revision_created_at` and `submitted_at` for the requested revision;
+a draft has no submission timestamp. Review time belongs to the exact revision's
+latest review. None of these timestamps substitutes for a printed evidence date.
+
+Each requirement still contains alternative `DocumentOption` values. Configure
+exactly one of `max_age_days` or `max_age_months` together with `freshness_field`.
+That path may refer to a calendar date or an aware datetime such as questionnaire
+`completed_at`; datetime freshness uses the UTC calendar date. The age limit is
+inclusive. Missing dates require information; future dates and stale evidence
+cannot qualify.
+
+`renewal_interval_months` separately requires periodic action. `renewal_basis`
+selects `reviewed_at` (repeat acceptance review) or `submitted_at` (submit and
+review a new revision). Renewal is due on the anniversary, not the following day.
+Calendar months clamp to the last day of shorter months, so August 31 plus six
+months reaches February 28/29. Re-review changes the review renewal deadline but
+never the underlying evidence age or expiration date.
+
+The catalog publisher retains the exact immutable version 1 JSON and additionally
+publishes version 2: six-month address and questionnaire freshness and six-month
+identity review renewal. Assignments explicitly select a published version and
+never migrate silently. These remain illustrative business policy choices.
+
+`GET /assignments/{uid}/status` computes current findings without writing an audit
+evaluation. Each evidence reference includes `dates` with freshness, expiration,
+renewal and next-action dates; `due_status` uses a 30-day advance reminder window.
+The frontend refreshes these results on open/focus and every minute while open.
+There is no background notification delivery. Persisted evaluations retain their
+original input and deadlines; the evaluator version is now `2`, so earlier
+snapshots correctly report as stale when read with the new evaluator.
+
+This change uses existing timestamps and JSON policy/evaluation columns; no table
+migration or timestamp backfill is required. The deployment migration job must run
+its existing catalog-publication step to make version 2 available before rollout.

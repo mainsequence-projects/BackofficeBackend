@@ -82,25 +82,20 @@ access and reviewer permissions, and return compatible typed business results.
 MCP mounted on the business app must retain verified caller identity through the
 actual transport; test this path explicitly.
 
-All endpoints and tool names below are proposed application interfaces, not built-in
-Main Sequence operations.
+[ADR 0001: Back Office helper and document processing](adr/0001-back-office-helper-mcp-and-document-processing.md)
+is the authoritative proposed MCP catalog and REST mapping. It covers caller/person
+queries, document sets and assignments, live status and missing requirements,
+document history, commands, bucket uploads, and durable classification/extraction.
+It distinguishes existing REST behavior from new or extended operations. These are
+application interfaces, not built-in Main Sequence operations. The first ten
+read-only tools are implemented; see the [MCP query reference](mcp.md). Remaining
+commands and the Tau runtime are pending.
 
-| Operation | REST interface | MCP tool |
-| --- | --- | --- |
-| Discover types | `GET /document-types` | `list_document_types` |
-| Retrieve canonical/draft form contract | `GET /document-types/{type}/schema` | `get_document_schema` |
-| Create/read a person | `POST /persons`, `GET /persons/{uid}` | `create_person`, `get_person` |
-| Start an upload | `POST /source-documents/uploads` | `start_document_upload` |
-| Upload/finalize bounded source content | Chunk and finalize routes under `/source-documents/uploads/{uid}` | Typed upload/finalize adapters only if the agent actually needs them |
-| Register a document using ready source UIDs | `POST /persons/{uid}/documents` | `register_document` |
-| Update draft attributes | `PATCH /documents/{uid}/draft` | `update_document_draft` |
-| Submit a revision | `POST /documents/{uid}/revisions` | `submit_document_revision` |
-| Read available sets | `GET /document-sets` | `list_document_sets` |
-| Assign a set version | `POST /persons/{uid}/document-sets` | `assign_document_set` |
-| Evaluate an assignment | `POST /assignments/{uid}/evaluations` | `evaluate_document_set` |
-| Read findings | `GET /evaluations/{uid}` | `get_reconciliation_report` |
-| Review an exact revision | `POST /documents/{uid}/reviews` | `review_document`, restricted to authorized reviewer use |
-| Start/read processing | `POST /documents/{uid}/processing`, `GET /processing-runs/{uid}` | `start_document_processing`, `get_processing_status` |
+Submission maps to `POST /documents/{uid}/submit`. The existing
+`POST /documents/{uid}/revisions` route saves a draft revision. Processing starts
+from a ready source through proposed `POST /source-documents/{uid}/process`; its
+status is read through `GET /document-processing-runs/{uid}`. These replace the
+older processing names and route suggestions.
 
 The default reconciliation agent's tool surface omits the reviewer mutation. A
 future reviewer-assistant use case must explicitly implement its permissions and

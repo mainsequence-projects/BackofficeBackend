@@ -21,7 +21,10 @@ from src.backoffice.models.document_set import (
     RequirementCondition,
 )
 from src.backoffice.models.person import Person
-from src.backoffice.policies import new_account_requirements
+from src.backoffice.policies.new_account_requirements import (
+    new_account_requirements,
+    policy_definition,
+)
 from src.backoffice.schemas.catalog import document_schema
 from src.backoffice.schemas.registry import DOCUMENT_MODELS
 
@@ -106,9 +109,10 @@ def generated_files() -> dict[Path, str]:
         files[Path(f"schemas/documents/{kind}/v{version}.json")] = (
             json.dumps(contract, indent=2, ensure_ascii=False) + "\n"
         )
-    files[Path("schemas/document_sets/new_account_requirements.v1.json")] = (
-        new_account_requirements().model_dump_json(indent=2) + "\n"
-    )
+    for version in (1, 2):
+        files[Path(f"schemas/document_sets/new_account_requirements.v{version}.json")] = (
+            json.dumps(policy_definition(new_account_requirements(version)), indent=2) + "\n"
+        )
     lines = [
         "# MetaTable dictionary",
         "",

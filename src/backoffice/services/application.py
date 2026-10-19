@@ -16,7 +16,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete, select
 
 from ..models.person import Person
-from ..policies.new_account_requirements import new_account_requirements
+from ..policies.new_account_requirements import new_account_requirements, policy_definition
 from ..schemas.drafts import get_draft_model
 from ..schemas.registry import DOCUMENT_MODELS, get_document_model
 from ..tables.documents import DocumentRecord, DocumentReviewRecord, DocumentRevisionRecord
@@ -102,6 +102,44 @@ class Application:
         page = self.db.page(P, *conditions, limit=limit, offset=offset, order=P.c.created_at.desc())
         page["items"] = [row["profile"] for row in page["items"]]
         return page
+
+    def list_document_sets(self, search="", limit=50, offset=0):
+        conditions = [SETS.c.status == "published"]
+        if search:
+            from sqlalchemy import or_
+
+            escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            conditions.append(
+                or_(
+                    SETS.c.set_key.ilike(f"%{escaped}%", escape="\\"),
+                    SETS.c.definition["name"].as_string().ilike(f"%{escaped}%", escape="\\"),
+                )
+            )
+        page = self.db.page(
+            SETS,
+            *conditions,
+            limit=limit,
+            offset=offset,
+            order=(SETS.c.set_key.asc(), SETS.c.version.desc()),
+        )
+        page["items"] = [row["definition"] for row in page["items"]]
+        return page
+
+    def document_set(self, key, version):
+        policy = self.db.one(SETS, set_key=key, version=version)
+        if policy is None or policy["status"] != "published":
+            fail(404, "document_set_version_not_found")
+        return policy["definition"]
+
+    def list_assignments(self, person_uid, limit=50, offset=0):
+        self.case(person_uid)
+        return self.db.page(
+            A,
+            A.c.person_uid == UUID(str(person_uid)),
+            limit=limit,
+            offset=offset,
+            order=(A.c.created_at.desc(), A.c.uid.asc()),
+        )
 
     def step(self, table, values, *, keys=None, expected=None):
         return {
@@ -339,20 +377,21 @@ class Application:
                     },
                 )
             )
-        policy = new_account_requirements()
-        steps.append(
-            self.ensure_step(
-                SETS,
-                {
-                    "set_key": policy.key,
-                    "version": policy.version,
-                    "definition": policy.model_dump(mode="json"),
-                    "status": "published",
-                    "published_at": now,
-                    "created_at": now,
-                },
+        for version in (1, 2):
+            policy = new_account_requirements(version)
+            steps.append(
+                self.ensure_step(
+                    SETS,
+                    {
+                        "set_key": policy.key,
+                        "version": policy.version,
+                        "definition": policy_definition(policy),
+                        "status": "published",
+                        "published_at": now,
+                        "created_at": now,
+                    },
+                )
             )
-        )
         # Existing immutable catalog definitions retain their original timestamps.
         for step in steps:
             table = TABLES[step["table"]]
@@ -365,8 +404,10 @@ class Application:
         return steps
 
     def assign(self, uid, command):
-        policy = new_account_requirements()
-        if (command.document_set_key, command.document_set_version) != (policy.key, policy.version):
+        policy = self.db.one(
+            SETS, set_key=command.document_set_key, version=command.document_set_version
+        )
+        if policy is None or policy["status"] != "published":
             fail(404, "document_set_version_not_found")
 
         def build(op, now):
@@ -377,8 +418,8 @@ class Application:
                     {
                         "uid": assignment_uid,
                         "person_uid": str(uid),
-                        "set_key": policy.key,
-                        "set_version": policy.version,
+                        "set_key": policy["set_key"],
+                        "set_version": policy["version"],
                         "revision": 1,
                         "created_at": now,
                         "updated_at": now,
@@ -604,6 +645,8 @@ class Application:
         return {
             **row,
             "revision": revision["revision"] if revision else 0,
+            "revision_created_at": revision["created_at"] if revision else None,
+            "submitted_at": revision["submitted_at"] if revision else None,
             "schema_version": revision["schema_version"] if revision else 1,
             "status": revision["status"] if revision else "draft",
             "payload": revision["payload"] if revision else {},
@@ -796,8 +839,52 @@ class Application:
             "policy": policy,
             "documents": documents,
             "evaluation_date": datetime.now(UTC).date().isoformat(),
-            "evaluator_version": "1",
+            "evaluator_version": "2",
         }
+
+    def current_status(self, uid):
+        """Reevaluate a stable snapshot without writing a retained evaluation."""
+        from .queries import AssignmentStatus
+        from .reconciliation import reconcile
+
+        assignment = self.assignment(uid)
+        snapshot = self.evaluation_input(uid)
+        findings, summary = reconcile(snapshot, diagnostics=True)
+        # Revision/review/source inputs are immutable or monotonically versioned.
+        # Two equal collections plus lock admission detect an intervening mutation.
+        self.case(assignment["person_uid"])
+        if canonical(snapshot) != canonical(self.evaluation_input(uid)):
+            fail(409, "assessment_inputs_changed_retry_query")
+        self.case(assignment["person_uid"])
+        return AssignmentStatus(
+            person_uid=assignment["person_uid"],
+            person_revision=snapshot["person"]["revision"],
+            assignment_uid=str(uid),
+            assignment_revision=snapshot["assignment"]["revision"],
+            set_key=snapshot["assignment"]["set_key"],
+            set_version=snapshot["assignment"]["set_version"],
+            evaluator_version=snapshot["evaluator_version"],
+            assessed_at=datetime.now(UTC),
+            findings=findings,
+            summary=summary,
+            scope="Only documents explicitly linked to this assignment; all requirements included.",
+        ).model_dump(mode="json")
+
+    def missing_requirements(self, uid):
+        from .queries import MissingRequirements
+
+        status = self.current_status(uid)
+        findings = status["findings"]
+        outstanding = [x for x in findings if x["status"] not in {"satisfied", "not_applicable"}]
+        return MissingRequirements(
+            **{
+                **status,
+                "findings": outstanding,
+                "scope": "Only documents explicitly linked to this assignment; outstanding requirements only, including optional requirements.",
+            },
+            total_requirements=len(findings),
+            outstanding_requirements=len(outstanding),
+        ).model_dump(mode="json")
 
     def evaluate(self, uid, command):
         from .reconciliation import reconcile

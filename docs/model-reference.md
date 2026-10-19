@@ -290,6 +290,9 @@ Source: `src.backoffice.models.document`.
 | `uid` | `uuid` | Yes | Stable UID of the person's logical document. |
 | `person_uid` | `uuid` | Yes | Business person to whom this document belongs. |
 | `revision` | `integer` | Yes | Positive revision of the immutable submitted attributes and source references. |
+| `created_at` | `date-time` | Yes | Server-recorded instant when the logical document was first created; not the evidence issue date. |
+| `revision_created_at` | `date-time` | Yes | Server-recorded instant when this exact revision was created. |
+| `submitted_at` | `date-time` | Yes | Server-recorded instant when this completed revision became immutable. |
 | `schema_version` | `1` | No | Exact document contract version used by this revision. |
 | `data` | `NationalIdentityCard or Passport or ResidencePermit or UtilityBill or BankStatement or EmploymentContract or Payslip or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaire` | Yes | Completed typed document attributes selected by document_type. |
 | `raw_document_refs` | `list[RawDocumentRef]` | Yes | References to immutable ready source documents, including front/back images or a questionnaire snapshot. |
@@ -317,7 +320,10 @@ Source: `src.backoffice.models.document_set`.
 | `required_fields` | `list[string]` | No | Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city. |
 | `require_unexpired` | `boolean` | No | Whether the evaluator must establish document validity on the evaluation date. |
 | `max_age_days` | `integer or null` | No | Maximum age in whole calendar days from the freshness field; null means no age limit. |
-| `freshness_field` | `string or null` | No | Document date path used to measure age, such as issue_date; required with a maximum age. |
+| `freshness_field` | `string or null` | No | Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date. |
+| `max_age_months` | `integer or null` | No | Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days. |
+| `renewal_interval_months` | `integer or null` | No | Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal. |
+| `renewal_basis` | `reviewed_at, submitted_at` | No | Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age. |
 
 ## `DocumentRequirement`
 
