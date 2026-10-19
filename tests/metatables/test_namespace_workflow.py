@@ -35,7 +35,7 @@ def test_every_provider_table_and_registry_register_in_the_application_namespace
     assert len({request.identifier for request in requests}) == 17
 
 
-def test_deployment_requires_migrations_before_consumers_and_platform_reader_access():
+def test_deployment_requires_migrations_before_direct_consumers_and_platform_reader_access():
     workflow = yaml.safe_load((ROOT / ".mainsequence/workflows/backoffice.yaml").read_text())
     assert workflow["api_version"] == "3.0.0"
     resources = {resource["key"]: resource for resource in workflow["resources"]}
@@ -45,9 +45,9 @@ def test_deployment_requires_migrations_before_consumers_and_platform_reader_acc
     assert job["spec"]["execution_path"] == "scripts/migrate_backoffice.py"
     assert steps["migrate"]["needs"] == ["image"]
     assert steps["migrate"]["image_from"] == "image"
-    consumers = {
-        key for key, value in resources.items() if value["kind"] in ("fastapi", "harness_agent")
-    }
+    # The helper consumes the API through MCP and must not receive table access.
+    # Its separate deployment chain and restricted grant are checked in tests/agent.
+    consumers = {key for key, value in resources.items() if value["kind"] == "fastapi"}
     assert consumers
     for key in {*consumers, job["key"]}:
         assert {"repository": "MetaTables", "policy": "reader"} in resources[key]["access"][

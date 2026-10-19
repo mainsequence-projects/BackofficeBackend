@@ -25,6 +25,49 @@ resources:
       branches:
         - repository: MetaTables
           policy: reader
+  - key: backoffice_helper
+    kind: harness_agent
+    acts_for_requester: true
+    access:
+      resources:
+        - key: backoffice_api
+          policy: reader
+    spec:
+      source_path: api/tau/main.py
+      mcp_applications:
+        - resource: backoffice_api
+      env_vars:
+        - name: TAU_EXCLUDE_BASE_TOOLS
+          value: "true"
+        - name: TAU_EXCLUDE_MAINSEQUENCE_MCP
+          value: "true"
+      # Defaults follow the existing tutorial's platform-managed provider setup.
+      # The session principal must have access to this provider/model combination.
+      llm_provider: openai-codex
+      llm_model: gpt-5.5
+      llm_thinking: medium
+      min_scale: 0
+      max_scale: 5
+      cpu_request: "0.25"
+      memory_request: "0.5"
+      spot: false
+      automatic_deployment: true
+      automatic_redeployment:
+        enabled: true
+        tag_regex: null
+      revision_retention_count: 3
+  - key: verify-backoffice-agent
+    kind: job
+    spec:
+      name: Back Office agent contract verification
+      execution_path: scripts/check_agent_contract.py
+      cpu_request: "0.25"
+      memory_request: "0.5"
+      max_runtime_seconds: 120
+      spot: false
+      automatic_redeployment:
+        enabled: true
+        tag_regex: null
   - key: migrate-backoffice
     kind: job
     spec:
@@ -53,3 +96,14 @@ execution:
       deploy: backoffice_api
       image_from: image
       needs: [migrate]
+    agent_contract:
+      run_job: verify-backoffice-agent
+      image_from: image
+      needs: [deploy_api]
+    agent_image:
+      prepare_image: backoffice_helper
+      needs: [agent_contract]
+    deploy_agent:
+      deploy: backoffice_helper
+      image_from: agent_image
+      needs: [agent_image]

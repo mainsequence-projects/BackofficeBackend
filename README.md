@@ -48,6 +48,7 @@ worker and developer-session adapters remain outside deployable `api/` entry poi
 
 - [ADR 0001: Back Office helper, full MCP surface and document processing](docs/adr/0001-back-office-helper-mcp-and-document-processing.md)
 - [ADR 0002: Automatic deployment of the agent using only MCP tools](docs/adr/0002-automatic-deployment-of-mcp-only-helper-agent.md)
+- [Back Office helper configuration, deployment and verification](docs/agent.md)
 - [Business API, permissions and operational contracts](docs/api.md)
 - [Implemented MCP query tools and missing requirements](docs/mcp.md)
 - [Namespace creation, workload roles and deployment](docs/namespace-workflow.md)

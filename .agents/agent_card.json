@@ -1,0 +1,21 @@
+{
+  "name": "Back Office Helper",
+  "description": "Answers read-only questions about accessible people, assigned document sets and missing requirements using the Back Office MCP application.",
+  "version": "0.1.0",
+  "capabilities": {
+    "extensions": [{
+      "uri": "https://mainsequence.ai/a2a/extensions/response-kind/v1",
+      "description": "Return a completed conversational answer.",
+      "required": false,
+      "params": {"supportedResponseKinds": ["message"], "defaultResponseKind": "message"}
+    }]
+  },
+  "skills": [{
+    "id": "backoffice-helper",
+    "name": "Back Office case queries",
+    "description": "Find a person's assigned document sets and explain current outstanding requirements with evidence references.",
+    "tags": ["backoffice", "documents", "requirements"],
+    "examples": ["What documents is this person missing?", "Which document sets are assigned to this person?"],
+    "path": ".agents/skills/backoffice-helper/SKILL.md"
+  }]
+}

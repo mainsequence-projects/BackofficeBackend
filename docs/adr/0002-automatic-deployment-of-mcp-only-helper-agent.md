@@ -1,7 +1,7 @@
 # ADR 0002: Automatic deployment of the Back Office agent using only MCP tools
 
 - Date: 2026-10-19
-- Status: Proposed; implementation and hosted verification pending.
+- Status: Local implementation added; hosted deployment and verification pending.
 - Scope: Agent runtime, tool restrictions, release workflow and deployment verification.
 - Depends on: [ADR 0001: Back Office helper and document processing](0001-back-office-helper-mcp-and-document-processing.md).
 - Refines: The agent and delivery sections of [platform contracts](../platform-contracts.md).
@@ -32,10 +32,16 @@ The agent deploy step depends on a successful API deployment and authenticated M
 compatibility checks. Changes become eligible for automatic deployment through the
 repository's configured release trigger; this ADR introduces no second scheduler.
 
-The agent's model-visible tools are an explicit allowlist of implemented Back Office
-MCP tools. Model reasoning, normal conversation and platform session management remain
-runtime responsibilities. All access to business data and all business mutations go
-through the MCP interface and its shared application services.
+The agent's executable business operations are an explicit allowlist of implemented
+Back Office MCP tools. Use the documented Tau configuration:
+`TAU_EXCLUDE_BASE_TOOLS=true` and `TAU_EXCLUDE_MAINSEQUENCE_MCP=true`.
+The pinned SDK presents application MCP through native list/call wrappers and retains
+a skill-scoped `read` and its own task controls. The project hook blocks `read`, other
+application/resource wrappers and non-allowlisted business calls; SDK task controls
+remain available for their native conversation lifecycle. This clarifies the earlier
+wording about ten direct model-visible tools: the ten names are business operations
+behind the SDK wrapper. Model reasoning, conversation and session management remain
+runtime responsibilities. All business data access goes through MCP.
 
 ### Runtime architecture
 
@@ -60,11 +66,11 @@ import the business application service to bypass MCP. Agent extensions must not
 provide alternative access to these systems. Packaged prompts and workflow skills
 may explain use of the allowed tools; they cannot grant additional capabilities.
 
-Enforce the allowlist in runtime/tool registration, not only in the system prompt.
-Disable inherited/default tools outside the allowlist. If the selected runtime
-cannot enforce this restriction, deployment must fail its acceptance checks until
-a supported restriction mechanism is available. Do not advertise an unrestricted
-runtime as an agent that uses only MCP tools.
+Enforce the business allowlist using Tau's supported pre-execution tool hooks,
+not only in the system prompt. Disable default coding and platform MCP tools with
+the two SDK settings. Filter application discovery results to the approved subset,
+verify its input contracts, and block calls after failed discovery or without a
+verified requester. Do not replace SDK authentication, delegation or task controls.
 
 Grant the agent only the runtime/model/session permissions it needs and authorized
 access to the business MCP application. Do not grant it business-table access,
@@ -199,8 +205,9 @@ Acceptance requires:
 
 - One configured release event produces the ordered API and agent deployment with
   traceable candidate identities and no competing automatic path.
-- The deployed agent exposes exactly its allowlisted MCP tools, including no inherited
-  shell, code, browser or alternative data-access tools.
+- The deployed agent uses only its allowlisted MCP business operations. Coding and
+  platform MCP tools are disabled, other application calls and skill reads are blocked,
+  and SDK task controls retain their own lifecycle authorization.
 - A caller can query their case, its pinned document set and missing requirements;
   another caller cannot access that case by supplying its UID.
 - Multiple name matches, multiple assignments, no assigned set, pending review,
@@ -226,6 +233,7 @@ is explicit and cannot be bypassed by the agent.
 
 ## References
 
+- [Agent implementation and verification runbook](../agent.md).
 - [ADR 0001](0001-back-office-helper-mcp-and-document-processing.md).
 - [Platform contracts](../platform-contracts.md).
 - [Current deployment workflow](../../.mainsequence/workflows/backoffice.yaml).

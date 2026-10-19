@@ -26,6 +26,7 @@ pythonpath = ["."]
 
 [tool.setuptools.package-data]
 "src.backoffice.migrations" = ["script.py.mako"]
+"src.backoffice_agent" = ["mcp_contract.json"]
 
 [tool.setuptools.packages.find]
 where = ["."]
