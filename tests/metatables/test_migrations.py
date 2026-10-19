@@ -69,7 +69,7 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
         connection.exec_driver_sql(
             "SELECT version_num FROM backoffice__alembic_version"
         ).scalar_one()
-        == "backoffice_0007"
+        == "backoffice_0008"
     )
     connection.rollback()
     connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
@@ -84,7 +84,7 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
 
 def test_all_registration_contracts_and_column_metadata_are_valid():
     models = metatable_models()
-    assert len(models) == len({model.__metatable_identifier__ for model in models}) == 19
+    assert len(models) == len({model.__metatable_identifier__ for model in models}) == 21
     for model in models:
         assert model.__metatable_namespace__ == "backoffice"
         assert len(model.__metatable_description__) <= 500
@@ -348,6 +348,94 @@ def test_downgrade_refuses_to_discard_retained_extraction_evidence(migrated):
         )
     )
     connection.commit()
-    with pytest.raises(RuntimeError, match="Retained extraction evidence"):
+    with pytest.raises(RuntimeError, match="Retained (extraction evidence|business cases)"):
         command.downgrade(config, "backoffice_0005")
     assert connection.execute(DocumentRevisionRecord.__table__.select()).one().extraction_evidence
+
+
+def test_explicit_case_migration_preserves_ids_membership_and_policy_versions():
+    from sqlalchemy import MetaData, Table, select
+
+    from src.backoffice.tables.cases import CaseTypeDocumentSetRecord
+
+    engine = create_engine("sqlite://")
+    with engine.connect() as connection:
+        config = alembic_config_for_provider(migration, sqlalchemy_url="sqlite://")
+        config.attributes["connection"] = connection
+        command.upgrade(config, "backoffice_0007")
+        person, _, document, assignment = seed_documents(connection)
+        membership = dict(assignment_uid=assignment, document_uid=document, person_uid=person)
+        connection.execute(AssignmentDocumentRecord.__table__.insert().values(**membership))
+        old = Table("backoffice__person_document_set", MetaData(), autoload_with=connection)
+        before = dict(connection.execute(select(old)).mappings().one())
+        cases = [(assignment, "document_review")]
+        for family, kind in (
+            ("loan_requirements", "new_loan"),
+            ("new_account_requirements", "account_opening"),
+        ):
+            connection.execute(
+                DocumentSetVersionRecord.__table__.insert().values(
+                    set_key=family,
+                    version=7,
+                    definition={},
+                    status="retired",
+                    published_at=NOW,
+                    created_at=NOW,
+                )
+            )
+            uid = uuid4()
+            connection.execute(
+                PersonDocumentSetRecord.__table__.insert().values(
+                    uid=uid,
+                    person_uid=person,
+                    set_key=family,
+                    set_version=7,
+                    revision=3,
+                    created_at=NOW,
+                    updated_at=NOW,
+                )
+            )
+            cases.append((uid, kind))
+        connection.commit()
+        command.upgrade(config, "head")
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        connection.commit()
+        for uid, kind in cases:
+            row = (
+                connection.execute(
+                    PersonDocumentSetRecord.__table__.select().where(
+                        PersonDocumentSetRecord.uid == uid
+                    )
+                )
+                .mappings()
+                .one()
+            )
+            assert row["case_type_key"] == kind
+            if uid == assignment:
+                # Reflection uses strings for SQLite UUID/datetime; compare with the same old projection.
+                assert (
+                    dict(
+                        connection.execute(select(old).where(old.c.uid == before["uid"]))
+                        .mappings()
+                        .one()
+                    )
+                    == before
+                )
+            else:
+                assert row["set_version"] == 7 and row["revision"] == 3
+        assert (
+            dict(connection.execute(AssignmentDocumentRecord.__table__.select()).mappings().one())
+            == membership
+        )
+        assert len(connection.execute(CaseTypeDocumentSetRecord.__table__.select()).all()) == 3
+        with pytest.raises(IntegrityError), connection.begin_nested():
+            connection.execute(
+                PersonDocumentSetRecord.__table__.update()
+                .where(PersonDocumentSetRecord.uid == assignment)
+                .values(case_type_key="new_loan")
+            )
+        connection.commit()
+        command.upgrade(config, "head")
+        assert len(connection.execute(PersonDocumentSetRecord.__table__.select()).all()) == 3
+        assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
+    engine.dispose()

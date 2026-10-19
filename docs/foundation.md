@@ -9,7 +9,7 @@ operations and local verification; hosted activation is a separate delivery step
 
 ```text
 src/backoffice/
-  models/                  # Person, assignment, review, shared types and policies
+  models/                  # Person, Case, CaseType, review, shared types and policies
     documents/             # All ten canonical document payloads
   schemas/                 # Version registry, recursive drafts and form-schema envelope
   policies/                # Example NewAccountRequirements definition
@@ -84,7 +84,13 @@ computed fields. A service must load reviews from trusted persistence; this resu
 model is not an authorized review-write API. Persist the base envelope with
 `model_dump(mode="json", exclude_computed_fields=True)`.
 
-`PersonDocumentSet` represents assignment to a pinned `DocumentSet` version.
+`Case` is a business process instance with a subject `Person`, a `CaseType` and
+an explicit composite foreign key to a pinned `DocumentSet` version. CaseType is
+independent of policy names. A permitted-type/policy association also constrains
+creation. Loans and account opening share the same evidence and evaluation engine.
+The historical `PersonDocumentSet` contract and endpoints remain compatibility
+projections of the same persisted record. See
+[ADR 0004](adr/0004-explicit-business-cases.md) for relationships and migration.
 `new_account_requirements()` returns a fresh illustrative policy with identity and
 address alternatives, three distinct payslip periods, conditional contract and
 residence-permit requirements, funds evidence, and a questionnaire. Its 90-day
@@ -97,7 +103,7 @@ evaluator. This policy is explicitly illustrative and does not establish legal K
 The [table dictionary](metatable-dictionary.md) lists every authored table, column,
 key and relationship. Models inherit `metatables.PlatformManagedMetaTable` and use
 Main Sequence naming conventions. The explicit provider registry owns these
-eighteen tables plus its migration-version table. There is no application database
+twenty-one tables plus its migration-version table. There is no application database
 URL, ORM session factory, or independent storage service.
 
 Physical constraints enforce unique revisions, published schema references,

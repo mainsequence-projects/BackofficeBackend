@@ -7,9 +7,9 @@ own application storage. The planned reconciliation agent uses `ms-tau-sdk`.
 Implemented:
 
 - Thirteen documented document models, recursive drafts, and JSON Schema export.
-- Person profiles, versioned document sets, assignments, raw-source references,
+- Person profiles, explicit Cases and CaseTypes, pinned Document Sets, raw-source references,
   and revision-specific reviews with derived read-only acceptance.
-- Eighteen documented MetaTable declarations, a frozen initial migration, and an
+- Twenty-one documented MetaTable declarations, a frozen initial migration, and an
   explicit Main Sequence migration Job entry point.
 - People, assignments, bounded raw-source uploads, versioned drafts/submission,
   authorized reviews, reconciliation findings, audit history and durable retry recovery.
@@ -73,3 +73,6 @@ schemas, and starting this API do not migrate tables.
 - [ADR 0003: Parsing workflow and per-type classification thresholds](docs/adr/0003-document-parsing-workflow-and-classification-policy.md) documents dynamic policies and automatic acceptance.
 
 - [Bucket-backed document extraction](docs/document-processing.md): upload, classify, extract and apply per-type acceptance policies.
+
+- [ADR 0004: Explicit cases and pinned Document Sets](docs/adr/0004-explicit-business-cases.md) documents business types, migration and the shared loan/account-opening engine.
+- [Case ontology and workflow](docs/cases.md) explains subjects, staff, policies, evidence and evaluations.

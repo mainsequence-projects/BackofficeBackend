@@ -92,12 +92,13 @@ Check: `status = 'draft' OR published_at IS NOT NULL`.
 
 ## `backoffice.person_document_set`
 
-One person's assignment to an exact requirement-policy version. The assignment revision changes when its selected documents or policy version change.
+One business case for one subject, with a case type and an exact requirement-policy version. Cases exist before evidence arrives; selected documents, evaluations and staff memberships retain the same case identity.
 
 Namespace: `backoffice`. Physical name: `backoffice__person_document_set`.
 
 | Column | Type | Nullable | Label | Description |
 | --- | --- | --- | --- | --- |
+| `case_type_key` | `VARCHAR(80)` | Yes | Case type key | Business process key; null only for an older writer during rollout, resolved by the documented legacy mapping. |
 | `person_uid` | `CHAR(32)` | No | Person UID | Business person being evaluated against the assigned requirements. |
 | `set_key` | `VARCHAR(120)` | No | Set key | Stable identifier of the assigned requirement set. |
 | `set_version` | `INTEGER` | No | Set version | Exact requirement-set version pinned to this assignment. |
@@ -111,6 +112,10 @@ Primary key: `uid`.
 Foreign key: `person_uid` → `backoffice__person.uid`.
 
 Foreign key: `set_key` → `backoffice__document_set_version.set_key`, `set_version` → `backoffice__document_set_version.version`.
+
+Foreign key: `case_type_key` → `backoffice__case_type_document_set.case_type_key`, `set_key` → `backoffice__case_type_document_set.set_key`, `set_version` → `backoffice__case_type_document_set.set_version`.
+
+Foreign key: `case_type_key` → `backoffice__case_type.key`.
 
 Check: `revision >= 1`.
 
@@ -526,3 +531,35 @@ Primary key: `assignment_uid`, `reviewer_uid`.
 Foreign key: `assignment_uid` → `backoffice__person_document_set.uid`.
 
 Check: `revision >= 1`.
+
+## `backoffice.case_type`
+
+One business case type, such as account opening, new loan or document review. Authored by Back Office to name the business purpose while all types share the same evidence and evaluation engine.
+
+Namespace: `backoffice`. Physical name: `backoffice__case_type`.
+
+| Column | Type | Nullable | Label | Description |
+| --- | --- | --- | --- | --- |
+| `key` | `VARCHAR(80)` | No | Case type key | Stable business process key, such as account_opening or new_loan. |
+| `name` | `VARCHAR(160)` | No | Case type name | Human-readable name of the business process. |
+| `description` | `VARCHAR(500)` | No | Description | Business purpose of this case type; does not define evidence rules. |
+
+Primary key: `key`.
+
+## `backoffice.case_type_document_set`
+
+One permitted document-set version for one business case type. Back Office maintains this explicit association so case creation cannot select a policy intended for another business process.
+
+Namespace: `backoffice`. Physical name: `backoffice__case_type_document_set`.
+
+| Column | Type | Nullable | Label | Description |
+| --- | --- | --- | --- | --- |
+| `case_type_key` | `VARCHAR(80)` | No | Case type key | Business process permitted to use this published requirement policy. |
+| `set_key` | `VARCHAR(120)` | No | Document set key | Stable key of the permitted requirement definition. |
+| `set_version` | `INTEGER` | No | Document set version | Exact permitted policy version; a new version needs an explicit association. |
+
+Primary key: `case_type_key`, `set_key`, `set_version`.
+
+Foreign key: `case_type_key` → `backoffice__case_type.key`.
+
+Foreign key: `set_key` → `backoffice__document_set_version.set_key`, `set_version` → `backoffice__document_set_version.version`.

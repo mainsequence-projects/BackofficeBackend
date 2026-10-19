@@ -13,8 +13,9 @@ requester; ordinary calls act for the verified caller. Browser parameters and
 identity headers cannot choose an actor. A person record is a business profile,
 not an authentication principal.
 
-The trusted creator owns a case. Its people, documents, raw sources, assignments,
-evaluations and history share that access boundary. Other users receive 404.
+The trusted creator owns a subject record. That subject's cases, documents, raw
+sources, evaluations and history share the subject ownership boundary. Other
+users receive 404. Case creation does not introduce a second owner field.
 Reviewers can access all cases. Reviewer permission comes from a signed Organization
 admin fact, a server-configured comma-separated `BACKOFFICE_REVIEWER_UIDS`, or
 membership in a configured `BACKOFFICE_REVIEWER_TEAM_UIDS`. Team checks use the
@@ -306,11 +307,39 @@ HTTP 202 and `processing_run_uid`. Poll `GET /processing-runs/{uid}`, then read
 `POST /processing-runs/{uid}/retry`. Policies without comparisons retain HTTP 201.
 See [comparison lifecycle and citations](document-comparisons.md).
 
+### Explicit cases and case types
+
+`GET /case-types` returns business types and their permitted published Document Set
+versions. `POST /cases` requires `operation_key`, `subject_uid`, `case_type_key`,
+`document_set_key` and `document_set_version`. It creates an empty case pinned to
+that version and returns its `uid` and revision (201). Unknown/unpublished versions
+return 404; a type/policy mismatch returns 422. Repeating the same operation is
+idempotent. Creating a new policy version never upgrades existing cases.
+
+`GET /cases/{uid}` returns the canonical Case fields, selected `document_uids` and
+`case_type` metadata. `GET /persons/{uid}/cases` lists authorized cases for a subject
+(default limit 50, maximum 100). Subject identities and staff reviewer identities
+remain separate. A subject can have several cases, including several of one type.
+
+The canonical `/cases/{uid}` endpoints also provide `/documents` (PUT), `/status`,
+`/missing-requirements`, `/workspace`, `/reviewers`, `/reviewers/me` (PUT), and
+`/evaluations` (GET/POST). They call the same services as the legacy `/assignments`
+endpoints, with the same operation/revision requirements. Evaluation returns 201
+for synchronous policies or 202 with a processing run for comparison policies.
+Workspace responses include the canonical `case` plus the compatibility
+`assignment` projection. Legacy assignment responses retain their existing shape.
+
+Migration `backoffice_0008` promotes existing records in place; it preserves case
+IDs and evidence, staff, job and evaluation references. See
+[ADR 0004](adr/0004-explicit-business-cases.md) for the FK design, backfill mapping,
+rolling-release compatibility and rollout order. Published catalog/schema artifacts
+are in `schemas/cases/`.
+
 ### Case queue, workspace and staff responsibility
 
-`GET /review-queue` returns a bounded, authorized page of document-set cases with
+`GET /cases` (also available as `GET /review-queue`) returns a bounded, authorized page of document-set cases with
 subject identity, active staff memberships, current Back Office findings and a
-workflow state. Query parameters: `search`, `set_key`, `responsibility` (`all`,
+workflow state. Query parameters: `search`, `case_type_key`, `set_key`, `responsibility` (`all`,
 `mine`, `unassigned`), `limit` (1–20, default 10), and `offset`. Counts derived from
 returned items are page-local; `total_items` covers the filtered accessible cases.
 Loans and new accounts use these same queries and policy evaluator.

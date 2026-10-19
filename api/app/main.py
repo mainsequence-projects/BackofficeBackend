@@ -57,6 +57,7 @@ from src.backoffice.services.contracts import (
     AssignSet,
     Command,
     CompleteParsing,
+    CreateCase,
     CreateDocument,
     CreatePerson,
     Evaluate,
@@ -306,10 +307,45 @@ def people(
     return service.list_people(search, limit, offset)
 
 
+@router.get("/case-types")
+def case_types(service: Application = Service):
+    from src.backoffice.services.cases import types
+
+    return types(service)
+
+
+@router.post("/cases", status_code=201)
+def create_case(command: CreateCase, service: Application = Service):
+    from src.backoffice.services.cases import create
+
+    return create(service, command.subject_uid, command)
+
+
+@router.get("/cases/{uid}")
+def case_detail(uid: UUID, service: Application = Service):
+    from src.backoffice.services.cases import detail
+
+    return detail(service, uid)
+
+
+@router.get("/persons/{uid}/cases")
+def subject_cases(
+    uid: UUID,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    service: Application = Service,
+):
+    from src.backoffice.services.cases import list_for_subject
+
+    return list_for_subject(service, uid, limit, offset)
+
+
+@router.get("/cases")
 @router.get("/review-queue")
 def review_queue(
     search: str = Query("", max_length=100),
     responsibility: str = Query("all", pattern="^(all|mine|unassigned)$"),
+    case_type_key: str = Query("", max_length=80),
     set_key: str = Query("", max_length=120),
     limit: int = Query(10, ge=1, le=20),
     offset: int = Query(0, ge=0),
@@ -317,9 +353,10 @@ def review_queue(
 ):
     from src.backoffice.services.casework import queue
 
-    return queue(service, search, responsibility, set_key, limit, offset)
+    return queue(service, search, responsibility, set_key, limit, offset, case_type_key)
 
 
+@router.get("/cases/{uid}/workspace")
 @router.get("/assignments/{uid}/workspace")
 def review_workspace(uid: UUID, service: Application = Service):
     from src.backoffice.services.casework import workspace
@@ -327,6 +364,7 @@ def review_workspace(uid: UUID, service: Application = Service):
     return workspace(service, uid)
 
 
+@router.get("/cases/{uid}/reviewers")
 @router.get("/assignments/{uid}/reviewers")
 def case_reviewers(uid: UUID, service: Application = Service):
     from src.backoffice.services.casework import reviewers
@@ -334,6 +372,7 @@ def case_reviewers(uid: UUID, service: Application = Service):
     return reviewers(service, uid)
 
 
+@router.put("/cases/{uid}/reviewers/me")
 @router.put("/assignments/{uid}/reviewers/me")
 def my_case_membership(uid: UUID, command: SetMyCaseMembership, service: Application = Service):
     from src.backoffice.services.casework import set_my_membership
@@ -376,16 +415,19 @@ def assignment(uid: UUID, service: Application = Service):
     return service.assignment(uid)
 
 
+@router.get("/cases/{uid}/status", response_model=AssignmentStatus)
 @router.get("/assignments/{uid}/status", response_model=AssignmentStatus)
 def current_status(uid: UUID, service: Application = Service):
     return service.current_status(uid)
 
 
+@router.get("/cases/{uid}/missing-requirements", response_model=MissingRequirements)
 @router.get("/assignments/{uid}/missing-requirements", response_model=MissingRequirements)
 def missing_requirements(uid: UUID, service: Application = Service):
     return service.missing_requirements(uid)
 
 
+@router.put("/cases/{uid}/documents")
 @router.put("/assignments/{uid}/documents")
 def assignment_documents(uid: UUID, command: AssignmentDocuments, service: Application = Service):
     return service.set_documents(uid, command)
@@ -635,6 +677,11 @@ def download_chunk(uid: UUID, index: int, service: Application = Service):
 
 
 @router.post(
+    "/cases/{uid}/evaluations",
+    status_code=201,
+    responses={202: {"description": "Comparison evaluation queued on the shared processing Job"}},
+)
+@router.post(
     "/assignments/{uid}/evaluations",
     status_code=201,
     responses={202: {"description": "Comparison evaluation queued on the shared processing Job"}},
@@ -648,6 +695,7 @@ def evaluate(
     )
 
 
+@router.get("/cases/{uid}/evaluations")
 @router.get("/assignments/{uid}/evaluations")
 def evaluations(
     uid: UUID,

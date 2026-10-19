@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from src.backoffice.models.assignment import PersonDocumentSet
+from src.backoffice.models.case import Case, CaseType
 from src.backoffice.models.common import (
     BankTransaction,
     DatePeriod,
@@ -64,6 +65,8 @@ def model_reference() -> str:
         DocumentRequirement,
         DocumentSet,
         PersonDocumentSet,
+        Case,
+        CaseType,
     ]
     lines = [
         "# Pydantic model reference",
@@ -103,6 +106,11 @@ def generated_files() -> dict[Path, str]:
     from src.backoffice.tables import metatable_models
 
     files = {Path("docs/model-reference.md"): model_reference()}
+    for model in (Case, CaseType):
+        files[Path(f"schemas/cases/{model.__name__}.json")] = (
+            json.dumps(model.model_json_schema(mode="validation"), indent=2, ensure_ascii=False)
+            + "\n"
+        )
     for model in COMPARISON_CONTRACTS:
         files[Path(f"schemas/processing/comparison/v1/{model.__name__}.json")] = (
             json.dumps(model.model_json_schema(mode="validation"), indent=2, ensure_ascii=False)

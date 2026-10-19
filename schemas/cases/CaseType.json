@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "key": {
+      "description": "Stable business process key, for example account_opening or new_loan.",
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Key",
+      "type": "string"
+    },
+    "name": {
+      "description": "Human-readable business process name.",
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "description": "Business purpose; evidence rules live in the linked Document Set version.",
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Description",
+      "type": "string"
+    }
+  },
+  "required": [
+    "key",
+    "name",
+    "description"
+  ],
+  "title": "CaseType",
+  "type": "object"
+}

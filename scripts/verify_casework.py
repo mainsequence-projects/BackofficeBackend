@@ -23,8 +23,9 @@ def main():
     from mainsequence.client import User
 
     from src.backoffice.services.application import Application, publish_catalog
+    from src.backoffice.services.cases import create, detail
     from src.backoffice.services.casework import queue, reviewers, set_my_membership, workspace
-    from src.backoffice.services.contracts import AssignSet, CreatePerson, SetMyCaseMembership
+    from src.backoffice.services.contracts import CreateCase, CreatePerson, SetMyCaseMembership
 
     user = User.get_authenticated_user_details()
     if user.is_organization_admin is not True:
@@ -65,12 +66,26 @@ def main():
         )
     )
     cases = []
-    for key, version in (("loan_requirements", 2), ("new_account_requirements", 3)):
-        assigned = app.assign(
+    for key, version, kind in (
+        ("loan_requirements", 2, "new_loan"),
+        ("new_account_requirements", 3, "account_opening"),
+    ):
+        assigned = create(
+            app,
             subject["uid"],
-            AssignSet(operation_key=uuid4(), document_set_key=key, document_set_version=version),
+            CreateCase(
+                operation_key=uuid4(),
+                subject_uid=subject["uid"],
+                case_type_key=kind,
+                document_set_key=key,
+                document_set_version=version,
+            ),
         )
         case_uid = assigned["uid"]
+        canonical_case = detail(app, case_uid)
+        assert canonical_case["case_type_key"] == kind
+        assert canonical_case["document_set_version"] == version
+        assert canonical_case["document_uids"] == []
         snapshot = app.evaluation_input(case_uid)
         command = SetMyCaseMembership(operation_key=uuid4(), expected_revision=0, assigned=True)
         set_my_membership(app, case_uid, command)
@@ -87,9 +102,17 @@ def main():
         view = workspace(app, case_uid)
         assert view["subject"]["uid"] == subject["uid"]
         assert view["workflow_state"] == "missing_evidence"
-        mine = queue(app, search=view["subject"]["full_name"], responsibility="mine", set_key=key, limit=1)
+        mine = queue(
+            app,
+            search=view["subject"]["full_name"],
+            responsibility="mine",
+            case_type_key=kind,
+            limit=1,
+        )
         assert mine["total_items"] == 1 and mine["items"][0]["uid"] == case_uid
-        assert not queue(app, search=view["subject"]["full_name"], responsibility="unassigned")["items"]
+        assert not queue(app, search=view["subject"]["full_name"], responsibility="unassigned")[
+            "items"
+        ]
         cases.append(case_uid)
     print(json.dumps({"result": "casework_verified", "source_uid": source, "cases": cases}))
 

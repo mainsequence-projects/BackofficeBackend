@@ -1,6 +1,7 @@
 """Explicit registry of application-owned Main Sequence MetaTables."""
 
 from .base import Base
+from .cases import CaseTypeDocumentSetRecord, CaseTypeRecord
 from .documents import DocumentRecord, DocumentReviewRecord, DocumentRevisionRecord
 from .evidence import FieldEvidenceRecord, RawDocumentChunkRecord, RawDocumentRecord
 from .operations import (
@@ -13,9 +14,9 @@ from .parsing import ParsingPolicyRecord, ParsingResultRecord
 from .person import PersonRecord, PersonRevisionRecord
 from .requirements import (
     AssignmentDocumentRecord,
+    CaseRecord,
     DocumentSchemaRecord,
     DocumentSetVersionRecord,
-    PersonDocumentSetRecord,
 )
 from .reviewers import CaseReviewerRecord
 
@@ -29,7 +30,7 @@ def metatable_models() -> tuple[type[Base], ...]:
         PersonRevisionRecord,
         DocumentSchemaRecord,
         DocumentSetVersionRecord,
-        PersonDocumentSetRecord,
+        CaseRecord,
         DocumentRecord,
         DocumentRevisionRecord,
         AssignmentDocumentRecord,
@@ -44,4 +45,6 @@ def metatable_models() -> tuple[type[Base], ...]:
         ParsingPolicyRecord,
         ParsingResultRecord,
         CaseReviewerRecord,
+        CaseTypeRecord,
+        CaseTypeDocumentSetRecord,
     )

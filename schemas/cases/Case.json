@@ -1,0 +1,76 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "uid": {
+      "description": "Stable case UID; migrated cases preserve their original assignment UID.",
+      "format": "uuid",
+      "title": "Uid",
+      "type": "string"
+    },
+    "subject_uid": {
+      "description": "Business Person UID whose evidence is assessed; never a staff identity.",
+      "format": "uuid",
+      "title": "Subject Uid",
+      "type": "string"
+    },
+    "case_type_key": {
+      "description": "Explicit business process governing which Document Set versions may be selected.",
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Case Type Key",
+      "type": "string"
+    },
+    "document_set_key": {
+      "description": "Foreign-key part identifying the pinned requirement policy.",
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Document Set Key",
+      "type": "string"
+    },
+    "document_set_version": {
+      "description": "Foreign-key part identifying the exact published policy version.",
+      "minimum": 1,
+      "title": "Document Set Version",
+      "type": "integer"
+    },
+    "revision": {
+      "description": "Case evidence-membership revision used to reject stale writes.",
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "created_at": {
+      "description": "UTC instant when the case was created, retained during migration.",
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "description": "UTC instant of the latest case evidence-membership change.",
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "document_uids": {
+      "description": "Selected logical documents belonging to this subject; empty when a case is first opened.",
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Document Uids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "uid",
+    "subject_uid",
+    "case_type_key",
+    "document_set_key",
+    "document_set_version",
+    "revision",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "Case",
+  "type": "object"
+}

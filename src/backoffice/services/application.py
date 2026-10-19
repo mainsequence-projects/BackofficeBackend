@@ -30,9 +30,9 @@ from ..tables.operations import (
 from ..tables.person import PersonRecord, PersonRevisionRecord
 from ..tables.requirements import (
     AssignmentDocumentRecord,
+    CaseRecord,
     DocumentSchemaRecord,
     DocumentSetVersionRecord,
-    PersonDocumentSetRecord,
 )
 from .storage import TABLES, Storage, wire
 
@@ -43,7 +43,7 @@ D, DR, RV = (
     DocumentReviewRecord.__table__,
 )
 RAW, CHUNK = RawDocumentRecord.__table__, RawDocumentChunkRecord.__table__
-A, AD = PersonDocumentSetRecord.__table__, AssignmentDocumentRecord.__table__
+A, AD = CaseRecord.__table__, AssignmentDocumentRecord.__table__
 RUN, AUDIT = ProcessingRunRecord.__table__, AuditEventRecord.__table__
 EV, FIND = ReconciliationEvaluationRecord.__table__, ReconciliationFindingRecord.__table__
 SETS, SCHEMA = DocumentSetVersionRecord.__table__, DocumentSchemaRecord.__table__
@@ -150,13 +150,17 @@ class Application:
 
     def list_assignments(self, person_uid, limit=50, offset=0):
         self.case(person_uid)
-        return self.db.page(
+        page = self.db.page(
             A,
             A.c.person_uid == UUID(str(person_uid)),
             limit=limit,
             offset=offset,
             order=(A.c.created_at.desc(), A.c.uid.asc()),
         )
+
+        for row in page["items"]:
+            row.pop("case_type_key", None)
+        return page
 
     def step(self, table, values, *, keys=None, expected=None):
         return {
@@ -398,7 +402,10 @@ class Application:
         return self.mutate(uid, command, "person.updated", build)
 
     def catalog_steps(self, now):
-        steps = []
+        from ..policies.case_types import CASE_TYPES, DOCUMENT_SET_CASE_TYPES
+        from .cases import BINDINGS, TYPES
+
+        steps = [self.ensure_step(TYPES, row) for row in CASE_TYPES]
         for (kind, version), model in DOCUMENT_MODELS.items():
             pair = {
                 "canonical_schema": model.model_json_schema(),
@@ -430,6 +437,18 @@ class Application:
                     },
                 )
             )
+        for policy in document_set_catalog():
+            # No name inference: each authored policy family has an explicit business type.
+            steps.append(
+                self.ensure_step(
+                    BINDINGS,
+                    {
+                        "case_type_key": DOCUMENT_SET_CASE_TYPES[policy.key],
+                        "set_key": policy.key,
+                        "set_version": policy.version,
+                    },
+                )
+            )
         # Existing immutable catalog definitions retain their original timestamps.
         for step in steps:
             table = TABLES[step["table"]]
@@ -442,30 +461,9 @@ class Application:
         return steps
 
     def assign(self, uid, command):
-        policy = self.db.one(
-            SETS, set_key=command.document_set_key, version=command.document_set_version
-        )
-        if policy is None or policy["status"] != "published":
-            fail(404, "document_set_version_not_found")
+        from .cases import create
 
-        def build(op, now):
-            assignment_uid = stable(op, "assignment")
-            return [
-                self.ensure_step(
-                    A,
-                    {
-                        "uid": assignment_uid,
-                        "person_uid": str(uid),
-                        "set_key": policy["set_key"],
-                        "set_version": policy["version"],
-                        "revision": 1,
-                        "created_at": now,
-                        "updated_at": now,
-                    },
-                ),
-            ], {"uid": assignment_uid, "revision": 1}
-
-        return self.mutate(uid, command, "assignment.created", build)
+        return create(self, uid, command, legacy=True)
 
     def assignment(self, uid, *, reading=True, processing=False):
         row = self.required(A, uid=uid)
@@ -473,6 +471,8 @@ class Application:
         members = self.db.rows(AD, AD.c.assignment_uid == UUID(str(uid)), limit=201)
         if len(members) > 200:
             fail(409, "assignment_document_limit_exceeded")
+        # Preserve the legacy projection and frozen evaluation identity exactly.
+        row.pop("case_type_key", None)
         return {**row, "document_uids": [x["document_uid"] for x in members]}
 
     def set_documents(self, uid, command):

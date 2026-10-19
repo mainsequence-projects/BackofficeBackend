@@ -183,3 +183,14 @@ class SetMyCaseMembership(Command):
     assigned: StrictBool = Field(
         description="Take or leave responsibility as the verified staff caller; does not grant permissions."
     )
+
+
+class CreateCase(AssignSet):
+    subject_uid: UUID = Field(
+        description="Existing business Person UID; never a staff reviewer UID."
+    )
+    case_type_key: str = Field(
+        min_length=1,
+        max_length=80,
+        description="Explicit business process key whose permitted document-set versions constrain this case.",
+    )

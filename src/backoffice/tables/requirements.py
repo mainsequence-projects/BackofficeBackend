@@ -110,11 +110,11 @@ class DocumentSetVersionRecord(Created, Base):
     )
 
 
-class PersonDocumentSetRecord(Identified, Created, Base):
+class CaseRecord(Identified, Created, Base):
     __tablename__ = "backoffice__person_document_set"
     __metatable_identifier__ = "backoffice.person_document_set"
-    __metatable_description__ = "One person's assignment to an exact requirement-policy version. The assignment revision changes when its selected documents or policy version change."
-    __metatable_labels__ = ("backoffice", "person", "requirements")
+    __metatable_description__ = "One business case for one subject, with a case type and an exact requirement-policy version. Cases exist before evidence arrives; selected documents, evaluations and staff memberships retain the same case identity."
+    __metatable_labels__ = ("casework", "person", "requirements")
     __table_args__ = (
         ForeignKeyConstraint(
             ["set_key", "set_version"],
@@ -123,8 +123,26 @@ class PersonDocumentSetRecord(Identified, Created, Base):
                 "backoffice__document_set_version.version",
             ],
         ),
+        ForeignKeyConstraint(
+            ["case_type_key", "set_key", "set_version"],
+            [
+                "backoffice__case_type_document_set.case_type_key",
+                "backoffice__case_type_document_set.set_key",
+                "backoffice__case_type_document_set.set_version",
+            ],
+            name="fk_case_permitted_document_set",
+        ),
         UniqueConstraint("uid", "person_uid"),
         CheckConstraint("revision >= 1", name="positive_revision"),
+    )
+
+    case_type_key: Mapped[str | None] = mapped_column(
+        String(80),
+        ForeignKey("backoffice__case_type.key", name="fk_case_type"),
+        info=info(
+            "Case type key",
+            "Business process key; null only for an older writer during rollout, resolved by the documented legacy mapping.",
+        ),
     )
 
     person_uid: Mapped[UUID] = mapped_column(
@@ -153,6 +171,10 @@ class PersonDocumentSetRecord(Identified, Created, Base):
         DateTime(timezone=True),
         info=info("Updated at", "UTC instant of the latest assignment change."),
     )
+
+
+# Stable import alias for older consumers; there is exactly one mapped case table.
+PersonDocumentSetRecord = CaseRecord
 
 
 class AssignmentDocumentRecord(Base):

@@ -418,3 +418,29 @@ Source: `src.backoffice.models.assignment`.
 | `document_set_version` | `integer` | Yes | Exact published version assigned to this person; newer definitions do not silently replace it. |
 | `revision` | `integer` | No | Revision used to detect concurrent assignment changes. |
 | `document_uids` | `list[uuid]` | No | Distinct logical documents linked to this assignment; ownership is checked by the application service. |
+
+## `Case`
+
+Source: `src.backoffice.models.case`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `uid` | `uuid` | Yes | Stable case UID; migrated cases preserve their original assignment UID. |
+| `subject_uid` | `uuid` | Yes | Business Person UID whose evidence is assessed; never a staff identity. |
+| `case_type_key` | `string` | Yes | Explicit business process governing which Document Set versions may be selected. |
+| `document_set_key` | `string` | Yes | Foreign-key part identifying the pinned requirement policy. |
+| `document_set_version` | `integer` | Yes | Foreign-key part identifying the exact published policy version. |
+| `revision` | `integer` | Yes | Case evidence-membership revision used to reject stale writes. |
+| `created_at` | `date-time` | Yes | UTC instant when the case was created, retained during migration. |
+| `updated_at` | `date-time` | Yes | UTC instant of the latest case evidence-membership change. |
+| `document_uids` | `list[uuid]` | No | Selected logical documents belonging to this subject; empty when a case is first opened. |
+
+## `CaseType`
+
+Source: `src.backoffice.models.case`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `key` | `string` | Yes | Stable business process key, for example account_opening or new_loan. |
+| `name` | `string` | Yes | Human-readable business process name. |
+| `description` | `string` | Yes | Business purpose; evidence rules live in the linked Document Set version. |

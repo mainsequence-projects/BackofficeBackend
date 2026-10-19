@@ -65,7 +65,12 @@ def lane(status):
     return "checks_satisfied" if status["summary"]["complete"] else "review_required"
 
 
-def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0):
+def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0, case_type_key=""):
+    from sqlalchemy import and_
+
+    from ..policies.case_types import DOCUMENT_SET_CASE_TYPES
+    from .cases import TYPES, type_key
+
     # Correlated SQL keeps access and pagination in the same governed query.
     person_filters = [P.c.uid == A.c.person_uid]
     if not app.reviewer:
@@ -79,6 +84,20 @@ def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0):
             )
         )
     conditions = [exists(select(1).select_from(P).where(*person_filters))]
+    if case_type_key:
+        # Include rows created by an old deployment during an additive rollout.
+        legacy_keys = [k for k, v in DOCUMENT_SET_CASE_TYPES.items() if v == case_type_key]
+        legacy_condition = (
+            A.c.set_key.in_(legacy_keys)
+            if case_type_key != "document_review"
+            else A.c.set_key.not_in(list(DOCUMENT_SET_CASE_TYPES))
+        )
+        conditions.append(
+            or_(
+                A.c.case_type_key == case_type_key,
+                and_(A.c.case_type_key.is_(None), legacy_condition),
+            )
+        )
     if set_key:
         conditions.append(A.c.set_key == set_key)
     member = (
@@ -96,6 +115,7 @@ def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0):
     items = []
     for assignment in page["items"]:
         uid = assignment["uid"]
+        case_type = app.required(TYPES, key=type_key(assignment))
         try:
             subject = app.case(assignment["person_uid"])["profile"]
             status = app.current_status(uid)
@@ -111,6 +131,8 @@ def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0):
             items.append(
                 {
                     **assignment,
+                    "case_type_key": case_type["key"],
+                    "case_type": case_type,
                     "subject": {
                         "uid": subject["uid"],
                         "full_name": subject.get("full_name"),
@@ -132,6 +154,8 @@ def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0):
             items.append(
                 {
                     **assignment,
+                    "case_type_key": case_type["key"],
+                    "case_type": case_type,
                     "workflow_state": "updating",
                     "error_code": exc.detail,
                     "subject": None,
@@ -148,7 +172,9 @@ def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0):
 
 
 def workspace(app, uid):
-    app.assignment(uid)
+    from .cases import detail
+
+    case = detail(app, uid)
     frozen = app.evaluation_input(uid)
     status = app.current_status(uid)
     latest = app.db.rows(
@@ -190,9 +216,12 @@ def workspace(app, uid):
     )
     membership = reviewers(app, uid)
     app.case(frozen["person"]["uid"])
-    if canonical(frozen) != canonical(app.evaluation_input(uid)):
+    if case["revision"] != frozen["assignment"]["revision"] or canonical(frozen) != canonical(
+        app.evaluation_input(uid)
+    ):
         fail(409, "assessment_inputs_changed_retry_query")
     return {
+        "case": case,
         "assignment": frozen["assignment"],
         "subject": frozen["person"],
         "policy": frozen["policy"],
