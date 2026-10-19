@@ -1,0 +1,182 @@
+{
+  "key": "loan_requirements",
+  "version": 1,
+  "name": "Loan document requirements",
+  "description": "Illustrative salaried-loan evidence coverage policy. Completion means only that the assigned evidence requirements are satisfied, not credit approval, income consistency or tax clearance. Cross-document loan checks are not implemented in this version. Age limits and coverage require business approval before use.",
+  "allow_document_reuse": true,
+  "requirements": [
+    {
+      "key": "loan_contract",
+      "description": "One accepted loan contract stating the principal and declared monthly net income.",
+      "options": [
+        {
+          "document_type": "loan_contract",
+          "schema_version": 1,
+          "required_fields": [
+            "declared_monthly_net_income"
+          ],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "identity",
+      "description": "One accepted identity document with established current validity.",
+      "options": [
+        {
+          "document_type": "national_identity_card",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": true,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        },
+        {
+          "document_type": "passport",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": true,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "bank_statement",
+      "description": "One accepted bank statement with a reporting period ending within 90 days.",
+      "options": [
+        {
+          "document_type": "bank_statement",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "statement_period.end_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "employment_income",
+      "description": "One accepted payslip covering a reporting period ending within 90 days.",
+      "options": [
+        {
+          "document_type": "payslip",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "pay_period.end_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": "pay_period",
+      "condition": null
+    },
+    {
+      "key": "address",
+      "description": "Accepted address evidence dated within 90 days and matching the reference profile.",
+      "options": [
+        {
+          "document_type": "utility_bill",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "issue_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        },
+        {
+          "document_type": "bank_statement",
+          "schema_version": 1,
+          "required_fields": [
+            "holder_address"
+          ],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "statement_period.end_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "employer_confirmation",
+      "description": "One accepted employer confirmation issued within 30 days; income comparison is a separate check.",
+      "options": [
+        {
+          "document_type": "employer_confirmation",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 30,
+          "freshness_field": "issue_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "tax_certificate",
+      "description": "One accepted tax-authority certificate issued within 30 days; presence does not establish absence of arrears.",
+      "options": [
+        {
+          "document_type": "tax_clearance_certificate",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 30,
+          "freshness_field": "issue_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    }
+  ]
+}

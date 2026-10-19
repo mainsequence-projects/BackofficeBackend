@@ -10,6 +10,10 @@ from ..models.document_set import (
 
 def new_account_requirements(version: int = 1) -> DocumentSet:
     """Return a fresh policy instance, never a shared mutable singleton."""
+    if version == 3:
+        from .comparison_versions import with_comparisons
+
+        return with_comparisons(new_account_requirements(2))
     if version not in (1, 2):
         raise ValueError("Unknown new-account policy version")
     employed = RequirementCondition(field="employment_status", equals="employed")
@@ -112,6 +116,8 @@ def new_account_requirements(version: int = 1) -> DocumentSet:
 def policy_definition(policy: DocumentSet) -> dict:
     """Preserve the exact already-published v1 JSON when adding optional rules."""
     definition = policy.model_dump(mode="json")
+    if not policy.comparisons:
+        definition.pop("comparisons", None)
     if policy.version == 1:
         for requirement in definition["requirements"]:
             for option in requirement["options"]:

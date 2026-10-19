@@ -16,7 +16,7 @@ from fastapi import HTTPException
 from sqlalchemy import delete, select
 
 from ..models.person import Person
-from ..policies.new_account_requirements import new_account_requirements, policy_definition
+from ..policies import document_set_catalog, policy_definition
 from ..schemas.drafts import get_draft_model
 from ..schemas.registry import DOCUMENT_MODELS, get_document_model
 from ..tables.documents import DocumentRecord, DocumentReviewRecord, DocumentRevisionRecord
@@ -70,12 +70,14 @@ class Application:
         *,
         organization_admin=False,
         parsing_processor=False,
+        bucket=None,
     ):
         self.actor = str(UUID(str(actor_uid)))
         self.organization_admin = organization_admin is True
         self.parsing_processor = parsing_processor is True
         self.reviewer = reviewer or self.organization_admin
         self.db = store or Storage()
+        self.bucket = bucket
 
     def required(self, table, **keys):
         row = self.db.one(table, **keys)
@@ -275,6 +277,8 @@ class Application:
         snapshot = row["input_snapshot"]
         if snapshot.get("actor_uid") != self.actor:
             fail(404, "record_not_found")
+        if row["kind"] in {"document.extract", "document.compare"}:
+            fail(409, "use_document_processing_endpoint")
         if row["kind"].startswith("admin.") and not self.organization_admin:
             fail(403, "organization_admin_required")
         if row["kind"] == "document.parsing_completed" and not (
@@ -410,8 +414,7 @@ class Application:
                     },
                 )
             )
-        for version in (1, 2):
-            policy = new_account_requirements(version)
+        for policy in document_set_catalog():
             steps.append(
                 self.ensure_step(
                     SETS,
@@ -462,9 +465,9 @@ class Application:
 
         return self.mutate(uid, command, "assignment.created", build)
 
-    def assignment(self, uid, *, reading=True):
+    def assignment(self, uid, *, reading=True, processing=False):
         row = self.required(A, uid=uid)
-        self.case(row["person_uid"], reading=reading)
+        self.case(row["person_uid"], reading=reading, processing=processing)
         members = self.db.rows(AD, AD.c.assignment_uid == UUID(str(uid)), limit=201)
         if len(members) > 200:
             fail(409, "assignment_document_limit_exceeded")
@@ -510,9 +513,9 @@ class Application:
 
         return self.mutate(assignment["person_uid"], command, "assignment.documents_added", build)
 
-    def source(self, uid, *, reading=True):
+    def source(self, uid, *, reading=True, processing=False):
         row = self.required(RAW, uid=uid)
-        self.case(row["person_uid"], reading=reading)
+        self.case(row["person_uid"], reading=reading, processing=processing)
         return row
 
     def upload(self, command):
@@ -582,6 +585,10 @@ class Application:
         return {"chunk_index": index, "byte_count": len(content)}
 
     def source_bytes(self, source):
+        if source.get("storage_kind") == "bucket":
+            from ..processing.adapters import MainSequenceBucket
+
+            return (self.bucket or MainSequenceBucket()).read(source, source)
         chunks = []
         for offset in range(0, source["chunk_count"], 4):
             batch = self.db.rows(
@@ -692,7 +699,11 @@ class Application:
             "review_status": review["decision"] if review else "pending",
         }
 
-    def create_document(self, person_uid, command):
+    def create_document(self, person_uid, command, *, processing=False, extraction_evidence=None):
+        if processing and not (self.parsing_processor or self.organization_admin):
+            fail(403, "parsing_processor_required")
+        if extraction_evidence is not None and not processing:
+            fail(403, "parsing_processor_required")
         if command.payload.get("document_type", command.document_type) != command.document_type:
             fail(422, "document_type_cannot_change")
         model = get_draft_model(command.document_type, command.schema_version)
@@ -703,6 +714,11 @@ class Application:
         def build(op, now):
             uid = stable(op, "document")
             refs = self.validate_refs(person_uid, command.raw_document_refs)
+            from .extraction_evidence import evidence_steps
+
+            snapshot, field_steps = evidence_steps(
+                self, extraction_evidence, person_uid, command, op, now, refs
+            )
             return [
                 self.ensure_step(
                     D,
@@ -725,6 +741,7 @@ class Application:
                         "revision": 1,
                         "schema_version": command.schema_version,
                         "payload": payload,
+                        "extraction_evidence": snapshot,
                         "raw_document_refs": refs,
                         "status": "draft",
                         "created_by": self.actor,
@@ -732,9 +749,9 @@ class Application:
                         "submitted_at": None,
                     },
                 ),
-            ], {"uid": uid, "revision": 1}
+            ] + field_steps, {"uid": uid, "revision": 1}
 
-        return self.mutate(person_uid, command, "document.created", build)
+        return self.mutate(person_uid, command, "document.created", build, processing=processing)
 
     def save_draft(self, uid, command):
         document = self.document(uid, reading=False)
@@ -868,16 +885,24 @@ class Application:
 
         return self.mutate(document["person_uid"], command, "document.reviewed", build)
 
-    def evaluation_input(self, assignment_uid):
-        assignment = self.assignment(assignment_uid, reading=False)
-        person = self.case(assignment["person_uid"], reading=False)["profile"]
+    def evaluation_input(self, assignment_uid, *, processing=False):
+        assignment = self.assignment(assignment_uid, reading=False, processing=processing)
+        person = self.case(assignment["person_uid"], reading=False, processing=processing)[
+            "profile"
+        ]
         policy = self.required(
             SETS, set_key=assignment["set_key"], version=assignment["set_version"]
         )["definition"]
         documents = [
-            self.document(uid, reading=False) for uid in sorted(assignment["document_uids"])
+            self.document(uid, reading=False, processing=processing)
+            for uid in sorted(assignment["document_uids"])
         ]
         for document in documents:
+            if policy.get("comparisons"):
+                revision = self.required(
+                    DR, document_uid=document["uid"], revision=document["revision"]
+                )
+                document["extraction_evidence"] = revision.get("extraction_evidence")
             document["source_hashes"] = sorted(
                 {
                     self.required(RAW, uid=ref["raw_document_uid"])["content_sha256"]
@@ -890,7 +915,7 @@ class Application:
             "policy": policy,
             "documents": documents,
             "evaluation_date": datetime.now(UTC).date().isoformat(),
-            "evaluator_version": "2",
+            "evaluator_version": "3" if policy.get("comparisons") else "2",
         }
 
     def current_status(self, uid):
@@ -900,11 +925,23 @@ class Application:
 
         assignment = self.assignment(uid)
         snapshot = self.evaluation_input(uid)
+        input_identity = canonical(snapshot)
+        if snapshot["policy"].get("comparisons"):
+            previous = self.db.rows(
+                EV, EV.c.assignment_uid == UUID(str(uid)), limit=1, order=EV.c.created_at.desc()
+            )
+            if previous:
+                retained = previous[0]["input_snapshot"]
+                if (
+                    canonical({k: v for k, v in retained.items() if k != "comparison_result"})
+                    == input_identity
+                ):
+                    snapshot["comparison_result"] = retained.get("comparison_result")
         findings, summary = reconcile(snapshot, diagnostics=True)
         # Revision/review/source inputs are immutable or monotonically versioned.
         # Two equal collections plus lock admission detect an intervening mutation.
         self.case(assignment["person_uid"])
-        if canonical(snapshot) != canonical(self.evaluation_input(uid)):
+        if input_identity != canonical(self.evaluation_input(uid)):
             fail(409, "assessment_inputs_changed_retry_query")
         self.case(assignment["person_uid"])
         return AssignmentStatus(
@@ -937,13 +974,37 @@ class Application:
             outstanding_requirements=len(outstanding),
         ).model_dump(mode="json")
 
-    def evaluate(self, uid, command):
+    def evaluate(self, uid, command, *, dispatcher=None, processing=False, comparison_run=None):
         from .reconciliation import reconcile
 
-        assignment = self.assignment(uid, reading=False)
+        if processing and not (self.parsing_processor or self.organization_admin):
+            fail(403, "parsing_processor_required")
+        if comparison_run is not None and not processing:
+            fail(403, "parsing_processor_required")
+        assignment = self.assignment(uid, reading=False, processing=processing)
+        policy = self.required(
+            SETS, set_key=assignment["set_key"], version=assignment["set_version"]
+        )["definition"]
+        if policy.get("comparisons") and comparison_run is None:
+            from ..processing.comparisons import start
+
+            return start(self, uid, command, dispatcher)
 
         def build(op, now):
-            snapshot = self.evaluation_input(uid)
+            snapshot = self.evaluation_input(uid, processing=processing)
+            if comparison_run is not None:
+                run = self.required(RUN, uid=comparison_run)
+                if (
+                    run["kind"] != "document.compare"
+                    or run["input_snapshot"]["assignment_uid"] != str(uid)
+                    or run["input_snapshot"]["evaluation_command"]
+                    != command.model_dump(mode="json")
+                    or run["result"].get("executor_uid") != self.actor
+                ):
+                    fail(422, "comparison_run_identity_mismatch")
+                if canonical(snapshot) != canonical(run["input_snapshot"]["evaluation_input"]):
+                    fail(409, "comparison_inputs_changed_start_new_evaluation")
+                snapshot["comparison_result"] = run["result"].get("comparison_response")
             if snapshot["assignment"]["revision"] != command.expected_revision:
                 fail(409, "stale_assignment_revision")
             findings, summary = reconcile(snapshot)
@@ -978,13 +1039,17 @@ class Application:
                 ],
             ], {"uid": evaluation_uid, "summary": summary}
 
-        return self.mutate(assignment["person_uid"], command, "assignment.evaluated", build)
+        return self.mutate(
+            assignment["person_uid"], command, "assignment.evaluated", build, processing=processing
+        )
 
     def evaluation(self, uid):
         row = self.required(EV, uid=uid)
         self.case(row["person_uid"])
         current = self.evaluation_input(row["assignment_uid"])
-        row["stale"] = canonical(current) != canonical(row["input_snapshot"])
+        row["stale"] = canonical(current) != canonical(
+            {k: v for k, v in row["input_snapshot"].items() if k != "comparison_result"}
+        )
         row["findings"] = self.db.rows(FIND, FIND.c.evaluation_uid == UUID(str(uid)), limit=100)
         return row
 

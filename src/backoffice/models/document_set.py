@@ -6,6 +6,7 @@ from pydantic import Field, StrictBool, StrictStr, model_validator
 
 from ..schemas.registry import DocumentType, get_document_model, resolve_field_schema
 from .common import ContractModel, NonEmptyStr
+from .comparison import ComparisonRule
 
 
 class RequirementCondition(ContractModel):
@@ -179,9 +180,17 @@ class DocumentSet(ContractModel):
         description="Named requirements that are evaluated independently for each assigned person.",
     )
 
+    comparisons: list[ComparisonRule] = Field(
+        default_factory=list,
+        max_length=25,
+        description="Versioned cross-document rules evaluated by the same Back Office engine; parser observations never carry these decisions or tolerances.",
+    )
+
     @model_validator(mode="after")
     def unique_requirement_keys(self) -> Self:
-        keys = [requirement.key for requirement in self.requirements]
+        keys = [requirement.key for requirement in self.requirements] + [
+            rule.key for rule in self.comparisons
+        ]
         if len(keys) != len(set(keys)):
             raise ValueError("requirement keys must be unique")
         return self

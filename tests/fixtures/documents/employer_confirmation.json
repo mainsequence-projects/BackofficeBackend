@@ -1,0 +1,13 @@
+{
+  "document_type": "employer_confirmation",
+  "employee_name": "Alex Morgan",
+  "employee_identifier": "001234",
+  "employer": {"name": "Example Company", "registration_number": "0043623601"},
+  "issue_date": "2026-10-01",
+  "employment_start_date": "2019-05-01",
+  "contract_term_as_printed": "Indefinite",
+  "position": "Accountant",
+  "monthly_net_income": {"amount": "41000.00", "currency": "CZK"},
+  "income_basis": "monthly_average",
+  "income_period": {"start_date": "2026-07-01", "end_date": "2026-09-30"}
+}

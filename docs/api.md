@@ -34,7 +34,7 @@ All UIDs and operation keys are UUIDs. Each body rejects unknown attributes.
 | --- | --- | --- |
 | API identity | `GET /`, `GET /me` | Verified `user_uid`, `can_review`; root also identifies the API. |
 | Readiness | `GET /readyz` | Verifies the ownership migration and explicitly published catalog; never runs setup. |
-| Document types | `GET /document-types` | Ten exact document/schema versions. |
+| Document types | `GET /document-types` | Thirteen exact document/schema versions, shared by all document-set workflows. |
 | Form schemas | `GET /document-types/{type}/schema?version=1`, `GET /person-schema` | Canonical/draft document schemas or editable reference-profile schema, preserving field descriptions. |
 | Document sets | `GET /document-sets?search=&limit=50&offset=0` | Paginated published requirement definitions; literal key/name search. |
 | Exact document set | `GET /document-sets/{key}/versions/{version}` | Exact published definition; no fallback to the latest version. |
@@ -263,6 +263,27 @@ score only for pages of the same supported type.
 
 Migrations `backoffice_0003` and `backoffice_0004` add the policy/result tables and
 per-type policy scope. Legacy global rows remain historical only. Hosted migrations
-run through the existing deployment migration Job. This release implements policy
-configuration and trusted completion; parser transport, bucket uploads and background
-worker scheduling remain the integrations described in ADR 0001 and ADR 0003.
+run through the existing deployment migration Job. The policy and completion service is now used by the
+[bucket-backed extraction workflow](document-processing.md).
+
+## Actual extraction workflow
+
+[Bucket-backed extraction](document-processing.md) implements multipart upload, durable
+Job dispatch, strict ParsingMotor requests, canonical validation and automatic acceptance.
+Use `POST /document-processing`, then poll `GET /document-processing/{uid}`.
+The parsing endpoints will be deployed separately by the parser owner.
+
+### Revision extraction evidence
+
+`GET /documents/{uid}/revisions/{revision}/extraction-evidence` returns the authorized
+revision's retained parser observations and field candidates, or `evidence: null`
+for manual/legacy revisions. It uses the same case ownership and unfinished-operation
+guard as document reads. See [evidence persistence](document-processing.md#version-2-evidence-persistence).
+
+### Comparison-enabled evaluations
+
+For policies with comparison rules, `POST /assignments/{uid}/evaluations` returns
+HTTP 202 and `processing_run_uid`. Poll `GET /processing-runs/{uid}`, then read
+`evaluation.uid` through `GET /evaluations/{uid}`. Transient failures retry through
+`POST /processing-runs/{uid}/retry`. Policies without comparisons retain HTTP 201.
+See [comparison lifecycle and citations](document-comparisons.md).

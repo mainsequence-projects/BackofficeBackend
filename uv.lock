@@ -69,11 +69,16 @@ name = "backofficebackend"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "botocore" },
     { name = "fastapi" },
     { name = "mainsequence", extra = ["mcp"] },
     { name = "mainsequence-metatable" },
     { name = "ms-tau-sdk" },
+    { name = "pillow" },
     { name = "pydantic" },
+    { name = "pypdf" },
+    { name = "python-multipart" },
+    { name = "requests" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -87,11 +92,16 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "botocore", specifier = ">=1.40,<2" },
     { name = "fastapi", specifier = ">=0.110,<1" },
     { name = "mainsequence", extras = ["mcp"], specifier = "==9.0.29" },
     { name = "mainsequence-metatable", specifier = "==0.1.49" },
-    { name = "ms-tau-sdk", specifier = "==2.0.18" },
+    { name = "ms-tau-sdk", specifier = "==2.0.19" },
+    { name = "pillow", specifier = ">=11,<13" },
     { name = "pydantic", specifier = ">=2.13.5,<3" },
+    { name = "pypdf", specifier = ">=6,<7" },
+    { name = "python-multipart", specifier = ">=0.0.20,<1" },
+    { name = "requests", specifier = ">=2.32,<3" },
     { name = "sqlalchemy", specifier = ">=2.1,<3" },
     { name = "uvicorn", specifier = "==0.52.4" },
 ]
@@ -101,6 +111,20 @@ dev = [
     { name = "build", specifier = ">=1,<2" },
     { name = "pytest", specifier = ">=9,<10" },
     { name = "ruff", specifier = ">=0.16,<1" },
+]
+
+[[package]]
+name = "botocore"
+version = "1.43.114"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jmespath" },
+    { name = "python-dateutil" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/c8/b508359d1f3846a918c06807a9ae27eee063f904559269e42ccde9de09ea/botocore-1.43.114.tar.gz", hash = "sha256:f366fa4db518775632ad1eb128cd8203ca46396cecf37209d904f0bbc049ce90", size = 16369844, upload-time = "2026-10-14T19:24:17.683Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/41/7c6fa7ac5fcfd5ea3c6f32aab001942da32b184a210f39042778cb1ad8ed/botocore-1.43.114-py3-none-any.whl", hash = "sha256:d1c441a22e93e158de5b1e026205f5d6d67a4545d10540c5090c62dccb3a9eca", size = 16067885, upload-time = "2026-10-14T19:24:14.629Z" },
 ]
 
 [[package]]
@@ -791,6 +815,15 @@ wheels = [
 ]
 
 [[package]]
+name = "jmespath"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/59/322338183ecda247fb5d1763a6cbe46eff7222eaeebafd9fa65d4bf5cb11/jmespath-1.1.0.tar.gz", hash = "sha256:472c87d80f36026ae83c6ddd0f1d05d4e510134ed462851fd5f754c8c3cbb88d", size = 27377, upload-time = "2026-01-22T16:35:26.279Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/2f/967ba146e6d58cf6a652da73885f52fc68001525b4197effc174321d70b4/jmespath-1.1.0-py3-none-any.whl", hash = "sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64", size = 20419, upload-time = "2026-01-22T16:35:24.919Z" },
+]
+
+[[package]]
 name = "jsonschema"
 version = "4.26.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1239,7 +1272,7 @@ wheels = [
 
 [[package]]
 name = "ms-tau-sdk"
-version = "2.0.18"
+version = "2.0.19"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1257,9 +1290,9 @@ dependencies = [
     { name = "tau-ai" },
     { name = "uvicorn", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/01/f78d5435c6d5d259651ee9a5a7ae8f4ec6554464279dcb5d0cbf9ecf2dd6/ms_tau_sdk-2.0.18.tar.gz", hash = "sha256:64f60b6cd70cf1472f8195434c883575733b8a22361412e037628df3b30a7622", size = 326405, upload-time = "2026-10-18T22:17:46.787Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/a9/161c392c1bea111e706e055bc951782b05d3f231bacdfa1371ec21c8e21b/ms_tau_sdk-2.0.19.tar.gz", hash = "sha256:d435ec06848e8cf745c3134893602c016e6d216a7d0410e84d6331547a8a0829", size = 326765, upload-time = "2026-10-19T06:42:44.022Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ca/d1/f4dafecbe0d88afe65f98f6b113eb55e436891228b1c560ee5f09c869692/ms_tau_sdk-2.0.18-py3-none-any.whl", hash = "sha256:a016d404964171dece4e073ed7d247d6f717b33146b8d157a1b0ca1e1ef9dcc7", size = 349285, upload-time = "2026-10-18T22:17:45.112Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/a4/7ec7924e2837cc842db4a5f57d6e3b3b8cc873bf6cf426b51d969370f2d7/ms_tau_sdk-2.0.19-py3-none-any.whl", hash = "sha256:5302637ba728a3924bd1cc35ce933d8d72ab3ca7214ba581ae07380e19d8463d", size = 349377, upload-time = "2026-10-19T06:42:42.214Z" },
 ]
 
 [[package]]
@@ -1997,6 +2030,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/8b/88a1277c2f7d9ab1cec0a71e074ba24fd4a1710a43974682546da90a1343/pyodbc-5.3.0-cp314-cp314t-win32.whl", hash = "sha256:af4d8c9842fc4a6360c31c35508d6594d5a3b39922f61b282c2b4c9d9da99514", size = 70132, upload-time = "2025-10-17T18:03:53.715Z" },
     { url = "https://files.pythonhosted.org/packages/ba/c7/ee98c62050de4aa8bafb6eb1e11b95e0b0c898bd5930137c6dc776e06a9b/pyodbc-5.3.0-cp314-cp314t-win_amd64.whl", hash = "sha256:bfeb3e34795d53b7d37e66dd54891d4f9c13a3889a8f5fe9640e56a82d770955", size = 79452, upload-time = "2025-10-17T18:03:54.664Z" },
     { url = "https://files.pythonhosted.org/packages/4b/8f/d8889efd96bbe8e5d43ff9701f6b1565a8e09c3e1f58c388d550724f777b/pyodbc-5.3.0-cp314-cp314t-win_arm64.whl", hash = "sha256:13656184faa3f2d5c6f19b701b8f247342ed581484f58bf39af7315c054e69db", size = 70142, upload-time = "2025-10-17T18:03:55.551Z" },
+]
+
+[[package]]
+name = "pypdf"
+version = "6.21.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/51/e1/32a9c4dbd94618145f8bab5c623bdb0a528f23fc8719afd77ba0278fd377/pypdf-6.21.1.tar.gz", hash = "sha256:2d62c383acd6e0dff0a96322ba8b1135229343b084d73c6f6cfd947fd291afcb", size = 7088597, upload-time = "2026-10-17T10:29:52.801Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/85/e6/24c944e473c34e818cf1b98085796fcd780465ecfe17663f2bf8fee1958b/pypdf-6.21.1-py3-none-any.whl", hash = "sha256:553e2d42f5bb3bb2a785a7d3de8ef90bb7df74b5413eff5a7b4388007ea9254b", size = 405134, upload-time = "2026-10-17T10:29:50.687Z" },
 ]
 
 [[package]]

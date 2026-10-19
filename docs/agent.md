@@ -1,6 +1,6 @@
 # Back Office helper agent
 
-The dedicated `api/tau/main.py` exports the app returned by `ms-tau-sdk==2.0.18`.
+The dedicated `api/tau/main.py` exports the app returned by `ms-tau-sdk==2.0.19`.
 It disables coding tools and the central Main Sequence MCP with explicit settings;
 the deployment workflow declares the same flags. The SDK owns authentication,
 requester delegation, model credentials, session lifecycle and health endpoints.
@@ -47,7 +47,7 @@ local conversation while preserving its history. Availability for the hosted
 Environment and its session principals must be verified separately. Credentials
 are supplied by the platform, never committed.
 
-With SDK 2.0.18 and Tau 0.4.2, replayed conversation history can override the
+With SDK 2.0.18–2.0.19 and Tau 0.4.2, replayed conversation history can override the
 bootstrap's selected model in the inference engine. `src/backoffice_agent/runtime.py`
 uses the SDK's services factory and Tau's public model setter to align the idle
 engine with the model authorized by the SDK bootstrap before a turn. It retains
@@ -64,6 +64,17 @@ effective runtime catalog. No hosted rollout or traffic-promotion/rollback test 
 claimed by the local tests. The ADR's predeployment live smoke gate and automated
 postdeployment rollback remain follow-up integration work.
 
+## Chat file support
+
+The published SDK 2.0.19 still converts chat input to text before starting a turn.
+Its chat request parser ignores file parts, and a file-only message has no usable
+prompt. The SDK exposes no attachment upload route. Command Center SDK 0.5.18
+and Command Center AI 0.0.15 are also the latest published frontend versions
+checked on 2026-10-19; the AI conversation contract excludes attachments.
+Assistant file input therefore awaits compatible package releases. Business
+document processing is a separate API capability and does not add chat attachments
+or expand this helper's read-only tool permissions.
+
 ## Local verification
 
 Use the locked environment:
@@ -73,6 +84,12 @@ uv sync --locked
 uv run python -m scripts.check_agent_contract
 uv run pytest tests/agent tests/api/test_mcp_queries.py -q
 ```
+
+The 2026-10-19 SDK 2.0.19 upgrade passed the ten-tool contract check and all 27
+focused tests. An isolated loopback runtime also returned a real GPT-5.6 Luna
+reply, retained its conversation across a process restart, and answered a second
+turn in that same conversation. Both replies were present in SDK history afterward.
+This verifies local chat and persistence, not file attachments or hosted delegation.
 
 The policy tests use fake requester identities and native Tau hook types; they make
 no model calls and do not seed cases. Local Tau mode has no hosted requester binding,
@@ -87,3 +104,10 @@ would accept unreviewed drift. The snapshot is included as package data.
 The source card and repository-owned helper skill are under `.agents/`. Managed
 development skills were synchronized explicitly from the pinned SDK; no startup
 path changes those instructions.
+
+The comparison implementation advances the reviewed MCP snapshot to version 3. Only
+`list_document_sets` and `get_document_set` output schemas gain comparison-policy
+metadata. Tool inputs, all ten tools, read-only annotations, verified-requester
+checks and the two Tau exclusion flags remain unchanged. The helper cannot trigger
+comparisons; status queries reuse retained observations and otherwise report them
+as pending. Publish this pinned snapshot with the matching API release.

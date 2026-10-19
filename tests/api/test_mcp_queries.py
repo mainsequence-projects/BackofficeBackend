@@ -129,8 +129,12 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
         expected.pop("assessed_at", None)
         assert actual == expected, name
     sets = tool(client, "list_document_sets", {"limit": 1})["structuredContent"]
-    assert sets["has_more"] and sets["total_items"] == 2
-    assert sets["items"][0]["version"] == 2
+    assert sets["has_more"] and sets["total_items"] == 5
+    assert (sets["items"][0]["key"], sets["items"][0]["version"]) == ("loan_requirements", 2)
+    accounts = tool(client, "list_document_sets", {"search": "new_account_requirements"})[
+        "structuredContent"
+    ]
+    assert [item["version"] for item in accounts["items"]] == [3, 2, 1]
     assert tool(client, "list_document_sets", {"search": "%"})["structuredContent"]["items"] == []
 
 

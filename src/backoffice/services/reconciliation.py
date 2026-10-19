@@ -197,11 +197,22 @@ def reconcile(snapshot, *, diagnostics=False):
                 else None,
                 next_action=next_action(status, code),
             )
+    if policy.comparisons:
+        from .comparisons import findings as comparison_findings
+
+        compared = comparison_findings(
+            snapshot, snapshot.get("comparison_result"), diagnostics=diagnostics
+        )
+        findings.extend(compared)
+        for rule, finding in zip(policy.comparisons, compared, strict=True):
+            if rule.mandatory and finding["status"] != "not_applicable":
+                mandatory_total += 1
+                satisfied_total += finding["status"] == "satisfied"
     scheduled = [
         ref["dates"]["action_due_on"]
         for finding in findings
         for ref in finding["document_references"]
-        if ref["dates"]["action_due_on"]
+        if ref.get("dates", {}).get("action_due_on")
     ]
     return findings, {
         "complete": mandatory_total == satisfied_total,

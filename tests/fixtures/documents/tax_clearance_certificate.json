@@ -1,0 +1,11 @@
+{
+  "document_type": "tax_clearance_certificate",
+  "taxpayer_name": "Alex Morgan",
+  "tax_identifier": "001234",
+  "issuing_authority": "Example Tax Office",
+  "certificate_number": "00077",
+  "issue_date": "2026-10-01",
+  "as_of_date": "2026-09-30",
+  "arrears_statement": "no_arrears",
+  "statement_as_printed": "No outstanding tax arrears as of 30 September 2026."
+}

@@ -171,8 +171,23 @@ class ProcessingRunRecord(Identified, Created, Base):
         UniqueConstraint("operation_key"),
         CheckConstraint("attempt_count >= 0", name="nonnegative_attempts"),
         CheckConstraint(
-            "status IN ('pending', 'running', 'completed', 'failed', 'cancelled')",
+            "status IN ('pending', 'running', 'completed', 'failed', 'cancelled', 'needs_input')",
             name="allowed_status",
+        ),
+    )
+
+    lease_token: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        info=info(
+            "Lease token",
+            "Unique worker claim fencing stage updates; null when no extraction worker holds the run.",
+        ),
+    )
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        info=info(
+            "Lease expiry",
+            "UTC expiry after which an interrupted extraction worker can be replaced; null without a lease.",
         ),
     )
 
@@ -196,7 +211,10 @@ class ProcessingRunRecord(Identified, Created, Base):
     )
     status: Mapped[str] = mapped_column(
         String(20),
-        info=info("Processing status", "Pending, running, completed, failed, or cancelled."),
+        info=info(
+            "Processing status",
+            "Pending, running, completed, failed, cancelled, or needs_input for unresolved classification.",
+        ),
     )
     attempt_count: Mapped[int] = mapped_column(
         Integer, info=info("Attempt count", "Number of execution attempts started for this intent.")

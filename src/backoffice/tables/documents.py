@@ -117,6 +117,13 @@ class DocumentRevisionRecord(Identified, Created, Base):
             "Draft or canonical document attributes validated against the recorded schema version before writing.",
         ),
     )
+    extraction_evidence: Mapped[dict | None] = mapped_column(
+        JSON,
+        info=info(
+            "Extraction evidence",
+            "Immutable parser observations, reader candidates and source mapping for this exact revision; absent for manual or legacy revisions.",
+        ),
+    )
     raw_document_refs: Mapped[list] = mapped_column(
         JSON,
         info=info(

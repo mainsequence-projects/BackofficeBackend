@@ -155,6 +155,7 @@ Namespace: `backoffice`. Physical name: `backoffice__document_revision`.
 | `revision` | `INTEGER` | No | Revision | Positive revision unique within the logical document. |
 | `schema_version` | `INTEGER` | No | Schema version | Published contract version used to validate attributes. |
 | `payload` | `JSON` | No | Attributes | Draft or canonical document attributes validated against the recorded schema version before writing. |
+| `extraction_evidence` | `JSON` | Yes | Extraction evidence | Immutable parser observations, reader candidates and source mapping for this exact revision; absent for manual or legacy revisions. |
 | `raw_document_refs` | `JSON` | No | Raw sources | Serialized RawDocumentRef values containing source UIDs and optional page ranges; the service checks readiness and ownership on submission. |
 | `status` | `VARCHAR(20)` | No | Submission status | Draft permits edits; submitted freezes the payload and source references. |
 | `created_by` | `CHAR(32)` | No | Created by | Trusted Main Sequence User UID that created this revision. |
@@ -228,19 +229,22 @@ Unique: `operation_key`.
 
 ## `backoffice.raw_document`
 
-One source-file upload manifest owned by a business person. Finalization verifies ordered chunks, total bytes and checksum before the source becomes ready and immutable.
+One source-file upload manifest owned by a business person. Finalization verifies private bucket content or legacy ordered chunks, total bytes and checksum before the source becomes ready and immutable.
 
 Namespace: `backoffice`. Physical name: `backoffice__raw_document`.
 
 | Column | Type | Nullable | Label | Description |
 | --- | --- | --- | --- | --- |
+| `storage_kind` | `VARCHAR(16)` | No | Storage kind | Chunks for legacy content or bucket for private original files. |
+| `bucket_name` | `VARCHAR(120)` | Yes | Bucket name | Server-selected Main Sequence bucket; null for legacy chunk storage. |
+| `artifact_uid` | `CHAR(32)` | Yes | Artifact UID | Private Main Sequence Artifact identity verified against the file checksum; null before bucket finalization or for legacy chunks. |
 | `person_uid` | `CHAR(32)` | No | Person UID | Business person authorized to use this raw source as evidence. |
 | `operation_key` | `CHAR(32)` | No | Operation key | Upload idempotency UUID reused when resuming the same upload. |
 | `filename` | `VARCHAR(255)` | No | Filename | Original display filename; never used as a filesystem path. |
 | `media_type` | `VARCHAR(120)` | No | Media type | Validated source media type, for example application/pdf. |
 | `byte_count` | `INTEGER` | No | Byte count | Expected decoded file size verified during finalization. |
 | `content_sha256` | `VARCHAR(64)` | No | File checksum | Lowercase hexadecimal SHA-256 of the complete decoded source. |
-| `chunk_count` | `INTEGER` | No | Chunk count | Expected number of consecutive chunks starting at index zero. |
+| `chunk_count` | `INTEGER` | No | Chunk count | Expected consecutive legacy chunks starting at zero; zero for bucket content. |
 | `status` | `VARCHAR(20)` | No | Upload status | Uploading, ready, or failed; only ready sources may support submitted revisions. |
 | `finalized_at` | `DATETIME` | Yes | Finalized at | UTC instant at which all source-integrity checks succeeded. |
 | `uid` | `CHAR(32)` | No | UID | Stable application-generated UUID identifying this record. |
@@ -254,11 +258,13 @@ Check: `status IN ('uploading', 'ready', 'failed')`.
 
 Check: `status != 'ready' OR finalized_at IS NOT NULL`.
 
-Check: `chunk_count > 0`.
-
 Check: `byte_count > 0`.
 
+Check: `storage_kind != 'bucket' OR status != 'ready' OR artifact_uid IS NOT NULL`.
+
 Check: `length(content_sha256) = 64`.
+
+Check: `(storage_kind = 'chunks' AND chunk_count > 0) OR (storage_kind = 'bucket' AND chunk_count = 0 AND bucket_name IS NOT NULL)`.
 
 Unique: `operation_key`.
 
@@ -300,7 +306,7 @@ Namespace: `backoffice`. Physical name: `backoffice__field_evidence`.
 | --- | --- | --- | --- | --- |
 | `revision_uid` | `CHAR(32)` | No | Revision UID | Exact document attribute revision supported by this evidence. |
 | `person_uid` | `CHAR(32)` | No | Person UID | Common owner of the revision and raw source. |
-| `field_path` | `VARCHAR(240)` | No | Field path | Validated document field path, including an index when identifying an array element. |
+| `field_path` | `VARCHAR(500)` | No | Field path | Validated document field path, including an index when identifying an array element. |
 | `raw_document_uid` | `CHAR(32)` | No | Source UID | Immutable raw source containing the evidence. |
 | `page_number` | `INTEGER` | No | Page number | One-based page number within the source. |
 | `bounding_box` | `JSON` | Yes | Bounding box | Optional normalized left, top, right and bottom page coordinates validated by EvidenceRegion. |
@@ -386,10 +392,12 @@ Namespace: `backoffice`. Physical name: `backoffice__processing_run`.
 
 | Column | Type | Nullable | Label | Description |
 | --- | --- | --- | --- | --- |
+| `lease_token` | `CHAR(32)` | Yes | Lease token | Unique worker claim fencing stage updates; null when no extraction worker holds the run. |
+| `lease_expires_at` | `DATETIME` | Yes | Lease expiry | UTC expiry after which an interrupted extraction worker can be replaced; null without a lease. |
 | `operation_key` | `CHAR(32)` | No | Operation key | Stable idempotency UUID reused across scheduling retries. |
 | `kind` | `VARCHAR(80)` | No | Processing kind | Application operation such as extract_document or evaluate_assignment. |
 | `input_snapshot` | `JSON` | No | Input snapshot | Immutable validated source and revision references plus operation parameters. |
-| `status` | `VARCHAR(20)` | No | Processing status | Pending, running, completed, failed, or cancelled. |
+| `status` | `VARCHAR(20)` | No | Processing status | Pending, running, completed, failed, cancelled, or needs_input for unresolved classification. |
 | `attempt_count` | `INTEGER` | No | Attempt count | Number of execution attempts started for this intent. |
 | `job_run_uid` | `CHAR(32)` | Yes | Job run UID | Main Sequence JobRun UID when a background job has been scheduled. |
 | `agent_session_uid` | `CHAR(32)` | Yes | Agent session UID | Main Sequence Tau session UID when agent work is associated with the intent. |
@@ -401,7 +409,7 @@ Namespace: `backoffice`. Physical name: `backoffice__processing_run`.
 
 Primary key: `uid`.
 
-Check: `status IN ('pending', 'running', 'completed', 'failed', 'cancelled')`.
+Check: `status IN ('pending', 'running', 'completed', 'failed', 'cancelled', 'needs_input')`.
 
 Check: `attempt_count >= 0`.
 

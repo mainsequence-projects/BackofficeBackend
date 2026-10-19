@@ -6,14 +6,14 @@ own application storage. The planned reconciliation agent uses `ms-tau-sdk`.
 
 Implemented:
 
-- Ten documented document models, recursive drafts, and JSON Schema export.
+- Thirteen documented document models, recursive drafts, and JSON Schema export.
 - Person profiles, versioned document sets, assignments, raw-source references,
   and revision-specific reviews with derived read-only acceptance.
 - Eighteen documented MetaTable declarations, a frozen initial migration, and an
   explicit Main Sequence migration Job entry point.
 - People, assignments, bounded raw-source uploads, versioned drafts/submission,
   authorized reviews, reconciliation findings, audit history and durable retry recovery.
-- An illustrative `new_account_requirements` policy and offline contract/HTTP tests.
+- Illustrative account-opening and loan evidence policies using one shared document/review engine, with offline contract/HTTP tests.
 
 The business API is implemented and verified against local Main Sequence MetaTables.
 Ten read-only MCP queries are implemented at `/mcp`; the remaining MCP commands
@@ -46,6 +46,7 @@ worker and developer-session adapters remain outside deployable `api/` entry poi
 
 ## Documentation
 
+- [Shared document engine, loan facts and opt-in parser evidence contracts](docs/shared-document-engine.md)
 - [ADR 0001: Back Office helper, full MCP surface and document processing](docs/adr/0001-back-office-helper-mcp-and-document-processing.md)
 - [ADR 0002: Automatic deployment of the agent using only MCP tools](docs/adr/0002-automatic-deployment-of-mcp-only-helper-agent.md)
 - [Back Office helper configuration, deployment and verification](docs/agent.md)
@@ -70,3 +71,5 @@ resource discovery can identify their entry points. Importing models, exporting
 schemas, and starting this API do not migrate tables.
 
 - [ADR 0003: Parsing workflow and per-type classification thresholds](docs/adr/0003-document-parsing-workflow-and-classification-policy.md) documents dynamic policies and automatic acceptance.
+
+- [Bucket-backed document extraction](docs/document-processing.md): upload, classify, extract and apply per-type acceptance policies.

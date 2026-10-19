@@ -141,7 +141,7 @@ def test_release_dependency_graph_and_restricted_resource_grants():
     resources = {item["key"]: item for item in workflow["resources"]}
     agent = resources["backoffice_helper"]
     assert agent["acts_for_requester"] is True
-    assert agent["access"] == {"resources": [{"key": "backoffice_api", "policy": "reader"}]}
+    assert agent["access"] == {"resources": [{"key": "backoffice_api", "policy": "viewer"}]}
     assert agent["spec"]["mcp_applications"] == [{"resource": "backoffice_api"}]
     assert {x["name"]: x["value"] for x in agent["spec"]["env_vars"]} == {
         "TAU_EXCLUDE_BASE_TOOLS": "true",

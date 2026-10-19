@@ -9,3 +9,5 @@ __pycache__/
 build/
 dist/
 .local/
+# Local document datasets used for integration testing.
+/data/examples/

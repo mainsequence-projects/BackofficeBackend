@@ -1,6 +1,12 @@
 # Document model and field catalog
 
 This is the accepted business field catalog and intended reconciliation behavior.
+
+The shared catalog also includes `loan_contract`, `employer_confirmation`, and
+`tax_clearance_certificate` version 1. Their exact fields are in the generated
+[model reference](model-reference.md); their policy scope and extraction contracts
+are described in [Shared document engine](shared-document-engine.md). They use the
+same submission, review and requirement services as all other document types.
 The contracts are implemented; the [generated model reference](model-reference.md)
 and [JSON Schemas](../schemas/documents/) are authoritative for current fields.
 The checks described below include future reconciliation rules; the

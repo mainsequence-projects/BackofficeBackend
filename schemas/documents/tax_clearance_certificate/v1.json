@@ -1,0 +1,340 @@
+{
+  "document_type": "tax_clearance_certificate",
+  "version": 1,
+  "canonical_schema": {
+    "$defs": {
+      "Money": {
+        "additionalProperties": false,
+        "description": "Exact monetary value; JSON serializes the amount as a decimal string.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "Money",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Preserve the authority's statement, including reported arrears or uncertainty.",
+    "properties": {
+      "document_type": {
+        "const": "tax_clearance_certificate",
+        "default": "tax_clearance_certificate",
+        "description": "Identifies a tax-authority arrears or clearance certificate, distinct from a tax return.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "taxpayer_name": {
+        "description": "Taxpayer's complete name exactly as printed on the certificate.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Taxpayer name",
+        "type": "string"
+      },
+      "tax_identifier": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Taxpayer identifier as printed, preserving leading zeros and formatting.",
+        "title": "Tax identifier"
+      },
+      "issuing_authority": {
+        "description": "Tax authority explicitly identified as issuing the certificate.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Issuing authority",
+        "type": "string"
+      },
+      "certificate_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Authority-issued certificate reference exactly as printed, if present.",
+        "title": "Certificate number"
+      },
+      "issue_date": {
+        "description": "Date the tax authority issued the certificate, as YYYY-MM-DD.",
+        "format": "date",
+        "title": "Issue date",
+        "type": "string"
+      },
+      "as_of_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date to which the arrears statement applies, if separately printed.",
+        "title": "Statement date"
+      },
+      "arrears_statement": {
+        "description": "Meaning explicitly stated by the authority; not_stated means no interpretable claim, not zero debt or clearance.",
+        "enum": [
+          "no_arrears",
+          "arrears_reported",
+          "not_stated"
+        ],
+        "title": "Authority's arrears statement",
+        "type": "string"
+      },
+      "statement_as_printed": {
+        "description": "Source wording supporting the authority's statement, without a Back Office decision.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Statement as printed",
+        "type": "string"
+      },
+      "arrears_amount": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Money"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Amount and currency explicitly printed; null is unknown, never inferred as zero from a clearance statement.",
+        "title": "Reported arrears amount"
+      }
+    },
+    "required": [
+      "taxpayer_name",
+      "issuing_authority",
+      "issue_date",
+      "arrears_statement",
+      "statement_as_printed"
+    ],
+    "title": "TaxClearanceCertificate",
+    "type": "object"
+  },
+  "draft_schema": {
+    "$defs": {
+      "MoneyDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "title": "Currency"
+          }
+        },
+        "title": "MoneyDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "tax_clearance_certificate",
+        "default": "tax_clearance_certificate",
+        "description": "Identifies a tax-authority arrears or clearance certificate, distinct from a tax return.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "taxpayer_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Taxpayer's complete name exactly as printed on the certificate.",
+        "title": "Taxpayer name"
+      },
+      "tax_identifier": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Taxpayer identifier as printed, preserving leading zeros and formatting.",
+        "title": "Tax identifier"
+      },
+      "issuing_authority": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Tax authority explicitly identified as issuing the certificate.",
+        "title": "Issuing authority"
+      },
+      "certificate_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Authority-issued certificate reference exactly as printed, if present.",
+        "title": "Certificate number"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the tax authority issued the certificate, as YYYY-MM-DD.",
+        "title": "Issue date"
+      },
+      "as_of_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date to which the arrears statement applies, if separately printed.",
+        "title": "Statement date"
+      },
+      "arrears_statement": {
+        "anyOf": [
+          {
+            "enum": [
+              "no_arrears",
+              "arrears_reported",
+              "not_stated"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Meaning explicitly stated by the authority; not_stated means no interpretable claim, not zero debt or clearance.",
+        "title": "Authority's arrears statement"
+      },
+      "statement_as_printed": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Source wording supporting the authority's statement, without a Back Office decision.",
+        "title": "Statement as printed"
+      },
+      "arrears_amount": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/MoneyDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Amount and currency explicitly printed; null is unknown, never inferred as zero from a clearance statement.",
+        "title": "Reported arrears amount"
+      }
+    },
+    "title": "TaxClearanceCertificateDraft",
+    "type": "object"
+  },
+  "content_sha256": "8a1cb91d97ed73259b328d733e0738157b3fcc32656fa89de2f6c61059f601f2"
+}

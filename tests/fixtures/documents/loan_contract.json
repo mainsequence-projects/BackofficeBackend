@@ -1,0 +1,11 @@
+{
+  "document_type": "loan_contract",
+  "full_name": "Alex Morgan",
+  "borrower_identifier": "001234",
+  "contract_number": "00042",
+  "issue_date": "2026-10-01",
+  "lender_name": "Example Bank",
+  "loan_amount": {"amount": "600000.00", "currency": "CZK"},
+  "declared_monthly_net_income": {"amount": "56000.00", "currency": "CZK"},
+  "required_documents_as_printed": ["No additional evidence requested"]
+}

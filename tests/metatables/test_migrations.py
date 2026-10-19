@@ -69,7 +69,7 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
         connection.exec_driver_sql(
             "SELECT version_num FROM backoffice__alembic_version"
         ).scalar_one()
-        == "backoffice_0004"
+        == "backoffice_0006"
     )
     connection.rollback()
     connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
@@ -325,3 +325,29 @@ def test_parsing_policy_constraints_bound_scores_and_scope_revisions(migrated):
                     }
                 )
             )
+
+
+def test_downgrade_refuses_to_discard_retained_extraction_evidence(migrated):
+    connection, config = migrated
+    person, _, document, _ = seed_documents(connection)
+    connection.execute(
+        DocumentRevisionRecord.__table__.insert().values(
+            uid=uuid4(),
+            document_uid=document,
+            person_uid=person,
+            document_type="passport",
+            revision=1,
+            schema_version=1,
+            payload={},
+            raw_document_refs=[],
+            status="draft",
+            submitted_at=None,
+            created_at=NOW,
+            created_by=uuid4(),
+            extraction_evidence={"contract_version": 2, "extraction": {"field_evidence": []}},
+        )
+    )
+    connection.commit()
+    with pytest.raises(RuntimeError, match="Retained extraction evidence"):
+        command.downgrade(config, "backoffice_0005")
+    assert connection.execute(DocumentRevisionRecord.__table__.select()).one().extraction_evidence

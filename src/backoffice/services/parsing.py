@@ -139,11 +139,17 @@ def complete(app, uid, command):
         if sources:
             # Ownership and ready-state failures are errors, never trusted score approvals.
             app.validate_refs(current["person_uid"], current["raw_document_refs"])
+        from .extraction_evidence import review_reason
+
+        revision_row = app.required(DR, document_uid=uid, revision=current["revision"])
+        evidence_reason = review_reason(revision_row.get("extraction_evidence"))
         reason = (
             "invalid_document_attributes"
             if not valid
             else "source_evidence_required"
             if not sources
+            else evidence_reason
+            if evidence_reason
             else "parsing_policy_missing"
             if not policy
             else "automatic_acceptance_disabled"

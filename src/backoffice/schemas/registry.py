@@ -7,13 +7,16 @@ from pydantic import Field, TypeAdapter
 
 from ..models.documents import (
     BankStatement,
+    EmployerConfirmation,
     EmploymentContract,
     KYCQuestionnaire,
+    LoanContract,
     NationalIdentityCard,
     Passport,
     Payslip,
     ResidencePermit,
     SourceOfFundsEvidence,
+    TaxClearanceCertificate,
     TaxReturn,
     UtilityBill,
 )
@@ -29,6 +32,9 @@ DocumentType = Literal[
     "tax_return",
     "source_of_funds_evidence",
     "kyc_questionnaire",
+    "loan_contract",
+    "employer_confirmation",
+    "tax_clearance_certificate",
 ]
 
 DocumentPayload = Annotated[
@@ -41,7 +47,10 @@ DocumentPayload = Annotated[
     | Payslip
     | TaxReturn
     | SourceOfFundsEvidence
-    | KYCQuestionnaire,
+    | KYCQuestionnaire
+    | LoanContract
+    | EmployerConfirmation
+    | TaxClearanceCertificate,
     Field(discriminator="document_type"),
 ]
 
@@ -59,6 +68,9 @@ DOCUMENT_MODELS = MappingProxyType(
             TaxReturn,
             SourceOfFundsEvidence,
             KYCQuestionnaire,
+            LoanContract,
+            EmployerConfirmation,
+            TaxClearanceCertificate,
         )
     }
 )

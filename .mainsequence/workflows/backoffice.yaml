@@ -25,13 +25,32 @@ resources:
       branches:
         - repository: MetaTables
           policy: reader
+  - key: extract-backoffice-document
+    kind: job
+    spec:
+      name: Back Office document extraction
+      execution_path: scripts/process_document.py
+      cpu_request: "1"
+      memory_request: "2"
+      max_runtime_seconds: 1200
+      spot: false
+      automatic_redeployment:
+        enabled: true
+        tag_regex: null
+      env_vars:
+        - name: BACKOFFICE_DOCUMENT_BUCKET
+          value: backoffice-documents
+    access:
+      branches:
+        - repository: MetaTables
+          policy: reader
   - key: backoffice_helper
     kind: harness_agent
     acts_for_requester: true
     access:
       resources:
         - key: backoffice_api
-          policy: reader
+          policy: viewer
     spec:
       source_path: api/tau/main.py
       mcp_applications:
@@ -91,10 +110,13 @@ execution:
       run_job: migrate-backoffice
       image_from: image
       needs: [image]
+    worker_image:
+      prepare_image: extract-backoffice-document
+      needs: [migrate]
     deploy_api:
       deploy: backoffice_api
       image_from: image
-      needs: [migrate]
+      needs: [migrate, worker_image]
     agent_contract:
       run_job: verify-backoffice-agent
       image_from: image

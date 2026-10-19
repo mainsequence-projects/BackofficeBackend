@@ -27,16 +27,44 @@ MAX_CHUNK_BASE64_LENGTH = 4 * ((MAX_CHUNK_BYTES + 2) // 3)
 class RawDocumentRecord(Identified, Created, Base):
     __tablename__ = "backoffice__raw_document"
     __metatable_identifier__ = "backoffice.raw_document"
-    __metatable_description__ = "One source-file upload manifest owned by a business person. Finalization verifies ordered chunks, total bytes and checksum before the source becomes ready and immutable."
+    __metatable_description__ = "One source-file upload manifest owned by a business person. Finalization verifies private bucket content or legacy ordered chunks, total bytes and checksum before the source becomes ready and immutable."
     __metatable_labels__ = ("backoffice", "source", "upload")
     __table_args__ = (
         UniqueConstraint("uid", "person_uid"),
         UniqueConstraint("operation_key"),
         CheckConstraint("byte_count > 0", name="positive_size"),
-        CheckConstraint("chunk_count > 0", name="positive_chunks"),
+        CheckConstraint(
+            "(storage_kind = 'chunks' AND chunk_count > 0) OR (storage_kind = 'bucket' AND chunk_count = 0 AND bucket_name IS NOT NULL)",
+            name="source_storage",
+        ),
+        CheckConstraint(
+            "storage_kind != 'bucket' OR status != 'ready' OR artifact_uid IS NOT NULL",
+            name="ready_bucket_object",
+        ),
         CheckConstraint("length(content_sha256) = 64", name="sha256_length"),
         CheckConstraint("status IN ('uploading', 'ready', 'failed')", name="allowed_status"),
         CheckConstraint("status != 'ready' OR finalized_at IS NOT NULL", name="finalization_time"),
+    )
+
+    storage_kind: Mapped[str] = mapped_column(
+        String(16),
+        server_default="chunks",
+        info=info(
+            "Storage kind", "Chunks for legacy content or bucket for private original files."
+        ),
+    )
+    bucket_name: Mapped[str | None] = mapped_column(
+        String(120),
+        info=info(
+            "Bucket name", "Server-selected Main Sequence bucket; null for legacy chunk storage."
+        ),
+    )
+    artifact_uid: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        info=info(
+            "Artifact UID",
+            "Private Main Sequence Artifact identity verified against the file checksum; null before bucket finalization or for legacy chunks.",
+        ),
     )
 
     person_uid: Mapped[UUID] = mapped_column(
@@ -66,7 +94,10 @@ class RawDocumentRecord(Identified, Created, Base):
     )
     chunk_count: Mapped[int] = mapped_column(
         Integer,
-        info=info("Chunk count", "Expected number of consecutive chunks starting at index zero."),
+        info=info(
+            "Chunk count",
+            "Expected consecutive legacy chunks starting at zero; zero for bucket content.",
+        ),
     )
     status: Mapped[str] = mapped_column(
         String(20),
@@ -153,7 +184,7 @@ class FieldEvidenceRecord(Identified, Created, Base):
         Uuid, info=info("Person UID", "Common owner of the revision and raw source.")
     )
     field_path: Mapped[str] = mapped_column(
-        String(240),
+        String(500),
         info=info(
             "Field path",
             "Validated document field path, including an index when identifying an array element.",

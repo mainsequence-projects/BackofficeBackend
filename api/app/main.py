@@ -1,11 +1,24 @@
 """Authenticated Back Office REST API; all storage uses Main Sequence MetaTables."""
 
+import hashlib
 import logging
 import os
+from typing import Annotated
 from urllib.parse import quote
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Path, Query, Request
+from fastapi import (
+    APIRouter,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import JSONResponse, Response
 from mainsequence.client import User
 from mainsequence.client.exceptions import ApiError
@@ -15,7 +28,14 @@ from pydantic import ValidationError
 from sqlalchemy import select
 
 from src.backoffice.models.document_set import DocumentSet
-from src.backoffice.policies.new_account_requirements import new_account_requirements
+from src.backoffice.policies import document_set_catalog
+from src.backoffice.processing import workflow as processing
+from src.backoffice.processing.adapters import (
+    MainSequenceBucket,
+    MainSequenceDispatcher,
+    ProcessingError,
+)
+from src.backoffice.processing.contracts import MAX_BYTES
 from src.backoffice.schemas.drafts import get_draft_model
 from src.backoffice.schemas.registry import DOCUMENT_MODELS, DocumentType, get_document_model
 from src.backoffice.services.application import (
@@ -110,6 +130,15 @@ async def invalid_contract(request: Request, error: ValueError):
     return JSONResponse(status_code=422, content={"detail": "invalid_contract_or_schema_version"})
 
 
+async def processing_error(request: Request, error: ProcessingError):
+    return JSONResponse(
+        status_code=422
+        if error.code.startswith(("source_", "invalid_source", "encrypted_", "unsupported_"))
+        else 503,
+        content={"detail": error.code},
+    )
+
+
 async def platform_error(request: Request, error: ApiError):
     status = error.status_code if error.status_code in (401, 403, 409, 429) else 503
     return JSONResponse(
@@ -125,10 +154,22 @@ async def unavailable_source(request: Request, error: DataSourceResolutionError)
 async def request_controls(request: Request, call_next):
     # Bound bodies before JSON validation, including chunked HTTP requests.
     body = bytearray()
+    limit = (
+        16 * 1024 * 1024
+        if request.url.path in {"/document-processing", "/source-documents/bucket-uploads"}
+        else 1024 * 1024
+    )
     async for chunk in request.stream():
         body.extend(chunk)
-        if len(body) > 1024 * 1024:
-            return JSONResponse(status_code=413, content={"detail": "request_exceeds_one_mib"})
+        if len(body) > limit:
+            return JSONResponse(
+                status_code=413,
+                content={
+                    "detail": "request_body_too_large"
+                    if limit > 1024 * 1024
+                    else "request_exceeds_one_mib"
+                },
+            )
     request._body = bytes(body)
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
@@ -174,13 +215,13 @@ def complete_parsing(uid: UUID, command: CompleteParsing, service: Application =
 def ready(service: Application = Service):
     # No migrations or catalog publication on startup/readiness.
     service.db.execute(select(P.c.created_by).limit(1))
-    policy = new_account_requirements(2)
-    published = service.db.one(SETS, set_key=policy.key, version=policy.version)
-    if (
-        not published
-        or published["status"] != "published"
-        or service.db.count(SCHEMA) < len(DOCUMENT_MODELS)
-    ):
+    published = [
+        service.db.one(SETS, set_key=policy.key, version=policy.version)
+        for policy in document_set_catalog()
+    ]
+    if any(not row or row["status"] != "published" for row in published) or service.db.count(
+        SCHEMA
+    ) < len(DOCUMENT_MODELS):
         raise HTTPException(503, "application_catalog_not_initialized_run_migration_job")
     return {"status": "ready", "user_uid": service.actor, "can_review": service.reviewer}
 
@@ -337,6 +378,13 @@ def revisions(
     }
 
 
+@router.get("/documents/{uid}/revisions/{revision}/extraction-evidence")
+def extraction_evidence(uid: UUID, revision: int, service: Application = Service):
+    from src.backoffice.services.extraction_evidence import evidence_view
+
+    return evidence_view(service, uid, revision)
+
+
 @router.get("/documents/{uid}/revisions/{revision}")
 def document_revision(uid: UUID, revision: int, service: Application = Service):
     return service.document(uid, revision_number=revision)
@@ -366,6 +414,105 @@ def reviews(uid: UUID, service: Application = Service):
 @router.post("/documents/{uid}/reviews", status_code=201)
 def review(uid: UUID, command: ReviewDocument, service: Application = Service):
     return service.review(uid, command)
+
+
+def processing_bucket():
+    return MainSequenceBucket()
+
+
+def processing_dispatcher():
+    return MainSequenceDispatcher()
+
+
+BucketService = Depends(processing_bucket)
+DispatcherService = Depends(processing_dispatcher)
+
+
+@router.post("/document-processing", status_code=202)
+async def upload_and_process(
+    person_uid: Annotated[UUID, Form()],
+    operation_key: Annotated[UUID, Form()],
+    file: Annotated[UploadFile, File()],
+    service: Application = Service,
+    bucket=BucketService,
+    dispatcher=DispatcherService,
+):
+    from starlette.concurrency import run_in_threadpool
+
+    await run_in_threadpool(service.case, person_uid, reading=False)
+    try:
+        content = await file.read(MAX_BYTES + 1)
+        command = processing.BucketUpload(
+            operation_key=operation_key,
+            person_uid=person_uid,
+            filename=file.filename or "document",
+            media_type=file.content_type,
+            byte_count=len(content),
+            content_sha256=hashlib.sha256(content).hexdigest(),
+        )
+        return await run_in_threadpool(
+            processing.upload_and_start,
+            service,
+            command,
+            content,
+            bucket=bucket,
+            dispatcher=dispatcher,
+        )
+    finally:
+        await file.close()
+
+
+@router.post("/source-documents/bucket-uploads", status_code=201)
+async def upload_bucket_source(
+    person_uid: Annotated[UUID, Form()],
+    operation_key: Annotated[UUID, Form()],
+    file: Annotated[UploadFile, File()],
+    service: Application = Service,
+    bucket=BucketService,
+):
+    from starlette.concurrency import run_in_threadpool
+
+    await run_in_threadpool(service.case, person_uid, reading=False)
+    try:
+        content = await file.read(MAX_BYTES + 1)
+        command = processing.BucketUpload(
+            operation_key=operation_key,
+            person_uid=person_uid,
+            filename=file.filename or "document",
+            media_type=file.content_type,
+            byte_count=len(content),
+            content_sha256=hashlib.sha256(content).hexdigest(),
+        )
+        return await run_in_threadpool(processing.upload, service, command, content, bucket)
+    finally:
+        await file.close()
+
+
+@router.post("/source-documents/{uid}/process", status_code=202)
+def process_source(
+    uid: UUID,
+    command: Command,
+    service: Application = Service,
+    dispatcher=DispatcherService,
+):
+    return processing.start(service, uid, command, dispatcher)
+
+
+@router.get("/processing-runs/{uid}")
+@router.get("/document-processing/{uid}")
+def processing_status(uid: UUID, service: Application = Service):
+    return processing.view(processing.get_run(service, uid))
+
+
+@router.post("/processing-runs/{uid}/retry", status_code=202)
+@router.post("/document-processing/{uid}/retry", status_code=202)
+def retry_processing(
+    uid: UUID,
+    command: Command,
+    service: Application = Service,
+    dispatcher=DispatcherService,
+):
+    return processing.retry(service, uid, command, dispatcher)
 
 
 @router.post("/source-documents/uploads", status_code=201)
@@ -434,9 +581,18 @@ def download_chunk(uid: UUID, index: int, service: Application = Service):
     }
 
 
-@router.post("/assignments/{uid}/evaluations", status_code=201)
-def evaluate(uid: UUID, command: Evaluate, service: Application = Service):
-    return service.evaluate(uid, command)
+@router.post(
+    "/assignments/{uid}/evaluations",
+    status_code=201,
+    responses={202: {"description": "Comparison evaluation queued on the shared processing Job"}},
+)
+def evaluate(
+    uid: UUID, command: Evaluate, service: Application = Service, dispatcher=DispatcherService
+):
+    result = service.evaluate(uid, command, dispatcher=dispatcher)
+    return (
+        JSONResponse(status_code=202, content=result) if "processing_run_uid" in result else result
+    )
 
 
 @router.get("/assignments/{uid}/evaluations")
@@ -501,6 +657,7 @@ def create_app():
     application_app.add_exception_handler(ValidationError, validation_error)
     application_app.add_exception_handler(ValueError, invalid_contract)
     application_app.add_exception_handler(ApiError, platform_error)
+    application_app.add_exception_handler(ProcessingError, processing_error)
     application_app.add_exception_handler(DataSourceResolutionError, unavailable_source)
     application_app.middleware("http")(request_controls)
     mount_mcp(application_app, application)

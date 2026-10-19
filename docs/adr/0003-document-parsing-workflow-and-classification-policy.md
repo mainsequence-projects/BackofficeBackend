@@ -205,3 +205,10 @@ Local verification on 2026-10-19:
   confidence requiring review. Test fixtures remain only in the isolated runtime.
 - Hosted migrations, hosted database behavior and the external parsing transport
   have not been exercised by these checks.
+
+## Workflow implementation follow-up
+
+The [bucket-backed processing implementation](../document-processing.md) now delivers
+source upload, durable Job stages, strict parser adapters and automatic acceptance.
+Migration `backoffice_0005` extends source/run metadata; legacy uploads remain readable.
+Live parser deployment belongs to the parser owner and was not performed here.

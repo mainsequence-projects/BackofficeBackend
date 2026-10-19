@@ -21,10 +21,9 @@ from src.backoffice.models.document_set import (
     RequirementCondition,
 )
 from src.backoffice.models.person import Person
-from src.backoffice.policies.new_account_requirements import (
-    new_account_requirements,
-    policy_definition,
-)
+from src.backoffice.policies import document_set_catalog, policy_definition
+from src.backoffice.processing.comparison_contracts import COMPARISON_CONTRACTS
+from src.backoffice.processing.evidence_contracts import EVIDENCE_CONTRACTS
 from src.backoffice.schemas.catalog import document_schema
 from src.backoffice.schemas.registry import DOCUMENT_MODELS
 
@@ -104,14 +103,24 @@ def generated_files() -> dict[Path, str]:
     from src.backoffice.tables import metatable_models
 
     files = {Path("docs/model-reference.md"): model_reference()}
+    for model in COMPARISON_CONTRACTS:
+        files[Path(f"schemas/processing/comparison/v1/{model.__name__}.json")] = (
+            json.dumps(model.model_json_schema(mode="validation"), indent=2, ensure_ascii=False)
+            + "\n"
+        )
+    for model in EVIDENCE_CONTRACTS:
+        files[Path(f"schemas/processing/v2/{model.__name__}.json")] = (
+            json.dumps(model.model_json_schema(mode="validation"), indent=2, ensure_ascii=False)
+            + "\n"
+        )
     for kind, version in DOCUMENT_MODELS:
         contract = document_schema(kind, version).model_dump(mode="json")
         files[Path(f"schemas/documents/{kind}/v{version}.json")] = (
             json.dumps(contract, indent=2, ensure_ascii=False) + "\n"
         )
-    for version in (1, 2):
-        files[Path(f"schemas/document_sets/new_account_requirements.v{version}.json")] = (
-            json.dumps(policy_definition(new_account_requirements(version)), indent=2) + "\n"
+    for policy in document_set_catalog():
+        files[Path(f"schemas/document_sets/{policy.key}.v{policy.version}.json")] = (
+            json.dumps(policy_definition(policy), indent=2) + "\n"
         )
     lines = [
         "# MetaTable dictionary",

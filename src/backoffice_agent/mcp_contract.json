@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 3,
   "tools": {
     "get_current_user": {
       "inputSchema": {
@@ -689,6 +689,162 @@
       },
       "outputSchema": {
         "$defs": {
+          "ComparisonRule": {
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "description": "Stable comparison rule key, unique alongside requirement keys.",
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "title": "Key",
+                "type": "string"
+              },
+              "description": {
+                "description": "Business explanation retained in the finding; never sent to the parser.",
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "Description",
+                "type": "string"
+              },
+              "topic": {
+                "description": "Factual concept the parser should compare, without rules or thresholds.",
+                "maxLength": 500,
+                "minLength": 1,
+                "title": "Topic",
+                "type": "string"
+              },
+              "left": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Left document/field selector; the numeric relative tolerance uses this value as its baseline."
+              },
+              "right": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Right document/field selector."
+              },
+              "operator": {
+                "description": "Back Office operator applied only after cited comparability has been established.",
+                "enum": [
+                  "exact",
+                  "numeric",
+                  "semantic"
+                ],
+                "title": "Operator",
+                "type": "string"
+              },
+              "mandatory": {
+                "default": true,
+                "description": "Whether an applicable unresolved or failed comparison blocks requirement completion.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "when_both_present": {
+                "default": false,
+                "description": "When true, absent document types make this rule inapplicable; missing fields in present documents still block it.",
+                "title": "When Both Present",
+                "type": "boolean"
+              },
+              "absolute_tolerance": {
+                "anyOf": [
+                  {
+                    "minimum": 0.0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "0",
+                "description": "Nonnegative allowed absolute difference, in the compared unit; numeric rules only.",
+                "title": "Absolute Tolerance"
+              },
+              "relative_tolerance_basis_points": {
+                "default": 0,
+                "description": "Allowed relative difference in basis points of the absolute left value; numeric rules only. Zero baseline uses absolute tolerance only.",
+                "maximum": 10000,
+                "minimum": 0,
+                "title": "Relative Tolerance Basis Points",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "topic",
+              "left",
+              "right",
+              "operator"
+            ],
+            "title": "ComparisonRule",
+            "type": "object"
+          },
+          "ComparisonSelector": {
+            "additionalProperties": false,
+            "properties": {
+              "document_type": {
+                "description": "Document type selected from this assignment only.",
+                "enum": [
+                  "national_identity_card",
+                  "passport",
+                  "residence_permit",
+                  "utility_bill",
+                  "bank_statement",
+                  "employment_contract",
+                  "payslip",
+                  "tax_return",
+                  "source_of_funds_evidence",
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
+                ],
+                "title": "Document Type",
+                "type": "string"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact canonical schema version.",
+                "minimum": 1,
+                "title": "Schema Version",
+                "type": "integer"
+              },
+              "field": {
+                "description": "Canonical object field path to compare, such as net_pay.amount.",
+                "maxLength": 240,
+                "minLength": 1,
+                "title": "Field",
+                "type": "string"
+              },
+              "unit_field": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Field identifying the currency or unit; both sides must agree exactly.",
+                "title": "Unit Field"
+              },
+              "context_fields": {
+                "description": "Additional cited fields needed to interpret period, basis or entity; missing context leaves comparison unresolved.",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "title": "Context Fields",
+                "type": "array"
+              }
+            },
+            "required": [
+              "document_type",
+              "field"
+            ],
+            "title": "ComparisonSelector",
+            "type": "object"
+          },
           "DocumentOption": {
             "additionalProperties": false,
             "properties": {
@@ -704,7 +860,10 @@
                   "payslip",
                   "tax_return",
                   "source_of_funds_evidence",
-                  "kyc_questionnaire"
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
                 ],
                 "title": "Document type",
                 "type": "string"
@@ -928,6 +1087,15 @@
                 "minItems": 1,
                 "title": "Requirements",
                 "type": "array"
+              },
+              "comparisons": {
+                "description": "Versioned cross-document rules evaluated by the same Back Office engine; parser observations never carry these decisions or tolerances.",
+                "items": {
+                  "$ref": "#/$defs/ComparisonRule"
+                },
+                "maxItems": 25,
+                "title": "Comparisons",
+                "type": "array"
               }
             },
             "required": [
@@ -1046,6 +1214,162 @@
       },
       "outputSchema": {
         "$defs": {
+          "ComparisonRule": {
+            "additionalProperties": false,
+            "properties": {
+              "key": {
+                "description": "Stable comparison rule key, unique alongside requirement keys.",
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "title": "Key",
+                "type": "string"
+              },
+              "description": {
+                "description": "Business explanation retained in the finding; never sent to the parser.",
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "Description",
+                "type": "string"
+              },
+              "topic": {
+                "description": "Factual concept the parser should compare, without rules or thresholds.",
+                "maxLength": 500,
+                "minLength": 1,
+                "title": "Topic",
+                "type": "string"
+              },
+              "left": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Left document/field selector; the numeric relative tolerance uses this value as its baseline."
+              },
+              "right": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Right document/field selector."
+              },
+              "operator": {
+                "description": "Back Office operator applied only after cited comparability has been established.",
+                "enum": [
+                  "exact",
+                  "numeric",
+                  "semantic"
+                ],
+                "title": "Operator",
+                "type": "string"
+              },
+              "mandatory": {
+                "default": true,
+                "description": "Whether an applicable unresolved or failed comparison blocks requirement completion.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "when_both_present": {
+                "default": false,
+                "description": "When true, absent document types make this rule inapplicable; missing fields in present documents still block it.",
+                "title": "When Both Present",
+                "type": "boolean"
+              },
+              "absolute_tolerance": {
+                "anyOf": [
+                  {
+                    "minimum": 0.0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "0",
+                "description": "Nonnegative allowed absolute difference, in the compared unit; numeric rules only.",
+                "title": "Absolute Tolerance"
+              },
+              "relative_tolerance_basis_points": {
+                "default": 0,
+                "description": "Allowed relative difference in basis points of the absolute left value; numeric rules only. Zero baseline uses absolute tolerance only.",
+                "maximum": 10000,
+                "minimum": 0,
+                "title": "Relative Tolerance Basis Points",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "topic",
+              "left",
+              "right",
+              "operator"
+            ],
+            "title": "ComparisonRule",
+            "type": "object"
+          },
+          "ComparisonSelector": {
+            "additionalProperties": false,
+            "properties": {
+              "document_type": {
+                "description": "Document type selected from this assignment only.",
+                "enum": [
+                  "national_identity_card",
+                  "passport",
+                  "residence_permit",
+                  "utility_bill",
+                  "bank_statement",
+                  "employment_contract",
+                  "payslip",
+                  "tax_return",
+                  "source_of_funds_evidence",
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
+                ],
+                "title": "Document Type",
+                "type": "string"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact canonical schema version.",
+                "minimum": 1,
+                "title": "Schema Version",
+                "type": "integer"
+              },
+              "field": {
+                "description": "Canonical object field path to compare, such as net_pay.amount.",
+                "maxLength": 240,
+                "minLength": 1,
+                "title": "Field",
+                "type": "string"
+              },
+              "unit_field": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Field identifying the currency or unit; both sides must agree exactly.",
+                "title": "Unit Field"
+              },
+              "context_fields": {
+                "description": "Additional cited fields needed to interpret period, basis or entity; missing context leaves comparison unresolved.",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "title": "Context Fields",
+                "type": "array"
+              }
+            },
+            "required": [
+              "document_type",
+              "field"
+            ],
+            "title": "ComparisonSelector",
+            "type": "object"
+          },
           "DocumentOption": {
             "additionalProperties": false,
             "properties": {
@@ -1061,7 +1385,10 @@
                   "payslip",
                   "tax_return",
                   "source_of_funds_evidence",
-                  "kyc_questionnaire"
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
                 ],
                 "title": "Document type",
                 "type": "string"
@@ -1316,6 +1643,15 @@
             },
             "minItems": 1,
             "title": "Requirements",
+            "type": "array"
+          },
+          "comparisons": {
+            "description": "Versioned cross-document rules evaluated by the same Back Office engine; parser observations never carry these decisions or tolerances.",
+            "items": {
+              "$ref": "#/$defs/ComparisonRule"
+            },
+            "maxItems": 25,
+            "title": "Comparisons",
             "type": "array"
           }
         },
@@ -1594,7 +1930,10 @@
                   "payslip",
                   "tax_return",
                   "source_of_funds_evidence",
-                  "kyc_questionnaire"
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
                 ],
                 "title": "Document type",
                 "type": "string"
@@ -1952,7 +2291,10 @@
                   "payslip",
                   "tax_return",
                   "source_of_funds_evidence",
-                  "kyc_questionnaire"
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
                 ],
                 "title": "Document type",
                 "type": "string"
@@ -2291,5 +2633,5 @@
       }
     }
   },
-  "sha256": "82500bbb123226883eb341a8728feeae45bb38000c2d8a3c4766237daf4e3d85"
+  "sha256": "7f7a07ae81b2a8f0e16fcd9d89195c73eabbb51169b0dd5e1a02e609afc20dfc"
 }
