@@ -26,7 +26,9 @@ from mainsequence.server.fastapi import install_request_identity
 from metatables import DataSourceResolutionError
 from pydantic import ValidationError
 from sqlalchemy import select
+from starlette.requests import ClientDisconnect
 
+from api.app.assistant import AssistantContext, resolve_assistant_context
 from src.backoffice.models.document_set import DocumentSet
 from src.backoffice.policies import document_set_catalog
 from src.backoffice.processing import workflow as processing
@@ -159,17 +161,25 @@ async def request_controls(request: Request, call_next):
         if request.url.path in {"/document-processing", "/source-documents/bucket-uploads"}
         else 1024 * 1024
     )
-    async for chunk in request.stream():
-        body.extend(chunk)
-        if len(body) > limit:
-            return JSONResponse(
-                status_code=413,
-                content={
-                    "detail": "request_body_too_large"
-                    if limit > 1024 * 1024
-                    else "request_exceeds_one_mib"
-                },
-            )
+    try:
+        async for chunk in request.stream():
+            body.extend(chunk)
+            if len(body) > limit:
+                return JSONResponse(
+                    status_code=413,
+                    content={
+                        "detail": "request_body_too_large"
+                        if limit > 1024 * 1024
+                        else "request_exceeds_one_mib"
+                    },
+                )
+    except ClientDisconnect:
+        # Navigation/AbortController can close a request before its body arrives.
+        # No business handler has run, and a vanished client is not a server error.
+        return Response(
+            status_code=499,
+            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+        )
     request._body = bytes(body)
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
@@ -194,6 +204,12 @@ def me(service: Application = Service):
         "can_review": service.reviewer,
         "is_organization_admin": service.organization_admin,
     }
+
+
+@router.get("/assistant/context", response_model=AssistantContext)
+def assistant_context(service: Application = Service):
+    """Discover this API's deployed helper after verifying the request identity."""
+    return resolve_assistant_context()
 
 
 @router.get("/admin/parsing-settings")

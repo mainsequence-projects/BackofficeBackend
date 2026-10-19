@@ -33,6 +33,7 @@ All UIDs and operation keys are UUIDs. Each body rejects unknown attributes.
 | Action | Endpoint | Contract |
 | --- | --- | --- |
 | API identity | `GET /`, `GET /me` | Verified `user_uid`, `can_review`; root also identifies the API. |
+| Assistant discovery | `GET /assistant/context` | Authenticated `{ environmentUid, agentUid }` for the deployed Back Office helper in the API's own branch and Environment. |
 | Readiness | `GET /readyz` | Verifies the ownership migration and explicitly published catalog; never runs setup. |
 | Document types | `GET /document-types` | Thirteen exact document/schema versions, shared by all document-set workflows. |
 | Form schemas | `GET /document-types/{type}/schema?version=1`, `GET /person-schema` | Canonical/draft document schemas or editable reference-profile schema, preserving field descriptions. |
@@ -121,6 +122,23 @@ chunk checksum, complete SHA-256 and media signature pass. Ready sources and
 accepted chunks cannot be overwritten. Reassembly reads bounded batches through
 MetaTables; a browser can download individual chunks to stay within the delegated
 transport's response budget. Failed validation leaves the upload unfinalized.
+
+Requests disconnected before the complete body arrives end with an internal 499
+response, without invoking a business handler or producing an ASGI error traceback.
+Completed requests retain the same body limits and validation.
+
+## Assistant discovery
+
+The API resolves the helper from the Main Sequence SDK's current repository branch
+and Organization Environment, using the repository-owned Agent Card name. It checks
+both scope identifiers and requires exactly one Agent with a deployed runtime.
+The response includes identifiers only; no credentials or runtime URL is returned.
+Browser-selected Environment or Agent parameters do not affect discovery.
+
+Missing configuration, missing deployment and ambiguous Agents return explicit 503
+errors. Platform authorization failures retain their 401/403 status. Discovery never
+selects another branch or Environment to work around an unavailable helper. Loopback
+development uses the local Tau source through `/__agent__` directly.
 
 ## Reconciliation behavior
 
