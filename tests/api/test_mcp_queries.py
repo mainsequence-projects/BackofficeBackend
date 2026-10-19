@@ -46,7 +46,9 @@ def mcp_client(monkeypatch):
 
     monkeypatch.setattr(sdk_identity.requests, "get", identity)
     monkeypatch.setattr(
-        main, "Application", lambda uid, reviewer=False: Application(uid, reviewer, store)
+        main,
+        "Application",
+        lambda uid, reviewer=False, **permissions: Application(uid, reviewer, store, **permissions),
     )
     with TestClient(
         main.create_app(), headers={**HEADERS, "Authorization": f"Bearer {owner}"}
@@ -119,6 +121,10 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
         assert not result.get("isError"), result
         actual = result["structuredContent"]
         expected = client.get(path).json()
+        if name == "get_current_user":
+            # REST adds the Admin navigation fact; the helper's pinned read
+            # contract deliberately retains its original two fields.
+            assert expected.pop("is_organization_admin") is False
         actual.pop("assessed_at", None)
         expected.pop("assessed_at", None)
         assert actual == expected, name
@@ -238,7 +244,9 @@ def test_delegated_transport_uses_requester_not_admin_workload(monkeypatch):
         lambda: SimpleNamespace(verify=verify),
     )
     monkeypatch.setattr(
-        main, "Application", lambda uid, reviewer=False: Application(uid, reviewer, store)
+        main,
+        "Application",
+        lambda uid, reviewer=False, **permissions: Application(uid, reviewer, store, **permissions),
     )
     with TestClient(
         main.create_app(),

@@ -62,9 +62,19 @@ def canonical(value):
 
 
 class Application:
-    def __init__(self, actor_uid, reviewer=False, store=None):
+    def __init__(
+        self,
+        actor_uid,
+        reviewer=False,
+        store=None,
+        *,
+        organization_admin=False,
+        parsing_processor=False,
+    ):
         self.actor = str(UUID(str(actor_uid)))
-        self.reviewer = reviewer
+        self.organization_admin = organization_admin is True
+        self.parsing_processor = parsing_processor is True
+        self.reviewer = reviewer or self.organization_admin
         self.db = store or Storage()
 
     def required(self, table, **keys):
@@ -73,9 +83,12 @@ class Application:
             fail(404, "record_not_found")
         return row
 
-    def case(self, person_uid, *, reading=True):
+    def case(self, person_uid, *, reading=True, processing=False):
         person = self.required(P, uid=person_uid)
-        if not self.reviewer and person.get("created_by") != self.actor:
+        if (
+            not (self.reviewer or processing and self.parsing_processor)
+            and person.get("created_by") != self.actor
+        ):
             fail(404, "record_not_found")
         if reading and self.db.one(RUN, uid=stable(person_uid, "case-lock")):
             fail(409, "case_operation_in_progress_retry_original_request")
@@ -152,9 +165,19 @@ class Application:
     def ensure_step(self, table, values):
         return self.step(table, values)
 
-    def mutate(self, person_uid, command, kind, builder, *, create=False):
+    def mutate(
+        self,
+        person_uid,
+        command,
+        kind,
+        builder,
+        *,
+        create=False,
+        resource_type="person",
+        processing=False,
+    ):
         if not create:
-            self.case(person_uid, reading=False)
+            self.case(person_uid, reading=False, processing=processing)
         operation = str(command.operation_key)
         signature = hashlib.sha256(
             canonical(
@@ -207,7 +230,7 @@ class Application:
                 "uid": stable(operation, "audit"),
                 "actor_uid": self.actor,
                 "action": kind,
-                "resource_type": "person",
+                "resource_type": resource_type,
                 "resource_uid": str(person_uid),
                 "revision": None,
                 "occurred_at": now,
@@ -252,10 +275,20 @@ class Application:
         snapshot = row["input_snapshot"]
         if snapshot.get("actor_uid") != self.actor:
             fail(404, "record_not_found")
+        if row["kind"].startswith("admin.") and not self.organization_admin:
+            fail(403, "organization_admin_required")
+        if row["kind"] == "document.parsing_completed" and not (
+            self.organization_admin or self.parsing_processor
+        ):
+            fail(403, "parsing_processor_required")
         if row["kind"] == "document.reviewed" and not self.reviewer:
             fail(403, "reviewer_role_required")
         if self.db.one(P, uid=snapshot["person_uid"]):
-            self.case(snapshot["person_uid"], reading=False)
+            self.case(
+                snapshot["person_uid"],
+                reading=False,
+                processing=row["kind"] == "document.parsing_completed",
+            )
         return row
 
     def resume(self, uid):
@@ -618,9 +651,9 @@ class Application:
                 fail(422, "source_must_be_ready_and_owned_by_person")
         return refs
 
-    def document(self, uid, *, reading=True, revision_number=None):
+    def document(self, uid, *, reading=True, revision_number=None, processing=False):
         row = self.required(D, uid=uid)
-        self.case(row["person_uid"], reading=reading)
+        self.case(row["person_uid"], reading=reading, processing=processing)
         if revision_number is None:
             revisions = self.db.rows(
                 DR, DR.c.document_uid == UUID(str(uid)), limit=1, order=DR.c.revision.desc()
@@ -642,8 +675,11 @@ class Application:
             else []
         )
         review = reviews[0] if reviews else None
+        from .parsing import result_view
+
         return {
             **row,
+            "parsing_result": result_view(self, uid, revision["revision"]) if revision else None,
             "revision": revision["revision"] if revision else 0,
             "revision_created_at": revision["created_at"] if revision else None,
             "submitted_at": revision["submitted_at"] if revision else None,
@@ -779,6 +815,21 @@ class Application:
             ], {"uid": str(uid), "revision": current["revision"], "status": "submitted"}
 
         return self.mutate(document["person_uid"], command, "document.submitted", build)
+
+    def parsing_settings(self, document_type):
+        from .parsing import settings
+
+        return settings(self, document_type)
+
+    def update_parsing_settings(self, command):
+        from .parsing import update_settings
+
+        return update_settings(self, command)
+
+    def complete_parsing(self, uid, command):
+        from .parsing import complete
+
+        return complete(self, uid, command)
 
     def review(self, uid, command):
         if not self.reviewer:

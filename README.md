@@ -9,7 +9,7 @@ Implemented:
 - Ten documented document models, recursive drafts, and JSON Schema export.
 - Person profiles, versioned document sets, assignments, raw-source references,
   and revision-specific reviews with derived read-only acceptance.
-- Sixteen documented MetaTable declarations, a frozen initial migration, and an
+- Eighteen documented MetaTable declarations, a frozen initial migration, and an
   explicit Main Sequence migration Job entry point.
 - People, assignments, bounded raw-source uploads, versioned drafts/submission,
   authorized reviews, reconciliation findings, audit history and durable retry recovery.
@@ -68,3 +68,5 @@ The business [api/app/main.py](api/app/main.py) retains Main Sequence request id
 Deployable FastAPI applications stay at `api/<name>/main.py` so CodeRepository
 resource discovery can identify their entry points. Importing models, exporting
 schemas, and starting this API do not migrate tables.
+
+- [ADR 0003: Parsing workflow and per-type classification thresholds](docs/adr/0003-document-parsing-workflow-and-classification-policy.md) documents dynamic policies and automatic acceptance.

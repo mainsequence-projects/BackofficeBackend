@@ -1,6 +1,6 @@
 # Back Office namespace and deployment workflow
 
-The application uses one MetaTables namespace, `backoffice`. All sixteen business
+The application uses one MetaTables namespace, `backoffice`. All eighteen business
 tables and the provider's Alembic registry explicitly declare it. The physical
 `backoffice__*` names and `backoffice__alembic_version` remain stable.
 

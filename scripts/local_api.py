@@ -3,6 +3,7 @@
 import asyncio
 import os
 
+from mainsequence.client import User
 from mainsequence.client.utils import get_authorization_headers
 from metatables import configure_local_client, get_runtime_status
 from starlette.responses import JSONResponse
@@ -90,6 +91,19 @@ class LocalDeveloperGateway:
         # Browser-supplied identity never selects the local developer. The real
         # app still verifies the injected bearer with Main Sequence per request.
         scope = dict(scope)
+        try:
+            user = await asyncio.to_thread(User.get_authenticated_user_details)
+            scope["state"] = {
+                **scope.get("state", {}),
+                "backoffice_local_admin_uid": user.uid
+                if user.is_organization_admin is True
+                else None,
+            }
+        except Exception:
+            await JSONResponse({"detail": "organization_permissions_unavailable"}, status_code=503)(
+                scope, receive, send
+            )
+            return
         scope["headers"] = [
             (key, value)
             for key, value in scope.get("headers", [])

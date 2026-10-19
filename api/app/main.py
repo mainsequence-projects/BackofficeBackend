@@ -17,7 +17,7 @@ from sqlalchemy import select
 from src.backoffice.models.document_set import DocumentSet
 from src.backoffice.policies.new_account_requirements import new_account_requirements
 from src.backoffice.schemas.drafts import get_draft_model
-from src.backoffice.schemas.registry import DOCUMENT_MODELS, get_document_model
+from src.backoffice.schemas.registry import DOCUMENT_MODELS, DocumentType, get_document_model
 from src.backoffice.services.application import (
     AUDIT,
     DR,
@@ -34,6 +34,7 @@ from src.backoffice.services.contracts import (
     AssignmentDocuments,
     AssignSet,
     Command,
+    CompleteParsing,
     CreateDocument,
     CreatePerson,
     Evaluate,
@@ -41,6 +42,7 @@ from src.backoffice.services.contracts import (
     SaveDraft,
     StartUpload,
     SubmitDocument,
+    UpdateParsingPolicy,
     UpdatePerson,
     UploadChunk,
 )
@@ -57,7 +59,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def application():
+def application(request: Request = None):
     # Requester is verified by Main Sequence for delegated application calls.
     identity = User.get_requester() or User.get_logged_user()
     if identity is None:
@@ -71,9 +73,25 @@ def application():
         if x.strip()
     ]
     reviewer = identity.is_organization_admin or identity.uid in reviewers
+    # Local SDK identities intentionally omit organization facts. The loopback
+    # gateway may attach a freshly verified directory fact for this exact UID.
+    local_admin_uid = (
+        getattr(request.state, "backoffice_local_admin_uid", None) if request else None
+    )
+    organization_admin = identity.is_organization_admin is True or local_admin_uid == identity.uid
+    processors = {
+        x.strip()
+        for x in os.environ.get("BACKOFFICE_PARSING_PROCESSOR_UIDS", "").split(",")
+        if x.strip()
+    }
     if teams and not reviewer:
         reviewer = identity.in_teams(teams)
-    return Application(identity.uid, reviewer=bool(reviewer))
+    return Application(
+        identity.uid,
+        reviewer=bool(reviewer),
+        organization_admin=organization_admin,
+        parsing_processor=identity.uid in processors,
+    )
 
 
 Service = Depends(application)
@@ -130,7 +148,26 @@ def root(service: Application = Service):
 
 @router.get("/me")
 def me(service: Application = Service):
-    return {"user_uid": service.actor, "can_review": service.reviewer}
+    return {
+        "user_uid": service.actor,
+        "can_review": service.reviewer,
+        "is_organization_admin": service.organization_admin,
+    }
+
+
+@router.get("/admin/parsing-settings")
+def parsing_settings(document_type: DocumentType, service: Application = Service):
+    return service.parsing_settings(document_type)
+
+
+@router.put("/admin/parsing-settings")
+def save_parsing_settings(command: UpdateParsingPolicy, service: Application = Service):
+    return service.update_parsing_settings(command)
+
+
+@router.post("/documents/{uid}/parsing-results", status_code=201)
+def complete_parsing(uid: UUID, command: CompleteParsing, service: Application = Service):
+    return service.complete_parsing(uid, command)
 
 
 @router.get("/readyz")

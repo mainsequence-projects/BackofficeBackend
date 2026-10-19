@@ -1,4 +1,4 @@
-"""Explicit registry of the sixteen application-owned Main Sequence MetaTables."""
+"""Explicit registry of application-owned Main Sequence MetaTables."""
 
 from .base import Base
 from .documents import DocumentRecord, DocumentReviewRecord, DocumentRevisionRecord
@@ -9,6 +9,7 @@ from .operations import (
     ReconciliationEvaluationRecord,
     ReconciliationFindingRecord,
 )
+from .parsing import ParsingPolicyRecord, ParsingResultRecord
 from .person import PersonRecord, PersonRevisionRecord
 from .requirements import (
     AssignmentDocumentRecord,
@@ -39,4 +40,6 @@ def metatable_models() -> tuple[type[Base], ...]:
         ReconciliationFindingRecord,
         ProcessingRunRecord,
         AuditEventRecord,
+        ParsingPolicyRecord,
+        ParsingResultRecord,
     )

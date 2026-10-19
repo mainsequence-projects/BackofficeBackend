@@ -13,7 +13,7 @@ src/backoffice/
     documents/             # All ten canonical document payloads
   schemas/                 # Version registry, recursive drafts and form-schema envelope
   policies/                # Example NewAccountRequirements definition
-  tables/                  # Sixteen Main Sequence MetaTable definitions
+  tables/                  # Eighteen Main Sequence MetaTable definitions
   migrations/              # Provider, Main Sequence Alembic environment and frozen revision
   services/                # Business commands, governed storage, reviews and evaluation
 scripts/
@@ -97,7 +97,7 @@ evaluator. This policy is explicitly illustrative and does not establish legal K
 The [table dictionary](metatable-dictionary.md) lists every authored table, column,
 key and relationship. Models inherit `metatables.PlatformManagedMetaTable` and use
 Main Sequence naming conventions. The explicit provider registry owns these
-sixteen tables plus its migration-version table. There is no application database
+eighteen tables plus its migration-version table. There is no application database
 URL, ORM session factory, or independent storage service.
 
 Physical constraints enforce unique revisions, published schema references,

@@ -1,9 +1,10 @@
 """Validated API commands; identities and acceptance are always server-owned."""
 
+from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import Field, create_model
+from pydantic import Field, StrictBool, StrictInt, create_model, model_validator
 
 from ..models.common import ContractModel, NonEmptyStr
 from ..models.document import RawDocumentRef
@@ -15,6 +16,52 @@ from ..tables.evidence import MAX_CHUNK_BASE64_LENGTH
 class Command(ContractModel):
     operation_key: UUID = Field(
         description="Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response."
+    )
+
+
+class UpdateParsingPolicy(Command):
+    document_type: DocumentType = Field(
+        description="Canonical document type whose classification acceptance policy is being changed."
+    )
+    expected_revision: StrictInt = Field(
+        ge=0,
+        description="Revision for this document type loaded by the administrator; zero means unconfigured.",
+    )
+    automatic_acceptance_enabled: StrictBool = Field(
+        description="Enable automatic acceptance for qualifying valid document revisions."
+    )
+    acceptance_threshold_percent: Decimal | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+        max_digits=5,
+        decimal_places=2,
+        description="Inclusive classification confidence cutoff in percent from 0 to 100, with at most two decimal places; 60 means 60 percent.",
+    )
+
+    @model_validator(mode="after")
+    def configured_threshold(self):
+        if self.automatic_acceptance_enabled and self.acceptance_threshold_percent is None:
+            raise ValueError(
+                "An acceptance threshold is required when automatic acceptance is enabled."
+            )
+        return self
+
+
+class CompleteParsing(Command):
+    expected_revision: StrictInt = Field(
+        ge=1, description="Exact latest document revision scored by the trusted processor."
+    )
+    parsing_score_percent: Decimal | None = Field(
+        default=None,
+        ge=0,
+        le=100,
+        max_digits=5,
+        decimal_places=2,
+        description="Trusted classification confidence for this exact document revision, in percent from 0 to 100; absent scores always require review. This is not extraction completeness or attribute accuracy.",
+    )
+    extractor: NonEmptyStr = Field(
+        max_length=120, description="Extractor identifier and version retained with the score."
     )
 
 

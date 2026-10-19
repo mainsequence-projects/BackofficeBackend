@@ -3,6 +3,7 @@
 - Date: 2026-10-19
 - Status: Accepted direction; read-only person/set/assignment MCP queries and missing-requirement assessment implemented. Remaining catalog and processing work pending.
 - Scope: Backend business services, REST API, MCP tool catalog, and helper behavior.
+- Partially superseded by: [ADR 0003](0003-document-parsing-workflow-and-classification-policy.md) for per-type classification-confidence policies and validated automatic acceptance. The helper remains read-only.
 - Supersedes: The proposed MCP interface table in [platform contracts](../platform-contracts.md) and the MetaTables-only raw-content target in [project plan](../project-plan.md). Existing chunk storage remains supported during transition.
 
 ## Context

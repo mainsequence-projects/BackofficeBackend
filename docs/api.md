@@ -190,3 +190,79 @@ The verifier rejects non-loopback targets and checks actual Local/SQLite runtime
 state before creating identifiable test cases. It retains fixtures in that local
 test runtime. Never run it against a hosted API or the developer's ordinary data
 without selecting the intended test runtime first.
+
+## Per-document-type parsing acceptance
+
+See [ADR 0003](adr/0003-document-parsing-workflow-and-classification-policy.md).
+The score is **classification confidence for the exact document revision**, expressed
+in percent (`60` means 60%), not the percentage of attributes extracted. Policies
+are stored as immutable revisions in `backoffice.parsing_policy`; outcomes and the
+applied policy are retained in `backoffice.parsing_result`.
+
+Only verified organization administrators can use these settings endpoints:
+
+- `GET /admin/parsing-settings?document_type=passport`: read the current passport policy.
+- `PUT /admin/parsing-settings`: publish a new policy revision for the specified type.
+
+```json
+{
+  "operation_key": "01192945-ae88-4e72-a95e-8bcbecc6aa27",
+  "document_type": "passport",
+  "expected_revision": 0,
+  "automatic_acceptance_enabled": true,
+  "acceptance_threshold_percent": "60.00"
+}
+```
+
+The response includes `document_type`, `score_kind: "classification_confidence"`,
+`revision`, `automatic_acceptance_enabled`, `acceptance_threshold_percent`,
+`changed_by`, and `changed_at`. Percentages serialize as decimal strings. Revisions
+are independent per type: changing passports does not modify bank statements.
+No policy is created by reading; an unconfigured type returns revision zero,
+automatic acceptance disabled, and a null threshold. There is no global fallback.
+To disable acceptance, publish a new revision with `automatic_acceptance_enabled: false`.
+Configuration affects future completion decisions; historical outcomes retain their
+original policy. Reuse the same operation key and body after an uncertain response;
+stale revisions or changed input under the same key return 409.
+
+`POST /documents/{uid}/parsing-results` is available only to organization administrators
+or the explicitly configured trusted processing identities in
+`BACKOFFICE_PARSING_PROCESSOR_UIDS` (comma-separated Main Sequence User UIDs).
+The score endpoint is not an ordinary browser or MCP helper capability.
+
+```json
+{
+  "operation_key": "b5ff3d19-1526-43f6-9004-1b2d7437d371",
+  "expected_revision": 1,
+  "parsing_score_percent": "60.00",
+  "extractor": "classification-provider/version"
+}
+```
+
+The backend derives the policy type from the document, never from a completion
+request. It validates canonical attributes and finalized sources belonging to the
+same person. A valid document with an enabled type policy and score at or above its
+threshold is submitted and automatically accepted, with a revision-bound review.
+Missing/disabled policy, missing or low score, missing evidence or incomplete attributes
+produce `needs_review`; invalid ownership/source state is an error. A complete document
+may be submitted while awaiting review. Existing reviews cannot be overwritten by a
+new parsing completion. `accepted` still does not imply all document-set requirements
+are satisfied.
+
+The result includes `document_type`, `score_kind`, `decision`, `reason_code`,
+`policy_revision`, and `review_uid`. Document reads expose `parsing_result` with the
+recorded score and threshold; historical revision reads retain their original result.
+New parsing results on a later revision require a separate operation. A recorded
+incomplete result is not silently re-scored after a threshold change.
+
+Provider adapters convert 0–1 probabilities to percentages exactly once using
+`services.parsing_confidence.confidence_percent`, rounding downward to 0.01% rather
+than promoting a below-threshold score. Explicit type selection does not imply a
+score. The page aggregator requires the ingested source manifest and derives one
+score only for pages of the same supported type.
+
+Migrations `backoffice_0003` and `backoffice_0004` add the policy/result tables and
+per-type policy scope. Legacy global rows remain historical only. Hosted migrations
+run through the existing deployment migration Job. This release implements policy
+configuration and trusted completion; parser transport, bucket uploads and background
+worker scheduling remain the integrations described in ADR 0001 and ADR 0003.

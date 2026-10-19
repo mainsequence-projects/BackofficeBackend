@@ -426,3 +426,74 @@ Namespace: `backoffice`. Physical name: `backoffice__audit_event`.
 | `uid` | `CHAR(32)` | No | UID | Stable application-generated UUID identifying this record. |
 
 Primary key: `uid`.
+
+## `backoffice.parsing_policy`
+
+One immutable classification confidence policy revision per document type. Organization administrators configure percentage thresholds for automatic acceptance of complete documents; prior policies remain available for decision provenance.
+
+Namespace: `backoffice`. Physical name: `backoffice__parsing_policy`.
+
+| Column | Type | Nullable | Label | Description |
+| --- | --- | --- | --- | --- |
+| `document_type` | `VARCHAR(80)` | Yes | Document type | Canonical document discriminator; null identifies legacy global policies retained only for historical provenance. |
+| `settings_key` | `VARCHAR(80)` | No | Settings key | Stable policy scope, document_parsing followed by a colon and canonical type; the legacy document_parsing key is historical only. |
+| `revision` | `INTEGER` | No | Policy revision | Increasing policy revision within one document type; each saved version is immutable. |
+| `automatic_acceptance_enabled` | `BOOLEAN` | No | Automatic acceptance | Whether qualifying complete document revisions may be accepted automatically. |
+| `threshold_basis_points` | `INTEGER` | Yes | Acceptance threshold | Minimum classification confidence in basis points from 0 to 10000; 9500 means 95 percent, and null means unconfigured. |
+| `changed_by` | `CHAR(32)` | No | Changed by | Verified Main Sequence organization administrator User UID that saved this policy revision. |
+| `operation_key` | `CHAR(32)` | No | Operation key | Stable request UUID retained to resume the same settings change without creating another revision. |
+| `uid` | `CHAR(32)` | No | UID | Stable application-generated UUID identifying this record. |
+| `created_at` | `DATETIME` | No | Created at | UTC instant when the service first recorded this record. |
+
+Primary key: `uid`.
+
+Check: `NOT automatic_acceptance_enabled OR threshold_basis_points IS NOT NULL`.
+
+Check: `revision >= 1`.
+
+Check: `threshold_basis_points IS NULL OR threshold_basis_points BETWEEN 0 AND 10000`.
+
+Unique: `document_type`, `revision`.
+
+Unique: `operation_key`.
+
+Unique: `settings_key`, `revision`.
+
+## `backoffice.parsing_result`
+
+One immutable classification confidence decision for an exact document revision, reported by an authorized processor. It retains the applied policy and any automatic acceptance decision so score-based approvals can be audited after settings change.
+
+Namespace: `backoffice`. Physical name: `backoffice__parsing_result`.
+
+| Column | Type | Nullable | Label | Description |
+| --- | --- | --- | --- | --- |
+| `document_uid` | `CHAR(32)` | No | Document UID | Logical document whose exact parsed revision was evaluated. |
+| `revision` | `INTEGER` | No | Document revision | Exact document attribute revision to which the parsing score applies. |
+| `score_basis_points` | `INTEGER` | Yes | Parsing score | Classification confidence in basis points from 0 to 10000; null means the processor supplied no score and review is required. |
+| `policy_uid` | `CHAR(32)` | Yes | Policy UID | Immutable settings revision applied at completion; null means the unconfigured, review-only default. |
+| `decision` | `VARCHAR(20)` | No | Parsing decision | Accepted when all automatic approval checks pass, otherwise needs_review. |
+| `reason_code` | `VARCHAR(80)` | No | Decision reason | Stable explanation of the confidence threshold, disabled policy, missing score, invalid attributes, or missing source decision. |
+| `review_uid` | `CHAR(32)` | Yes | Automatic review UID | Exact acceptance decision created by this parsing result; null when human review is needed. |
+| `extractor` | `VARCHAR(120)` | No | Extractor version | Processor-reported extractor identifier and version, retained as provenance rather than executable instructions. |
+| `processed_by` | `CHAR(32)` | No | Processed by | Verified processor or organization administrator User UID that recorded this result. |
+| `operation_key` | `CHAR(32)` | No | Operation key | Stable completion request UUID that prevents duplicated parsing or acceptance decisions after retries. |
+| `uid` | `CHAR(32)` | No | UID | Stable application-generated UUID identifying this record. |
+| `created_at` | `DATETIME` | No | Created at | UTC instant when the service first recorded this record. |
+
+Primary key: `uid`.
+
+Foreign key: `document_uid` → `backoffice__document_revision.document_uid`, `revision` → `backoffice__document_revision.revision`.
+
+Foreign key: `policy_uid` → `backoffice__parsing_policy.uid`.
+
+Foreign key: `review_uid` → `backoffice__document_review.uid`.
+
+Check: `(decision = 'accepted' AND review_uid IS NOT NULL) OR (decision = 'needs_review' AND review_uid IS NULL)`.
+
+Check: `decision IN ('accepted', 'needs_review')`.
+
+Check: `score_basis_points IS NULL OR score_basis_points BETWEEN 0 AND 10000`.
+
+Unique: `document_uid`, `revision`.
+
+Unique: `operation_key`.

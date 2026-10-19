@@ -69,7 +69,7 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
         connection.exec_driver_sql(
             "SELECT version_num FROM backoffice__alembic_version"
         ).scalar_one()
-        == "backoffice_0002"
+        == "backoffice_0004"
     )
     connection.rollback()
     connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
@@ -84,7 +84,7 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
 
 def test_all_registration_contracts_and_column_metadata_are_valid():
     models = metatable_models()
-    assert len(models) == len({model.__metatable_identifier__ for model in models}) == 16
+    assert len(models) == len({model.__metatable_identifier__ for model in models}) == 18
     for model in models:
         assert model.__metatable_namespace__ == "backoffice"
         assert len(model.__metatable_description__) <= 500
@@ -245,3 +245,83 @@ def test_raw_chunk_bounds_and_upload_finalization_state(migrated):
     connection.execute(RawDocumentChunkRecord.__table__.insert().values(**chunk))
     with pytest.raises(IntegrityError), connection.begin_nested():
         connection.execute(RawDocumentChunkRecord.__table__.insert().values(**chunk))
+
+
+def test_per_type_migration_preserves_global_policy_history():
+    from src.backoffice.tables.parsing import ParsingPolicyRecord
+
+    engine = create_engine("sqlite://")
+    uid = uuid4()
+    with engine.connect() as connection:
+        config = alembic_config_for_provider(migration, sqlalchemy_url="sqlite://")
+        config.attributes["connection"] = connection
+        command.upgrade(config, "backoffice_0003")
+        connection.execute(
+            ParsingPolicyRecord.__table__.insert().values(
+                uid=uid,
+                created_at=NOW,
+                settings_key="document_parsing",
+                revision=7,
+                automatic_acceptance_enabled=True,
+                threshold_basis_points=6000,
+                changed_by=uuid4(),
+                operation_key=uuid4(),
+            )
+        )
+        connection.commit()
+        command.upgrade(config, "head")
+        row = connection.execute(ParsingPolicyRecord.__table__.select()).one()
+        assert row.uid == uid and row.revision == 7 and row.threshold_basis_points == 6000
+        assert row.document_type is None
+        command.upgrade(config, "head")
+        assert len(connection.execute(ParsingPolicyRecord.__table__.select()).all()) == 1
+    engine.dispose()
+
+
+def test_parsing_policy_constraints_bound_scores_and_scope_revisions(migrated):
+    from src.backoffice.tables.parsing import ParsingPolicyRecord
+
+    connection, _ = migrated
+    table = ParsingPolicyRecord.__table__
+    row = dict(
+        uid=uuid4(),
+        created_at=NOW,
+        settings_key="document_parsing:passport",
+        document_type="passport",
+        revision=1,
+        automatic_acceptance_enabled=True,
+        threshold_basis_points=6000,
+        changed_by=uuid4(),
+        operation_key=uuid4(),
+    )
+    connection.execute(table.insert().values(**row))
+    connection.execute(
+        table.insert().values(
+            **{
+                **row,
+                "uid": uuid4(),
+                "operation_key": uuid4(),
+                "document_type": "bank_statement",
+                "settings_key": "document_parsing:bank_statement",
+                "threshold_basis_points": 9000,
+            }
+        )
+    )
+    for changes in (
+        {"revision": 2, "threshold_basis_points": -1},
+        {"revision": 2, "threshold_basis_points": 10001},
+        {"revision": 2, "threshold_basis_points": None},
+        {"revision": 0},
+        {"settings_key": "other-key"},
+    ):
+        with pytest.raises(IntegrityError), connection.begin_nested():
+            connection.execute(
+                table.insert().values(
+                    **{
+                        **row,
+                        "uid": uuid4(),
+                        "operation_key": uuid4(),
+                        **changes,
+                    }
+                )
+            )

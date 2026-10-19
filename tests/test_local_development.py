@@ -78,6 +78,11 @@ def test_developer_credential_stays_server_side_and_actual_api_verifies_it(monke
     from api.app.main import create_app
 
     uid = str(uuid4())
+    monkeypatch.setattr(
+        local_api.User,
+        "get_authenticated_user_details",
+        lambda: SimpleNamespace(uid=uid, is_organization_admin=False),
+    )
     monkeypatch.setenv("MAINSEQUENCE_ENDPOINT", "http://platform.invalid")
     monkeypatch.setattr(
         local_api,
@@ -153,3 +158,68 @@ def test_developer_gateway_refuses_hosted_startup(monkeypatch):
     monkeypatch.setenv("APP_NAME", "hosted-app")
     with pytest.raises(RuntimeError, match="hosted"):
         local_api.create_app()
+
+
+@pytest.mark.parametrize("delegated", [False, True])
+def test_local_admin_fact_only_applies_to_verified_effective_identity(monkeypatch, delegated):
+    from starlette.requests import Request
+
+    from api.app.main import application
+
+    developer_uid, requester_uid = str(uuid4()), str(uuid4())
+    developer = SimpleNamespace(uid=developer_uid, is_organization_admin=False)
+    requester = SimpleNamespace(uid=requester_uid, is_organization_admin=False)
+    monkeypatch.delenv("BACKOFFICE_REVIEWER_TEAM_UIDS", raising=False)
+    monkeypatch.setattr(local_api.User, "get_logged_user", lambda: developer)
+    monkeypatch.setattr(local_api.User, "get_requester", lambda: requester if delegated else None)
+    request = Request(
+        {
+            "type": "http",
+            "state": {"backoffice_local_admin_uid": developer_uid},
+            "headers": [(b"x-organization-admin", b"true")],
+        }
+    )
+    service = application(request)
+    assert service.actor == (requester_uid if delegated else developer_uid)
+    assert service.organization_admin is (not delegated)
+    request.scope["state"].clear()
+    assert application(request).organization_admin is False
+
+
+def test_gateway_refreshes_admin_permission_and_fails_closed(monkeypatch):
+    from mainsequence.server import fastapi as sdk_identity
+
+    from api.app.main import create_app
+
+    uid = str(uuid4())
+    allowed = [True]
+    monkeypatch.setenv("MAINSEQUENCE_ENDPOINT", "http://platform.invalid")
+    monkeypatch.setattr(
+        local_api, "get_authorization_headers", lambda: {"Authorization": "Bearer synthetic"}
+    )
+    monkeypatch.setattr(
+        sdk_identity.requests,
+        "get",
+        lambda *args, **kwargs: SimpleNamespace(status_code=200, json=lambda: {"uid": uid}),
+    )
+
+    def directory():
+        if allowed[0] is None:
+            raise RuntimeError("private directory failure")
+        return SimpleNamespace(uid=uid, is_organization_admin=allowed[0])
+
+    monkeypatch.setattr(local_api.User, "get_authenticated_user_details", directory)
+    with TestClient(gateway(create_app()), base_url=API, client=("127.0.0.1", 49000)) as client:
+        assert client.get("/me").json()["is_organization_admin"] is True
+        allowed[0] = False
+        assert (
+            client.get("/me", headers={"X-Organization-Admin": "true"}).json()[
+                "is_organization_admin"
+            ]
+            is False
+        )
+        assert client.get("/admin/parsing-settings?document_type=passport").status_code == 403
+        allowed[0] = None
+        response = client.get("/me")
+        assert response.status_code == 503
+        assert response.json() == {"detail": "organization_permissions_unavailable"}
