@@ -1,0 +1,7 @@
+schema=1
+library_name=mainsequence-metatable
+namespace=metatables
+pinned_version=0.1.49
+skills_path=/Users/jose/mainsequence-dev/main-sequence-workbench/projects/backofficebackend-75d8081d-5e8f-4dc6-ab09-60bc832d0118/.venv/lib/python3.13/site-packages/metatables/_client_skills
+copied_at_utc=2026-10-19T12:53:34Z
+command=metatables copy-metatables-skills

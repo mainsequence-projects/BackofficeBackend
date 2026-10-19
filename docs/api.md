@@ -136,6 +136,10 @@ choices remain explicit. Tau extraction and MCP adapters are separate work.
 
 ## Setup, deployment and verification
 
+The current dependency and copied skill bundle use MetaTables 0.1.49. The
+[namespace workflow](namespace-workflow.md) records verified automatic creation,
+repeat migration behavior and the separate human workload grants.
+
 The explicit local launcher migrates the verified local SQLite runtime and calls
 `publish_catalog()` before starting the API. The hosted migration Job does the
 same through `scripts/migrate_backoffice.py`. Imports, readiness and API startup
@@ -151,7 +155,7 @@ and an appropriate human/Team owner. Existing namespaces need an editor grant fo
 the migration Job. Reviewer configuration is separate. No hosted migration is run
 from a developer process.
 
-Validation includes 72 offline backend tests, physical migration up/down/repeat
+Validation includes 76 offline backend tests, physical migration up/down/repeat
 checks, lost-response recovery, ownership/reviewer denial, stale versions, uploads
 and HTTP business workflows. `scripts/verify_local_api.py` additionally passed
 against the actual installed MetaTables 0.1.48 API using isolated local SQLite:

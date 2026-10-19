@@ -121,15 +121,21 @@ retain exact inputs even if assignment membership later changes.
 ## Dependency and guidance evidence
 
 The tested pair is `mainsequence[mcp]==9.0.29` and
-`mainsequence-metatable==0.1.48`. Exact transitive dependencies are in `uv.lock`.
-MetaTables `0.1.48` imports `ShareableObjectMixin`, absent from SDK `9.0.30`;
+`mainsequence-metatable==0.1.49`. Exact transitive dependencies are in `uv.lock`.
+MetaTables `0.1.49` imports `ShareableObjectMixin`, absent from SDK `9.0.30`;
 dependency resolution alone does not establish import compatibility. Upgrade the
 pair together and rerun tests before changing these pins.
 
-The current implementation passes 72 backend tests. Real local API verification
+The current implementation passes 76 backend tests. Real local API verification
 also passes with MetaTables 0.1.48, including source uploads, exact-revision
 acceptance, completed reconciliation and subsequent stale detection. See the
 [API verification record](api.md#setup-deployment-and-verification) for scope.
+
+The dependency and copied client skills are now pinned to 0.1.49. Fresh automatic
+namespace creation and repeated registration were verified with that release; see
+[namespace workflow](namespace-workflow.md). Historical business API verification
+above used 0.1.48. The skill bundle is refreshed with the supported
+`metatables copy-metatables-skills --path .` command.
 
 Authoring follows `metatables migrations scaffold --help` and the guidance shipped
 with the installed MetaTables package under

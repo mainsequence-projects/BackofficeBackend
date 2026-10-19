@@ -1,5 +1,8 @@
 api_version: "3.0.0"
 name: backoffice
+# Provider registration creates an absent backoffice namespace and gives the
+# migration Job editor. A human Job manager grants the API workload data_writer
+# and a human/Team owner afterwards; workloads never grant roles from this file.
 scope:
   environments: [production]
 resources:

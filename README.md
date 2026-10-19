@@ -25,6 +25,7 @@ Use Python 3.13+ and the committed dependency lock:
 
 ```bash
 uv sync --locked
+uv run metatables copy-metatables-skills --path .
 uv run pytest -q
 uv run ruff check src/backoffice api scripts tests
 uv run ruff format --check src/backoffice api scripts tests
@@ -45,6 +46,7 @@ worker and developer-session adapters remain outside deployable `api/` entry poi
 ## Documentation
 
 - [Business API, permissions and operational contracts](docs/api.md)
+- [Namespace creation, workload roles and deployment](docs/namespace-workflow.md)
 - [Foundation implementation and migration guide](docs/foundation.md)
 - [Generated model reference](docs/model-reference.md)
 - [Generated MetaTable dictionary](docs/metatable-dictionary.md)
