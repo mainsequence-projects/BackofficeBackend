@@ -1,6 +1,7 @@
 """Enforce the business allowlist using supported Tau hooks, without adding tools."""
 
 import json
+from pathlib import Path
 
 from ms_tau_sdk import current_requester
 from tau_coding.extensions.api import ToolCallHookResult, ToolResultHookResult
@@ -10,6 +11,7 @@ from src.backoffice_agent.policy import APPLICATION, call_denial, load_contract,
 
 def setup(tau):
     contract = load_contract()
+    project_root = Path(__file__).resolve().parents[3]
     verified = False
 
     def before_call(event, context):
@@ -19,6 +21,7 @@ def setup(tau):
             event.arguments,
             requester_present=current_requester() is not None,
             catalog_verified=verified,
+            project_root=project_root,
         )
         if event.tool_name == f"{APPLICATION}__list_tools":
             verified = False

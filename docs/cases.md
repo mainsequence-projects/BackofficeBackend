@@ -70,3 +70,8 @@ explicit typed cases for both products through a verified local SQLite MetaTable
 runtime. Migration/API tests cover existing-row preservation and canonical and
 compatibility routes. Hosted rollout uses the deployment migration Job; local
 verification does not establish production readiness.
+
+The agent uses the [casework skill](../.tau/skills/backoffice-casework/SKILL.md) to
+analyze accessible cases and prepare creation/completion plans. Its read-only
+capability boundary and skill-loading design are documented in
+[ADR 0005](adr/0005-casework-skill-and-scoped-guidance.md).

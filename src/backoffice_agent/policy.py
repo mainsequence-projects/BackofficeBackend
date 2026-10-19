@@ -21,6 +21,26 @@ ALLOWED_TOOLS = frozenset(
 )
 TASK_CONTROLS = frozenset({"task_request_input", "task_request_authorization"})
 CONTRACT_PATH = Path(__file__).with_name("mcp_contract.json")
+SKILL_FILES = (
+    ".agents/skills/backoffice-helper/SKILL.md",
+    ".tau/skills/backoffice-casework/SKILL.md",
+    ".tau/skills/backoffice-casework/references/ontology.md",
+    ".tau/skills/backoffice-casework/references/build-case.md",
+)
+
+
+def approved_skill_read(arguments, project_root):
+    """Permit only release-owned guidance, never arbitrary discovered skill files."""
+    path = arguments.get("path")
+    if not isinstance(path, str) or not path or project_root is None:
+        return False
+    try:
+        root = Path(project_root).resolve(strict=True)
+        resolved = (root / path).resolve(strict=True)
+        # Do not resolve the allowlist itself: symlinks out of these exact paths fail closed.
+        return resolved in {root / relative for relative in SKILL_FILES} and resolved.is_file()
+    except (OSError, RuntimeError, ValueError):
+        return False
 
 
 def digest(value):
@@ -58,8 +78,11 @@ def validate_catalog(entries, contract=None):
     return [selected[name] for name in sorted(selected)]
 
 
-def call_denial(name, arguments, *, requester_present, catalog_verified):
+def call_denial(name, arguments, *, requester_present, catalog_verified, project_root=None):
     if name in TASK_CONTROLS:
+        return None
+    if name == "read" and approved_skill_read(arguments, project_root):
+        # Static guidance contains no business data and does not authorize MCP calls.
         return None
     if name not in {f"{APPLICATION}__list_tools", f"{APPLICATION}__call_tool"}:
         return "Only the Back Office MCP query tools are available for business work."

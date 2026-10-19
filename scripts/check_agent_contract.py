@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from api.app.mcp.server import create_mcp
-from src.backoffice_agent.policy import ALLOWED_TOOLS, digest, load_contract
+from src.backoffice_agent.policy import ALLOWED_TOOLS, SKILL_FILES, digest, load_contract
 
 
 async def candidate_contract():
@@ -38,6 +38,7 @@ def main():
         ".tau/extensions/backoffice_policy/extension.py",
         ".agents/agent_card.json",
         "api/tau/main.py",
+        *SKILL_FILES,
     ):
         if not (root / path).is_file():
             raise SystemExit(f"Missing agent artifact: {path}")

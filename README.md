@@ -76,3 +76,4 @@ schemas, and starting this API do not migrate tables.
 
 - [ADR 0004: Explicit cases and pinned Document Sets](docs/adr/0004-explicit-business-cases.md) documents business types, migration and the shared loan/account-opening engine.
 - [Case ontology and workflow](docs/cases.md) explains subjects, staff, policies, evidence and evaluations.
+- [Casework agent skill](.tau/skills/backoffice-casework/SKILL.md) guides analysis and case-building handoffs within the read-only helper release; see [ADR 0005](docs/adr/0005-casework-skill-and-scoped-guidance.md).

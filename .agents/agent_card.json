@@ -1,21 +1,53 @@
 {
   "name": "Back Office Helper",
-  "description": "Answers read-only questions about accessible people, assigned document sets and missing requirements using the Back Office MCP application.",
-  "version": "0.1.0",
+  "description": "Analyzes accessible cases and prepares case-building plans through read-only Back Office MCP queries, using one engine for loans and account opening.",
+  "version": "0.2.0",
   "capabilities": {
-    "extensions": [{
-      "uri": "https://mainsequence.ai/a2a/extensions/response-kind/v1",
-      "description": "Return a completed conversational answer.",
-      "required": false,
-      "params": {"supportedResponseKinds": ["message"], "defaultResponseKind": "message"}
-    }]
+    "extensions": [
+      {
+        "uri": "https://mainsequence.ai/a2a/extensions/response-kind/v1",
+        "description": "Return a completed conversational answer.",
+        "required": false,
+        "params": {
+          "supportedResponseKinds": [
+            "message"
+          ],
+          "defaultResponseKind": "message"
+        }
+      }
+    ]
   },
-  "skills": [{
-    "id": "backoffice-helper",
-    "name": "Back Office case queries",
-    "description": "Find a person's assigned document sets and explain current outstanding requirements with evidence references.",
-    "tags": ["backoffice", "documents", "requirements"],
-    "examples": ["What documents is this person missing?", "Which document sets are assigned to this person?"],
-    "path": ".agents/skills/backoffice-helper/SKILL.md"
-  }]
+  "skills": [
+    {
+      "id": "backoffice-helper",
+      "name": "Back Office case queries",
+      "description": "Find a person's assigned document sets and explain current outstanding requirements with evidence references.",
+      "tags": [
+        "backoffice",
+        "documents",
+        "requirements"
+      ],
+      "examples": [
+        "What documents is this person missing?",
+        "Which document sets are assigned to this person?"
+      ],
+      "path": ".agents/skills/backoffice-helper/SKILL.md"
+    },
+    {
+      "id": "backoffice-casework",
+      "name": "Case analysis and building plans",
+      "description": "Analyze a pinned case or prepare its creation and evidence-completion handoff, keeping business subjects separate from staff reviewers. Does not mutate business records.",
+      "tags": [
+        "backoffice",
+        "cases",
+        "loans",
+        "account-opening"
+      ],
+      "examples": [
+        "Analyze the outstanding findings for this loan case.",
+        "Prepare an account-opening case for this subject with the right Document Set version."
+      ],
+      "path": ".tau/skills/backoffice-casework/SKILL.md"
+    }
+  ]
 }

@@ -15,8 +15,10 @@ The hooks require a verified requester and restrict business operations to the t
 person/document-set/status queries in `src/backoffice_agent/policy.py`. Discovery
 must match the pinned input contracts and read-only annotations. Extra server tools
 are removed from the discovery result and cannot be called by guessing their names.
-Failed discovery blocks subsequent queries. Skill reads and other application/resource
-wrappers are blocked. SDK task input/authorization controls remain SDK-owned.
+Failed discovery blocks subsequent queries. Other application/resource wrappers are
+blocked. Skill-scoped reads permit only the four release-owned guidance files in
+`SKILL_FILES`; arbitrary workspace and development-skill reads remain blocked.
+SDK task input/authorization controls remain SDK-owned.
 
 The SDK still lists its retained native controls; the restriction is enforced before
 execution rather than pretending its native catalog contains ten direct query tools.
@@ -123,3 +125,32 @@ metadata. Tool inputs, all ten tools, read-only annotations, verified-requester
 checks and the two Tau exclusion flags remain unchanged. The helper cannot trigger
 comparisons; status queries reuse retained observations and otherwise report them
 as pending. Publish this pinned snapshot with the matching API release.
+
+
+## Case analysis and case-building skill
+
+The runtime skill is [.tau/skills/backoffice-casework/SKILL.md](../.tau/skills/backoffice-casework/SKILL.md),
+with self-contained ontology and case-building references. The source agent card
+advertises it and `.tau/SYSTEM.md` routes case-analysis/building requests to it.
+The installed Tau skill loader discovers it normally. The SDK retains its scoped
+reader; the project hook permits only the exact release-owned guidance files.
+The candidate contract Job checks those files are present.
+
+The skill uses one case → pinned policy → selected evidence → revision review →
+evaluation workflow for loans and account opening. It separates the business
+subject from the verified requester and assigned staff. Existing assignment IDs
+refer to the same cases, but the current MCP projection cannot confirm stored
+CaseType or reviewer memberships. The skill reports these limitations explicitly.
+
+In this release **build a case** means preparing an actionable creation/completion
+plan and handing it to **Cases → New case** or the subject's **Requirements** page.
+No case creation, evidence writes, staff assignment or evaluation tools were added.
+REST support does not imply agent support. Actual case mutation requires a later
+business-tool release with reviewed contracts, authorization and recovery behavior.
+
+See [ADR 0005](adr/0005-casework-skill-and-scoped-guidance.md) for the narrow read
+exception. `tests/agent/test_casework_skill.py` exercises real Tau discovery and SDK
+skill reads through the project hooks, including rejected paths, symlink escapes,
+write-tool names and requester/discovery failures. No model inference is used in
+these tests. Keep the runtime references aligned with [the ontology](cases.md)
+when that model or the MCP capability contract changes.
