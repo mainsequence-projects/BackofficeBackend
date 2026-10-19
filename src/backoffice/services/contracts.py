@@ -174,3 +174,12 @@ class Evaluate(Command):
         ge=1,
         description="Assignment revision to evaluate; evaluation date is the server's UTC calendar date.",
     )
+
+
+class SetMyCaseMembership(Command):
+    expected_revision: StrictInt = Field(
+        ge=0, description="Loaded staff membership revision, or zero when never assigned."
+    )
+    assigned: StrictBool = Field(
+        description="Take or leave responsibility as the verified staff caller; does not grant permissions."
+    )

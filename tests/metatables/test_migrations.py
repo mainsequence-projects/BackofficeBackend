@@ -69,7 +69,7 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
         connection.exec_driver_sql(
             "SELECT version_num FROM backoffice__alembic_version"
         ).scalar_one()
-        == "backoffice_0006"
+        == "backoffice_0007"
     )
     connection.rollback()
     connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
@@ -84,7 +84,7 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
 
 def test_all_registration_contracts_and_column_metadata_are_valid():
     models = metatable_models()
-    assert len(models) == len({model.__metatable_identifier__ for model in models}) == 18
+    assert len(models) == len({model.__metatable_identifier__ for model in models}) == 19
     for model in models:
         assert model.__metatable_namespace__ == "backoffice"
         assert len(model.__metatable_description__) <= 500

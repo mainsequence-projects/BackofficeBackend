@@ -71,8 +71,10 @@ class Application:
         organization_admin=False,
         parsing_processor=False,
         bucket=None,
+        actor_display_name=None,
     ):
         self.actor = str(UUID(str(actor_uid)))
+        self.actor_display_name = actor_display_name[:240] if actor_display_name else None
         self.organization_admin = organization_admin is True
         self.parsing_processor = parsing_processor is True
         self.reviewer = reviewer or self.organization_admin
@@ -285,7 +287,7 @@ class Application:
             self.organization_admin or self.parsing_processor
         ):
             fail(403, "parsing_processor_required")
-        if row["kind"] == "document.reviewed" and not self.reviewer:
+        if row["kind"] in {"document.reviewed", "case.reviewer_changed"} and not self.reviewer:
             fail(403, "reviewer_role_required")
         if self.db.one(P, uid=snapshot["person_uid"]):
             self.case(

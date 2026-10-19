@@ -30,9 +30,9 @@ def test_every_provider_table_and_registry_register_in_the_application_namespace
             migration_namespace=migration.migration_namespace,
         )
     )
-    assert len(requests) == 19
+    assert len(requests) == 20
     assert {request.namespace for request in requests} == {"backoffice"}
-    assert len({request.identifier for request in requests}) == 19
+    assert len({request.identifier for request in requests}) == 20
 
 
 def test_deployment_requires_migrations_before_direct_consumers_and_platform_reader_access():

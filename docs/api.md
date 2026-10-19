@@ -305,3 +305,39 @@ HTTP 202 and `processing_run_uid`. Poll `GET /processing-runs/{uid}`, then read
 `evaluation.uid` through `GET /evaluations/{uid}`. Transient failures retry through
 `POST /processing-runs/{uid}/retry`. Policies without comparisons retain HTTP 201.
 See [comparison lifecycle and citations](document-comparisons.md).
+
+### Case queue, workspace and staff responsibility
+
+`GET /review-queue` returns a bounded, authorized page of document-set cases with
+subject identity, active staff memberships, current Back Office findings and a
+workflow state. Query parameters: `search`, `set_key`, `responsibility` (`all`,
+`mine`, `unassigned`), `limit` (1–20, default 10), and `offset`. Counts derived from
+returned items are page-local; `total_items` covers the filtered accessible cases.
+Loans and new accounts use these same queries and policy evaluator.
+
+`GET /assignments/{uid}/workspace` returns the case's subject, pinned policy,
+linked current document revisions, source-page/field-evidence summaries, current
+findings, latest retained evaluation with its stale flag, active reviewer
+memberships, and the latest 20 subject-wide audit events. Full extraction evidence
+is loaded separately for the selected revision. The read rejects concurrent input
+changes and never substitutes stale comparisons into current findings.
+
+`GET /assignments/{uid}/reviewers` returns active staff memberships, the caller's
+membership revision (including inactive membership), and `assigned_to_me`.
+`PUT /assignments/{uid}/reviewers/me` takes an operation key, `expected_revision`
+(zero for a new membership), and boolean `assigned`. Only an authorized reviewer
+can take or leave their own responsibility. Several reviewers can be active at
+once. This initial interface does not assign other staff or query a staff directory.
+
+A case subject is a business Person record; a reviewer is a verified Main Sequence
+User UID. These identifiers never share a foreign-key relationship. Reviewer names
+come from verified request identity, not submitted document data. Membership uses
+its own optimistic revision, the existing durable mutation/audit mechanism, and
+migration `backoffice_0007`; it does not alter case evidence revisions, invalidate
+an evaluation, grant read/review permissions, or record approval. No new helper
+MCP tools were added.
+
+Local verification: `python -m scripts.verify_casework --source-uid <verified-local-uid>`
+exercises both policies through the local MetaTables API. A fresh process can
+read retained memberships using `--verify-case-uid <case-uid>`. The script refuses
+hosted or unexpected sources and uses only synthetic subjects.

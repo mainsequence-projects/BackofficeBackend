@@ -505,3 +505,24 @@ Check: `score_basis_points IS NULL OR score_basis_points BETWEEN 0 AND 10000`.
 Unique: `document_uid`, `revision`.
 
 Unique: `operation_key`.
+
+## `backoffice.case_reviewer`
+
+One staff user's responsibility for a document case. Authorized reviewers take or leave assignments independently; inactive memberships preserve the latest state without changing customer evidence or approval permissions.
+
+Namespace: `backoffice`. Physical name: `backoffice__case_reviewer`.
+
+| Column | Type | Nullable | Label | Description |
+| --- | --- | --- | --- | --- |
+| `assignment_uid` | `CHAR(32)` | No | Case UID | Requirement assignment whose document case the staff member reviews. |
+| `reviewer_uid` | `CHAR(32)` | No | Reviewer UID | Main Sequence staff User UID, never the business subject's Person UID. |
+| `display_name` | `VARCHAR(240)` | Yes | Reviewer name | Verified staff display name recorded on the latest change; null when unavailable. |
+| `active` | `BOOLEAN` | No | Assigned | True while this staff user has accepted responsibility for the case. |
+| `revision` | `INTEGER` | No | Membership revision | Positive revision used to reject stale changes to this staff membership. |
+| `updated_at` | `DATETIME` | No | Updated at | UTC instant when the staff user last took or left responsibility. |
+
+Primary key: `assignment_uid`, `reviewer_uid`.
+
+Foreign key: `assignment_uid` → `backoffice__person_document_set.uid`.
+
+Check: `revision >= 1`.

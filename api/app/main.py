@@ -62,6 +62,7 @@ from src.backoffice.services.contracts import (
     Evaluate,
     ReviewDocument,
     SaveDraft,
+    SetMyCaseMembership,
     StartUpload,
     SubmitDocument,
     UpdateParsingPolicy,
@@ -110,6 +111,7 @@ def application(request: Request = None):
         reviewer = identity.in_teams(teams)
     return Application(
         identity.uid,
+        actor_display_name=getattr(identity, "username", None),
         reviewer=bool(reviewer),
         organization_admin=organization_admin,
         parsing_processor=identity.uid in processors,
@@ -302,6 +304,41 @@ def people(
     service: Application = Service,
 ):
     return service.list_people(search, limit, offset)
+
+
+@router.get("/review-queue")
+def review_queue(
+    search: str = Query("", max_length=100),
+    responsibility: str = Query("all", pattern="^(all|mine|unassigned)$"),
+    set_key: str = Query("", max_length=120),
+    limit: int = Query(10, ge=1, le=20),
+    offset: int = Query(0, ge=0),
+    service: Application = Service,
+):
+    from src.backoffice.services.casework import queue
+
+    return queue(service, search, responsibility, set_key, limit, offset)
+
+
+@router.get("/assignments/{uid}/workspace")
+def review_workspace(uid: UUID, service: Application = Service):
+    from src.backoffice.services.casework import workspace
+
+    return workspace(service, uid)
+
+
+@router.get("/assignments/{uid}/reviewers")
+def case_reviewers(uid: UUID, service: Application = Service):
+    from src.backoffice.services.casework import reviewers
+
+    return reviewers(service, uid)
+
+
+@router.put("/assignments/{uid}/reviewers/me")
+def my_case_membership(uid: UUID, command: SetMyCaseMembership, service: Application = Service):
+    from src.backoffice.services.casework import set_my_membership
+
+    return set_my_membership(service, uid, command)
 
 
 @router.post("/persons", status_code=201)

@@ -17,6 +17,7 @@ from .requirements import (
     DocumentSetVersionRecord,
     PersonDocumentSetRecord,
 )
+from .reviewers import CaseReviewerRecord
 
 __all__ = ["Base", "metatable_models"]
 
@@ -42,4 +43,5 @@ def metatable_models() -> tuple[type[Base], ...]:
         AuditEventRecord,
         ParsingPolicyRecord,
         ParsingResultRecord,
+        CaseReviewerRecord,
     )
