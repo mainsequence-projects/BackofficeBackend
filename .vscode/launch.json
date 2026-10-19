@@ -15,6 +15,7 @@
         "--metatables-port", "18473",
         "--agent-port", "28643",
         "--sdk-session-source", "vscode",
+        "--restart-project-services",
         "--restart-unhealthy-metatables"
       ],
       "cwd": "${workspaceFolder}",
