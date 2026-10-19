@@ -3,7 +3,7 @@
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from src.backoffice.models.assignment import PersonDocumentSet
 from src.backoffice.models.common import DatePeriod, EvidenceRegion, Money, PostalAddress
@@ -19,9 +19,10 @@ from src.backoffice.schemas.registry import DOCUMENT_ADAPTER, DOCUMENT_MODELS, g
 def test_complete_round_trip_and_missing_required_fields(kind, version, document_fixture):
     payload = document_fixture(kind)
     model = get_document_model(kind, version)
-    parsed = DOCUMENT_ADAPTER.validate_python(payload)
+    adapter = DOCUMENT_ADAPTER if version == 1 else TypeAdapter(model)
+    parsed = adapter.validate_python(payload)
     assert type(parsed) is model
-    assert DOCUMENT_ADAPTER.validate_json(parsed.model_dump_json()) == parsed
+    assert adapter.validate_json(parsed.model_dump_json()) == parsed
     for name, field in model.model_fields.items():
         if field.is_required():
             incomplete = {key: value for key, value in payload.items() if key != name}

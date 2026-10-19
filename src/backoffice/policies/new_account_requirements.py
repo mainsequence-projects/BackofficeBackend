@@ -10,6 +10,10 @@ from ..models.document_set import (
 
 def new_account_requirements(version: int = 1) -> DocumentSet:
     """Return a fresh policy instance, never a shared mutable singleton."""
+    if version in (4, 5):
+        from .current_documents import with_current_documents
+
+        return with_current_documents(new_account_requirements(version - 1))
     if version == 3:
         from .comparison_versions import with_comparisons
 

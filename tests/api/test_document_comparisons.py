@@ -75,7 +75,7 @@ def prepare(flow, document_fixture, product="loan", review=True):
         client,
         f"/persons/{person}/document-sets",
         document_set_key="loan_requirements" if product == "loan" else "new_account_requirements",
-        document_set_version=2 if product == "loan" else 3,
+        document_set_version=4 if product == "loan" else 5,
     )
     post_body = command(expected_revision=1, document_uids=docs)
     assert (

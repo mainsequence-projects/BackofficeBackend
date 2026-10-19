@@ -14,6 +14,10 @@ def document_set_catalog() -> tuple[DocumentSet, ...]:
         loan_requirements(1),
         new_account_requirements(3),
         loan_requirements(2),
+        new_account_requirements(4),
+        loan_requirements(3),
+        new_account_requirements(5),
+        loan_requirements(4),
     )
 
 

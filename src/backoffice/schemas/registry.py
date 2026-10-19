@@ -1,5 +1,7 @@
 """Explicit document registry; adding a version never replaces a historical contract."""
 
+from functools import reduce
+from operator import or_
 from types import MappingProxyType
 from typing import Annotated, Literal
 
@@ -20,6 +22,7 @@ from ..models.documents import (
     TaxReturn,
     UtilityBill,
 )
+from ..models.documents.v2 import DOCUMENT_MODELS_V2
 
 DocumentType = Literal[
     "national_identity_card",
@@ -73,8 +76,24 @@ DOCUMENT_MODELS = MappingProxyType(
             TaxClearanceCertificate,
         )
     }
+    | {(model.model_fields["document_type"].default, 2): model for model in DOCUMENT_MODELS_V2}
 )
 DOCUMENT_ADAPTER = TypeAdapter(DocumentPayload)
+
+# The envelope accepts current fields, then validates its exact recorded version.
+LATEST_DOCUMENT_VERSIONS = MappingProxyType(
+    {
+        kind: max(version for candidate, version in DOCUMENT_MODELS if candidate == kind)
+        for kind, _ in DOCUMENT_MODELS
+    }
+)
+LatestDocumentPayload = Annotated[
+    reduce(
+        or_,
+        (DOCUMENT_MODELS[(kind, version)] for kind, version in LATEST_DOCUMENT_VERSIONS.items()),
+    ),
+    Field(discriminator="document_type"),
+]
 
 
 def get_document_model(document_type: str, schema_version: int = 1):

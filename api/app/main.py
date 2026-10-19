@@ -229,6 +229,13 @@ def complete_parsing(uid: UUID, command: CompleteParsing, service: Application =
     return service.complete_parsing(uid, command)
 
 
+@router.post("/admin/persons/{uid}/happy-case-requirements")
+def upgrade_happy_case_requirements(uid: UUID, command: Command, service: Application = Service):
+    from src.backoffice.services.requirements_upgrade import upgrade
+
+    return upgrade(service, uid, command)
+
+
 @router.get("/readyz")
 def ready(service: Application = Service):
     # No migrations or catalog publication on startup/readiness.

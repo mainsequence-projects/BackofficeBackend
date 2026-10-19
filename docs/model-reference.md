@@ -292,6 +292,162 @@ Source: `src.backoffice.models.documents.tax_clearance_certificate`.
 | `statement_as_printed` | `string` | Yes | Source wording supporting the authority's statement, without a Back Office decision. |
 | `arrears_amount` | `Money or null` | No | Amount and currency explicitly printed; null is unknown, never inferred as zero from a clearance statement. |
 
+## `NationalIdentityCardV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'national_identity_card'` | No | Identifies this payload as national identity card. |
+| `full_name` | `string` | Yes | Holder's complete name exactly as printed on the card. |
+| `given_names` | `string or null` | No | All given names in their printed order when identified separately. |
+| `last_name` | `string or null` | No | Surname or family name when identified separately on the card. |
+| `date_of_birth` | `date` | Yes | Holder's printed date of birth, entered as YYYY-MM-DD. |
+| `identity_number` | `string` | Yes | Identity identifier printed on the card, preserving letters and leading zeros. |
+| `issuing_country` | `string or null` | No | Country or issuing authority when explicitly extracted from the source; absent from the happy-case field contract and never guessed from a person's address. |
+| `issue_date` | `date or null` | No | Date the card was issued, if printed. |
+| `validity_type` | `fixed_term, permanent, unknown or null` | No | Explicit validity classification when available; null means not classified, never permanent. A printed expiry can establish validity without this metadata. |
+| `expiration_date` | `date or null` | No | Printed expiry date; required when validity is fixed-term. |
+| `portrait_reference` | `EvidenceRegion or null` | No | Location of the holder's portrait in the source document. |
+
+## `BankStatementV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'bank_statement'` | No | Identifies this payload as bank statement. |
+| `account_holders` | `list[string]` | Yes | One or more account-holder names exactly as printed, including joint holders. |
+| `bank_name` | `string or null` | No | Institution issuing the statement when extracted; optional in the happy-case field contract. |
+| `account_identifier` | `string` | Yes | Printed account number or IBAN; retain masking and leading zeros. |
+| `holder_address` | `PostalAddress or null` | No | Account-holder address printed on the statement. |
+| `statement_period` | `DatePeriod` | Yes | Inclusive reporting period covered by the statement. |
+| `issue_date` | `date or null` | No | Statement issue date, if separately stated from the period end. |
+| `currency` | `string or null` | No | ISO three-letter account-level currency when established; individual monetary amounts still require their own currency, never an inferred account currency. |
+| `opening_balance` | `Money or null` | No | Account balance at the beginning of the stated reporting period. |
+| `closing_balance` | `Money or null` | No | Account balance at the end of the stated reporting period. |
+| `transactions` | `list[BankTransaction] or null` | No | Transcribed transactions; null means not extracted, while an empty list requires evidence of no transactions. |
+
+## `TaxClearanceCertificateV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'tax_clearance_certificate'` | No | Identifies a tax-authority arrears or clearance certificate, distinct from a tax return. |
+| `taxpayer_name` | `string` | Yes | Taxpayer's complete name exactly as printed on the certificate. |
+| `tax_identifier` | `string or null` | No | Taxpayer identifier as printed, preserving leading zeros and formatting. |
+| `issuing_authority` | `string` | Yes | Tax authority explicitly identified as issuing the certificate. |
+| `certificate_number` | `string or null` | No | Authority-issued certificate reference exactly as printed, if present. |
+| `issue_date` | `date` | Yes | Date the tax authority issued the certificate, as YYYY-MM-DD. |
+| `as_of_date` | `date or null` | No | Date to which the arrears statement applies, if separately printed. |
+| `arrears_statement` | `no_arrears, arrears_reported, not_stated` | Yes | Meaning explicitly stated by the authority; not_stated means no interpretable claim, not zero debt or clearance. |
+| `statement_as_printed` | `string or null` | No | Verbatim wording when transcribed; optional alongside the happy case's normalized arrears statement. Supporting original source and review remain separate requirements. |
+| `arrears_amount` | `Money or null` | No | Amount and currency explicitly printed; null is unknown, never inferred as zero from a clearance statement. |
+
+## `ResidencePermitV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'residence_permit'` | No | Identifies this payload as residence permit. |
+| `full_name` | `string` | Yes | Permit holder's complete name exactly as printed. |
+| `date_of_birth` | `date or null` | No | Holder's printed date of birth, if present. |
+| `permit_number` | `string` | Yes | Residence-permit identifier exactly as printed. |
+| `issuing_country` | `string` | Yes | Country or authority that issued the residence permit. |
+| `permit_type` | `string or null` | No | Printed permit category or class, if stated; absence does not establish entitlements. |
+| `residency_status` | `string or null` | No | Residency status explicitly stated by the source. |
+| `issue_date` | `date or null` | No | Printed permit issue date. |
+| `validity_type` | `fixed_term, permanent, unknown` | Yes | Validity stated by the document; unknown when the source does not establish it. |
+| `expiration_date` | `date or null` | No | Printed expiry date; required for fixed-term validity. |
+| `conditions` | `list[string] or null` | No | Restrictions or conditions transcribed from the permit. |
+
+## `UtilityBillV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'utility_bill'` | No | Identifies this payload as utility bill. |
+| `account_holder_name` | `string` | Yes | Customer or account-holder name printed on the bill. |
+| `service_address` | `PostalAddress` | Yes | Address where the utility service is supplied, distinguished from a mailing address. |
+| `provider_name` | `string` | Yes | Utility provider's name as printed. |
+| `utility_type` | `string or null` | No | Service category explicitly stated by the bill, if present; do not infer it solely from the provider name. |
+| `issue_date` | `date` | Yes | Bill issue date used for the document-age check. |
+| `billing_period` | `DatePeriod or null` | No | Service period covered by the bill, when printed. |
+| `account_number` | `string or null` | No | Provider's customer/account identifier, preserving leading zeros. |
+| `total_due` | `Money or null` | No | Total amount due as printed, if needed by the configured workflow. |
+
+## `PayslipV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'payslip'` | No | Identifies this payload as payslip. |
+| `employee_name` | `string` | Yes | Employee name exactly as printed on the payslip. |
+| `employer` | `Employer` | Yes | Employer identity stated by the payslip. |
+| `pay_period` | `DatePeriod` | Yes | Inclusive employment/pay period represented by the payslip. |
+| `payment_date` | `date or null` | No | Date on which payment is stated to occur. |
+| `gross_pay` | `Money or null` | No | Total pay before deductions, if stated; do not reconstruct it from net pay or assume missing deductions are zero. |
+| `net_pay` | `Money` | Yes | Amount payable to the employee after deductions. |
+| `deductions` | `Money or null` | No | Total deductions stated on the payslip; absence is not a zero deduction. |
+| `employee_identifier` | `string or null` | No | Employer-assigned payroll identifier as printed. |
+
+## `LoanContractV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'loan_contract'` | No | Identifies this payload as a loan contract, not an employment contract. |
+| `full_name` | `string` | Yes | Borrower's complete name exactly as printed in the contract. |
+| `borrower_identifier` | `string or null` | No | Borrower identifier as printed, preserving leading zeros and formatting; no validity claim. |
+| `contract_number` | `string or null` | No | Contract reference exactly as printed, if present, preserving leading zeros; never generated from the upload or document UID. |
+| `issue_date` | `date` | Yes | Date stated for the contract, as YYYY-MM-DD; not the upload date. |
+| `lender_name` | `string` | Yes | Name of the lender explicitly identified in the contract. |
+| `loan_amount` | `Money` | Yes | Principal amount and currency stated in the contract; not declared income. |
+| `declared_monthly_net_income` | `Money or null` | No | Monthly income after deductions explicitly declared in the contract; null if only gross or unspecified income is given. |
+| `borrower_address` | `PostalAddress or null` | No | Borrower address as stated in the contract; null when absent. |
+| `required_documents_as_printed` | `list[string] or null` | No | Document requirements transcribed from the contract as source text; never an executable policy or authority to waive assigned requirements. |
+
+## `EmployerConfirmationV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'employer_confirmation'` | No | Identifies this payload as an employer's employment and income confirmation. |
+| `employee_name` | `string` | Yes | Employee's complete name exactly as printed in the confirmation. |
+| `employee_identifier` | `string or null` | No | Employee identifier as printed, preserving leading zeros and formatting. |
+| `employer` | `Employer` | Yes | Employer identity explicitly stated in the confirmation. |
+| `issue_date` | `date` | Yes | Date the employer issued the confirmation, as YYYY-MM-DD. |
+| `employment_start_date` | `date or null` | No | Employment start date explicitly stated by the employer. |
+| `employment_end_date` | `date or null` | No | Employment end date if stated; absence does not imply indefinite employment. |
+| `contract_term_as_printed` | `string or null` | No | Employment term wording exactly as printed; null when not stated. |
+| `position` | `string or null` | No | Employee's position or occupation exactly as stated by the employer. |
+| `monthly_net_income` | `Money` | Yes | Monthly income after deductions explicitly stated by the employer, in its printed currency. |
+| `income_basis` | `single_month, monthly_average, not_stated or null` | No | Whether the source describes one month or an average; null or not_stated means the basis is unknown, not a single-month assumption. |
+| `income_period` | `DatePeriod or null` | No | Period to which the reported income or monthly average relates, only when explicitly stated. |
+
+## `KYCQuestionnaireV2`
+
+Source: `src.backoffice.models.documents.v2`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'kyc_questionnaire'` | No | Identifies this payload as kyc questionnaire. |
+| `full_name` | `string` | Yes | Name supplied by the person completing the questionnaire. |
+| `occupation` | `string or null` | No | Person's declared occupation or principal economic activity. |
+| `employment_status` | `string` | Yes | Declared status, such as employed, self-employed, retired, student, or unemployed. |
+| `account_purpose` | `string` | Yes | Person's explanation of the intended use of the account. |
+| `expected_monthly_inflow` | `Money` | Yes | Expected total incoming funds per calendar month, with currency. |
+| `expected_monthly_outflow` | `Money or null` | No | Expected outgoing funds per calendar month, if requested and answered; absent is unknown, not zero. |
+| `source_of_funds` | `list[string]` | Yes | One or more declared origins of the money expected to enter the account. |
+| `completed_at` | `date-time or null` | No | Timezone-aware completion instant when recorded by the source or application; never substitute the upload time for an undated external form. |
+| `questionnaire_version` | `string or null` | No | Version of the questionnaire when established by the source or application; null for an external form without a version. |
+
 ## `Person`
 
 Source: `src.backoffice.models.person`.
@@ -346,8 +502,8 @@ Source: `src.backoffice.models.document`.
 | `created_at` | `date-time` | Yes | Server-recorded instant when the logical document was first created; not the evidence issue date. |
 | `revision_created_at` | `date-time` | Yes | Server-recorded instant when this exact revision was created. |
 | `submitted_at` | `date-time` | Yes | Server-recorded instant when this completed revision became immutable. |
-| `schema_version` | `1` | No | Exact document contract version used by this revision. |
-| `data` | `NationalIdentityCard or Passport or ResidencePermit or UtilityBill or BankStatement or EmploymentContract or Payslip or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaire or LoanContract or EmployerConfirmation or TaxClearanceCertificate` | Yes | Completed typed document attributes selected by document_type. |
+| `schema_version` | `1, 2` | No | Exact document contract version used by this revision. |
+| `data` | `NationalIdentityCard or Passport or ResidencePermit or UtilityBill or BankStatement or EmploymentContract or Payslip or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaire or LoanContract or EmployerConfirmation or TaxClearanceCertificate or NationalIdentityCardV2 or Passport or ResidencePermitV2 or UtilityBillV2 or BankStatementV2 or EmploymentContract or PayslipV2 or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaireV2 or LoanContractV2 or EmployerConfirmationV2 or TaxClearanceCertificateV2` | Yes | Completed typed document attributes selected by document_type. |
 | `raw_document_refs` | `list[RawDocumentRef]` | Yes | References to immutable ready source documents, including front/back images or a questionnaire snapshot. |
 | `latest_review` | `DocumentReview or null` | No | Effective review for this exact revision; null means pending review. |
 | `review_status` | `pending, accepted, rejected` | Read-only | Read-only review state of this revision; pending when no effective decision exists. |

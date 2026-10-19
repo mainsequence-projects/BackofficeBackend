@@ -57,7 +57,9 @@ def set_my_membership(app, uid, command):
 
 
 def lane(status):
-    findings = status["findings"]
+    if status["summary"]["complete"]:
+        return "checks_satisfied"
+    findings = [f for f in status["findings"] if f.get("mandatory", True)]
     if any(f["status"] == "failed" for f in findings):
         return "discrepancy"
     if any(f["status"] in {"missing", "needs_information"} for f in findings):

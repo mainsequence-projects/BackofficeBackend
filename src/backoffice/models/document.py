@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, Field, computed_field, model_validator
 
-from ..schemas.registry import DocumentPayload
+from ..schemas.registry import DocumentPayload, LatestDocumentPayload, get_document_model
 from .common import ContractModel, NonEmptyStr
 
 
@@ -87,12 +87,12 @@ class DocumentInstance(ContractModel):
         title="Revision submitted at",
         description="Server-recorded instant when this completed revision became immutable.",
     )
-    schema_version: Literal[1] = Field(
+    schema_version: Literal[1, 2] = Field(
         default=1,
         title="Schema version",
         description="Exact document contract version used by this revision.",
     )
-    data: DocumentPayload = Field(
+    data: DocumentPayload | LatestDocumentPayload = Field(
         title="Document attributes",
         description="Completed typed document attributes selected by document_type.",
     )
@@ -109,6 +109,9 @@ class DocumentInstance(ContractModel):
 
     @model_validator(mode="after")
     def review_targets_this_revision(self) -> Self:
+        get_document_model(self.data.document_type, self.schema_version).model_validate(
+            self.data.model_dump(mode="json")
+        )
         review = self.latest_review
         if review and (review.document_uid != self.uid or review.revision != self.revision):
             raise ValueError("latest_review must target this document and revision")

@@ -231,7 +231,9 @@ def test_incomplete_draft_requires_source_and_canonical_data(business):
     )
     assert client.get(f"/documents/{draft['uid']}").json()["status"] == "draft"
     assert client.get("/document-types/passport/schema?version=99").status_code == 422
-    assert len(client.get("/document-types").json()["items"]) == 13
+    catalog = client.get("/document-types").json()["items"]
+    assert len({item["document_type"] for item in catalog}) == 13
+    assert len(catalog) == 22
     assert client.get("/person-schema").json()["properties"]["full_name"]["description"]
 
 
@@ -649,7 +651,7 @@ def test_versioned_catalog_dates_and_live_renewal(business, document_fixture):
     assert [
         s["version"]
         for s in client.get("/document-sets?search=new_account_requirements").json()["items"]
-    ] == [3, 2, 1]
+    ] == [5, 4, 3, 2, 1]
     person = make_person(client)
     assignment = post(
         client,

@@ -63,4 +63,4 @@ def test_catalog_versions_are_fresh_and_historical_definitions_unchanged():
     loan.requirements.clear()
     assert len(loan_requirements().requirements) == 7
     with pytest.raises(ValueError, match="Unknown"):
-        loan_requirements(3)
+        loan_requirements(99)

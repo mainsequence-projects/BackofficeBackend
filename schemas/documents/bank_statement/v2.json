@@ -1,0 +1,768 @@
+{
+  "document_type": "bank_statement",
+  "version": 2,
+  "canonical_schema": {
+    "$defs": {
+      "BankTransaction": {
+        "additionalProperties": false,
+        "description": "A transcribed bank entry, not a claim of complete statement coverage.",
+        "properties": {
+          "booking_date": {
+            "description": "Date the bank records the transaction in the statement, as YYYY-MM-DD.",
+            "format": "date",
+            "title": "Booking date",
+            "type": "string"
+          },
+          "value_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Printed transaction value date; null when not stated separately.",
+            "title": "Value date"
+          },
+          "amount": {
+            "$ref": "#/$defs/Money",
+            "description": "Signed amount: positive is credit and negative is debit from the account holder's perspective.",
+            "title": "Transaction amount"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Transaction narrative exactly as printed; null when absent.",
+            "title": "Transaction description"
+          },
+          "counterparty_name": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Named payer or payee explicitly identified by the statement; null when absent.",
+            "title": "Counterparty name"
+          }
+        },
+        "required": [
+          "booking_date",
+          "amount"
+        ],
+        "title": "BankTransaction",
+        "type": "object"
+      },
+      "DatePeriod": {
+        "additionalProperties": false,
+        "description": "Inclusive calendar interval.",
+        "properties": {
+          "start_date": {
+            "description": "First calendar date included in the reporting or payment period, as YYYY-MM-DD.",
+            "format": "date",
+            "title": "Start date",
+            "type": "string"
+          },
+          "end_date": {
+            "description": "Last calendar date included in the period, as YYYY-MM-DD; must not precede the start date.",
+            "format": "date",
+            "title": "End date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_date",
+          "end_date"
+        ],
+        "title": "DatePeriod",
+        "type": "object"
+      },
+      "Money": {
+        "additionalProperties": false,
+        "description": "Exact monetary value; JSON serializes the amount as a decimal string.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "Money",
+        "type": "object"
+      },
+      "PostalAddress": {
+        "additionalProperties": false,
+        "description": "An address as printed; policy decides which local components are necessary.",
+        "properties": {
+          "address_line_1": {
+            "description": "Primary street, building, or locality line exactly as stated by the source.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Address line 1",
+            "type": "string"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Additional unit, floor, building, or locality information; null when absent.",
+            "title": "Address line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "City or locality named in the address; null when absent.",
+            "title": "City"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "State, province, or administrative region named in the address; null when absent.",
+            "title": "Region"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
+            "title": "Postal code"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+            "title": "Country code"
+          }
+        },
+        "required": [
+          "address_line_1"
+        ],
+        "title": "PostalAddress",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Account-holder, account and period facts supplied by statement happy cases.",
+    "properties": {
+      "document_type": {
+        "const": "bank_statement",
+        "default": "bank_statement",
+        "description": "Identifies this payload as bank statement.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "account_holders": {
+        "description": "One or more account-holder names exactly as printed, including joint holders.",
+        "items": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "type": "string"
+        },
+        "minItems": 1,
+        "title": "Account holders",
+        "type": "array"
+      },
+      "bank_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Institution issuing the statement when extracted; optional in the happy-case field contract.",
+        "title": "Bank name"
+      },
+      "account_identifier": {
+        "description": "Printed account number or IBAN; retain masking and leading zeros.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Account identifier",
+        "type": "string"
+      },
+      "holder_address": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/PostalAddress"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Account-holder address printed on the statement.",
+        "title": "Holder address"
+      },
+      "statement_period": {
+        "$ref": "#/$defs/DatePeriod",
+        "description": "Inclusive reporting period covered by the statement.",
+        "title": "Statement period"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Statement issue date, if separately stated from the period end.",
+        "title": "Issue date"
+      },
+      "currency": {
+        "anyOf": [
+          {
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "ISO three-letter account-level currency when established; individual monetary amounts still require their own currency, never an inferred account currency.",
+        "title": "Currency"
+      },
+      "opening_balance": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Money"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Account balance at the beginning of the stated reporting period.",
+        "title": "Opening balance"
+      },
+      "closing_balance": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Money"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Account balance at the end of the stated reporting period.",
+        "title": "Closing balance"
+      },
+      "transactions": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/BankTransaction"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Transcribed transactions; null means not extracted, while an empty list requires evidence of no transactions.",
+        "title": "Transactions"
+      }
+    },
+    "required": [
+      "account_holders",
+      "account_identifier",
+      "statement_period"
+    ],
+    "title": "BankStatementV2",
+    "type": "object"
+  },
+  "draft_schema": {
+    "$defs": {
+      "BankTransactionDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "booking_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Date the bank records the transaction in the statement, as YYYY-MM-DD.",
+            "title": "Booking date"
+          },
+          "value_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Printed transaction value date; null when not stated separately.",
+            "title": "Value date"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/MoneyDraft"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Signed amount: positive is credit and negative is debit from the account holder's perspective.",
+            "title": "Transaction amount"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Transaction narrative exactly as printed; null when absent.",
+            "title": "Transaction description"
+          },
+          "counterparty_name": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Named payer or payee explicitly identified by the statement; null when absent.",
+            "title": "Counterparty name"
+          }
+        },
+        "title": "BankTransactionDraft",
+        "type": "object"
+      },
+      "DatePeriodDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "First calendar date included in the reporting or payment period, as YYYY-MM-DD.",
+            "title": "Start date"
+          },
+          "end_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Last calendar date included in the period, as YYYY-MM-DD; must not precede the start date.",
+            "title": "End date"
+          }
+        },
+        "title": "DatePeriodDraft",
+        "type": "object"
+      },
+      "MoneyDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "title": "Currency"
+          }
+        },
+        "title": "MoneyDraft",
+        "type": "object"
+      },
+      "PostalAddressDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "address_line_1": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Primary street, building, or locality line exactly as stated by the source.",
+            "title": "Address line 1"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Additional unit, floor, building, or locality information; null when absent.",
+            "title": "Address line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "City or locality named in the address; null when absent.",
+            "title": "City"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "State, province, or administrative region named in the address; null when absent.",
+            "title": "Region"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
+            "title": "Postal code"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+            "title": "Country code"
+          }
+        },
+        "title": "PostalAddressDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "bank_statement",
+        "default": "bank_statement",
+        "description": "Identifies this payload as bank statement.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "account_holders": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "One or more account-holder names exactly as printed, including joint holders.",
+        "title": "Account holders"
+      },
+      "bank_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Institution issuing the statement when extracted; optional in the happy-case field contract.",
+        "title": "Bank name"
+      },
+      "account_identifier": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed account number or IBAN; retain masking and leading zeros.",
+        "title": "Account identifier"
+      },
+      "holder_address": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/PostalAddressDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Account-holder address printed on the statement.",
+        "title": "Holder address"
+      },
+      "statement_period": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/DatePeriodDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Inclusive reporting period covered by the statement.",
+        "title": "Statement period"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Statement issue date, if separately stated from the period end.",
+        "title": "Issue date"
+      },
+      "currency": {
+        "anyOf": [
+          {
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "ISO three-letter account-level currency when established; individual monetary amounts still require their own currency, never an inferred account currency.",
+        "title": "Currency"
+      },
+      "opening_balance": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/MoneyDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Account balance at the beginning of the stated reporting period.",
+        "title": "Opening balance"
+      },
+      "closing_balance": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/MoneyDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Account balance at the end of the stated reporting period.",
+        "title": "Closing balance"
+      },
+      "transactions": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/$defs/BankTransactionDraft"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Transcribed transactions; null means not extracted, while an empty list requires evidence of no transactions.",
+        "title": "Transactions"
+      }
+    },
+    "title": "BankStatementV2Draft",
+    "type": "object"
+  },
+  "content_sha256": "d562436afbbed32ee9e040fa2d67e047fd9365f067faa52a6633c3bfbc38c4ee"
+}
