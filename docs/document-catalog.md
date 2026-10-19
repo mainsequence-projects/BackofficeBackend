@@ -71,7 +71,9 @@ policy; adopting the new contracts requires an explicit policy upgrade. The expl
 accepts an idempotency `operation_key` and upgrades existing subject documents
 and cases. It appends schema-2 revisions with unchanged payloads and sources,
 retains existing accepted/rejected decisions with provenance, and preserves all
-original revisions. Unreviewed parser results are rechecked using their saved
+original revisions. A missing internal portrait source UID is bound to the sole
+attached source when a page is already supplied; multiple sources are never guessed.
+The original parser observations retain their original schema hash and values. Unreviewed parser results are rechecked using their saved
 classification score and the current acceptance policy. Manual drafts are not
 automatically accepted. Cases adopt account policy 5 or loan policy 4; evaluations
 must be rerun against the new versions. Repeating the operation is safe.

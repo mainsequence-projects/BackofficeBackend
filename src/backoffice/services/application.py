@@ -751,6 +751,12 @@ class Application:
         payload = model.model_validate(
             {**command.payload, "document_type": command.document_type}
         ).model_dump(mode="json", exclude_unset=True)
+        if processing:
+            from .source_references import bind_portrait_source
+
+            payload = bind_portrait_source(
+                payload, [ref.model_dump(mode="json") for ref in command.raw_document_refs]
+            )
 
         def build(op, now):
             uid = stable(op, "document")

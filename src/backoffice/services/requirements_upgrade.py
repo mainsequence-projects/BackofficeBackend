@@ -8,6 +8,7 @@ from ..tables.evidence import FieldEvidenceRecord
 from .application import DR, RV, SETS, A, D, fail, stable
 from .contracts import CompleteParsing
 from .parsing import RESULT, percent
+from .source_references import bind_portrait_source
 
 # Frozen release targets, never derived from a growing registry.
 DOCUMENT_TARGETS = dict.fromkeys(
@@ -41,10 +42,15 @@ def upgrade(app, subject_uid, command):
         for document in documents:
             old = app.document(document["uid"], reading=False)
             target = DOCUMENT_TARGETS.get(old["document_type"])
-            if target is None or old["schema_version"] >= target:
+            if target is None or old["schema_version"] > target:
+                continue
+            payload = old["payload"]
+            if old["status"] == "draft" and old["latest_review"] is None:
+                payload = bind_portrait_source(payload, old["raw_document_refs"])
+            if old["schema_version"] == target and payload == old["payload"]:
                 continue
             model = get_document_model if old["status"] == "submitted" else get_draft_model
-            model(old["document_type"], target).model_validate(old["payload"])
+            model(old["document_type"], target).model_validate(payload)
             original = app.required(DR, document_uid=old["uid"], revision=old["revision"])
             revision = old["revision"] + 1
             revision_uid = stable(op, f"revision:{old['uid']}")
@@ -56,6 +62,7 @@ def upgrade(app, subject_uid, command):
                         "uid": revision_uid,
                         "revision": revision,
                         "schema_version": target,
+                        "payload": payload,
                         "created_by": app.actor,
                         "created_at": now,
                     },

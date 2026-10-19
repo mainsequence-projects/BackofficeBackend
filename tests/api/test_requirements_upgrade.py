@@ -1,9 +1,13 @@
 """Existing evidence adopts relaxed contracts without losing reviews or history."""
 
+from uuid import uuid4
+
 import pytest
 
 from src.backoffice.services.application import DR, RV
 from src.backoffice.services.casework import lane
+from src.backoffice.services.contracts import CreateDocument
+from src.backoffice.services.source_references import bind_portrait_source
 from tests.api.test_workflows import business as business
 from tests.api.test_workflows import command, document, make_person, post, source
 
@@ -192,3 +196,67 @@ def test_multiple_accepted_documents_keep_distinct_review_and_parsing_keys(
         assert row["accepted"] is True
         assert row["revision"] == 2
         assert row["parsing_result"]["parsing_score_percent"] == "99.00"
+
+
+@pytest.mark.parametrize("schema_version", [1, 2])
+def test_upgrade_binds_missing_portrait_reference_to_its_attached_source(
+    business, document_fixture, schema_version
+):
+    client, current, _ = business
+    current[0].organization_admin = True
+    person = make_person(client)
+    raw = source(client, person)
+    payload = document_fixture("national_identity_card")
+    payload["portrait_reference"] = {"raw_document_uid": None, "page_number": 1}
+    uid = post(
+        client,
+        f"/persons/{person}/documents",
+        document_type="national_identity_card",
+        schema_version=schema_version,
+        payload=payload,
+        raw_document_refs=[{"raw_document_uid": raw}],
+    )["uid"]
+    post(
+        client,
+        f"/documents/{uid}/parsing-results",
+        expected_revision=1,
+        parsing_score_percent="99",
+        extractor="trusted-test",
+    )
+    upgrade(client, person)
+    latest = client.get(f"/documents/{uid}").json()
+    assert latest["payload"]["portrait_reference"] == {"raw_document_uid": raw, "page_number": 1}
+    assert latest["status"] == "submitted"
+    assert latest["accepted"] is False  # No auto-acceptance policy was configured.
+    assert client.get(f"/documents/{uid}/revisions/1").json()["payload"] == payload
+
+
+def test_processing_binds_source_but_never_guesses_between_attachments(business):
+    client, current, _ = business
+    current[0].organization_admin = True
+    person = make_person(client)
+    raw = source(client, person)
+    payload = {"portrait_reference": {"raw_document_uid": None, "page_number": 1}}
+    result = current[0].create_document(
+        person,
+        CreateDocument(
+            operation_key=uuid4(),
+            document_type="national_identity_card",
+            schema_version=2,
+            payload=payload,
+            raw_document_refs=[{"raw_document_uid": raw}],
+        ),
+        processing=True,
+    )
+    assert (
+        current[0].document(result["uid"])["payload"]["portrait_reference"]["raw_document_uid"]
+        == raw
+    )
+    assert (
+        bind_portrait_source(
+            payload, [{"raw_document_uid": raw}, {"raw_document_uid": str(uuid4())}]
+        )
+        == payload
+    )
+    explicit = {"portrait_reference": {"raw_document_uid": str(uuid4()), "page_number": 1}}
+    assert bind_portrait_source(explicit, [{"raw_document_uid": raw}]) == explicit
