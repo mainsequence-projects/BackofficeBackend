@@ -16,6 +16,8 @@ from ..processing.comparison_contracts import (
 )
 from ..processing.evidence_contracts import ExtractionResponseV2, pointer_value
 from .application import canonical, fail
+from .document_dates import field
+from .review_reasons import attribute_issues, empty, review_reason
 
 
 def pointer(path):
@@ -105,10 +107,28 @@ def plan(snapshot):
                     for d in (left, right)
                 ]
                 binding["references"].extend(refs)
-                if any(d["status"] != "submitted" or not d["accepted"] for d in (left, right)):
-                    binding["blockers"].append(
-                        ("pending_review", "COMPARISON_DOCUMENT_REVIEW_REQUIRED")
-                    )
+                missing = False
+                for document, selector in ((left, rule.left), (right, rule.right)):
+                    paths = [
+                        selector.field,
+                        *selector.context_fields,
+                        *([selector.unit_field] if selector.unit_field else []),
+                    ]
+                    if any(empty(field(document["payload"], path)) for path in paths):
+                        binding["blockers"].append(
+                            ("needs_information", "COMPARISON_FIELD_MISSING")
+                        )
+                        missing = True
+                    elif issues := attribute_issues(document):
+                        binding["blockers"].append(issues[:2])
+                        missing = True
+                    elif document["status"] != "submitted":
+                        binding["blockers"].append(("needs_information", "DRAFT_NOT_SUBMITTED"))
+                        missing = True
+                    elif document["review_status"] == "rejected":
+                        binding["blockers"].append(("failed", "DOCUMENT_REJECTED"))
+                        missing = True
+                if missing:
                     continue
                 collected = []
                 try:
@@ -132,6 +152,21 @@ def plan(snapshot):
                     collected[0][rule.left.unit_field].value
                 ) != canonical(collected[1][rule.right.unit_field].value):
                     binding["blockers"].append(("needs_information", "COMPARISON_UNIT_MISMATCH"))
+                    continue
+                if any(not d["accepted"] for d in (left, right)):
+                    for document, ref in zip((left, right), refs, strict=True):
+                        if not document["accepted"]:
+                            reason = review_reason(document)
+                            ref["review_reason"] = reason
+                            code = reason["reason_code"]
+                            binding["blockers"].append(
+                                (
+                                    reason["status"],
+                                    "COMPARISON_DOCUMENT_REVIEW_REQUIRED"
+                                    if code == "REVIEW_REQUIRED"
+                                    else code,
+                                )
+                            )
                     continue
                 key = hashlib.sha256(canonical([rule.key, *pair_id]).encode()).hexdigest()
                 context = []
@@ -254,7 +289,7 @@ def findings(snapshot, result=None, *, diagnostics=False):
             outcomes.append(
                 decide(rule, observation)
                 if observation
-                else ("pending_review", "COMPARISON_OBSERVATIONS_REQUIRED")
+                else ("needs_information", "COMPARISON_OBSERVATIONS_REQUIRED")
             )
             if observation:
                 for side in (observation.left, observation.right):
@@ -272,11 +307,27 @@ def findings(snapshot, result=None, *, diagnostics=False):
             outcomes or [("needs_information", "COMPARISON_EVIDENCE_REQUIRED")],
             key=lambda x: priority[x[0]],
         )
+        reasons = [
+            r["review_reason"]
+            for r in refs
+            if r.get("review_reason", {}).get("reason_code") == code
+            or code == "COMPARISON_DOCUMENT_REVIEW_REQUIRED"
+            and r.get("review_reason", {}).get("status") == "pending_review"
+        ]
+        details = " ".join(dict.fromkeys(r["explanation"] for r in reasons))
+        explanations = {
+            "COMPARISON_FIELD_MISSING": "A document is missing a field required by this comparison, including its unit or context.",
+            "COMPARISON_CITED_FACT_REQUIRED": "The comparison is missing source citations for one or more selected fields.",
+            "COMPARISON_OBSERVATIONS_REQUIRED": "The current comparison result is missing. Run checks for these document revisions.",
+            "COMPARISON_BASIS_UNRESOLVED": "The cited values are present, but a reviewer must establish whether they describe the same basis or period.",
+            "COMPARISON_MEANING_UNRESOLVED": "The cited values are present, but a reviewer must determine whether they have equivalent meaning.",
+        }
+        detail = details or explanations.get(code, f"{code.replace('_', ' ').capitalize()}.")
         item = {
             "requirement_key": rule.key,
             "status": status,
             "reason_code": code,
-            "explanation": f"{rule.description} {code.replace('_', ' ').capitalize()}.",
+            "explanation": f"{rule.description} {detail}",
             "field_paths": [rule.left.field, rule.right.field],
             "document_references": refs,
         }
@@ -288,9 +339,17 @@ def findings(snapshot, result=None, *, diagnostics=False):
                 required_count=len(binding["pairs"]) or 1,
                 qualifying_count=sum(s == "satisfied" for s, _ in outcomes),
                 shortfall=sum(s not in {"satisfied", "not_applicable"} for s, _ in outcomes),
-                next_action="Review the cited comparison evidence."
-                if status not in {"satisfied", "not_applicable"}
-                else "No comparison action required.",
+                next_action=reasons[0]["next_action"]
+                if reasons
+                else (
+                    "Run current cross-document checks."
+                    if code == "COMPARISON_OBSERVATIONS_REQUIRED"
+                    else "Provide the missing comparison fields or source citations, then run checks again."
+                    if status in {"missing", "needs_information"}
+                    else "Review the cited comparison evidence."
+                    if status not in {"satisfied", "not_applicable"}
+                    else "No comparison action required."
+                ),
             )
         output.append(item)
     return output

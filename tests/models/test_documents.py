@@ -209,7 +209,7 @@ def test_all_nested_fields_have_form_descriptions():
 
 
 def test_unknown_type_or_version_never_falls_back():
-    for kind, version in (("passport", 2), ("unknown_document", 1)):
+    for kind, version in (("passport", 99), ("unknown_document", 1)):
         with pytest.raises(ValueError):
             get_document_model(kind, version)
         with pytest.raises(ValueError):

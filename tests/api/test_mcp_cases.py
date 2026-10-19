@@ -240,7 +240,7 @@ def test_existing_source_extraction_acceptance_link_and_case_comparison(
             acceptance_threshold_percent="60",
         )
     )
-    case = build(client, person, version=3)
+    case = build(client, person, version=6)
     source = client.post(
         "/source-documents/bucket-uploads",
         data={"person_uid": person, "operation_key": str(uuid4())},
@@ -299,7 +299,7 @@ def test_existing_source_extraction_acceptance_link_and_case_comparison(
     )
     body = command(case_uid=case, expected_revision=2)
     evaluation_run = write(client, "evaluate_case", body)["processing_run_uid"]
-    other_case = build(client, person, version=3)
+    other_case = build(client, person, version=6)
     error(client, "evaluate_case", {"command": {**body, "case_uid": other_case}}, 409)
     comparison = workflow.Worker(worker_app, parser=ComparisonParser(), bucket=bucket).run(
         evaluation_run

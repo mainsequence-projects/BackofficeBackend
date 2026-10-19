@@ -19,6 +19,7 @@ from ..models.person import Person
 from ..policies import document_set_catalog, policy_definition
 from ..schemas.drafts import get_draft_model
 from ..schemas.registry import DOCUMENT_MODELS, get_document_model
+from ..schemas.scope import document_facts
 from ..tables.documents import DocumentRecord, DocumentReviewRecord, DocumentRevisionRecord
 from ..tables.evidence import MAX_CHUNK_BYTES, RawDocumentChunkRecord, RawDocumentRecord
 from ..tables.operations import (
@@ -725,7 +726,7 @@ class Application:
         review = reviews[0] if reviews else None
         from .parsing import result_view
 
-        return {
+        view = {
             **row,
             "parsing_result": result_view(self, uid, revision["revision"]) if revision else None,
             "revision": revision["revision"] if revision else 0,
@@ -739,6 +740,10 @@ class Application:
             "accepted": bool(review and review["decision"] == "accepted"),
             "review_status": review["decision"] if review else "pending",
         }
+        from .review_reasons import document_review_requirement
+
+        view["review_requirement"] = document_review_requirement(view)
+        return view
 
     def create_document(self, person_uid, command, *, processing=False, extraction_evidence=None):
         if processing and not (self.parsing_processor or self.organization_admin):
@@ -749,14 +754,8 @@ class Application:
             fail(422, "document_type_cannot_change")
         model = get_draft_model(command.document_type, command.schema_version)
         payload = model.model_validate(
-            {**command.payload, "document_type": command.document_type}
+            {**document_facts(command.payload), "document_type": command.document_type}
         ).model_dump(mode="json", exclude_unset=True)
-        if processing:
-            from .source_references import bind_portrait_source
-
-            payload = bind_portrait_source(
-                payload, [ref.model_dump(mode="json") for ref in command.raw_document_refs]
-            )
 
         def build(op, now):
             uid = stable(op, "document")
@@ -814,7 +813,9 @@ class Application:
                 fail(422, "document_type_cannot_change")
             payload = (
                 get_draft_model(current["document_type"], current["schema_version"])
-                .model_validate({**command.payload, "document_type": current["document_type"]})
+                .model_validate(
+                    {**document_facts(command.payload), "document_type": current["document_type"]}
+                )
                 .model_dump(mode="json", exclude_unset=True)
             )
             refs = self.validate_refs(current["person_uid"], command.raw_document_refs)
@@ -962,7 +963,7 @@ class Application:
             "policy": policy,
             "documents": documents,
             "evaluation_date": datetime.now(UTC).date().isoformat(),
-            "evaluator_version": "3" if policy.get("comparisons") else "2",
+            "evaluator_version": "5" if policy.get("comparisons") else "4",
         }
 
     def current_status(self, uid):

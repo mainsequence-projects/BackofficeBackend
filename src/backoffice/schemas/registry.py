@@ -22,6 +22,7 @@ from ..models.documents import (
     TaxReturn,
     UtilityBill,
 )
+from ..models.documents.identity_facts import NationalIdentityCardV3, PassportV2
 from ..models.documents.v2 import DOCUMENT_MODELS_V2
 
 DocumentType = Literal[
@@ -77,8 +78,13 @@ DOCUMENT_MODELS = MappingProxyType(
         )
     }
     | {(model.model_fields["document_type"].default, 2): model for model in DOCUMENT_MODELS_V2}
+    | {("national_identity_card", 3): NationalIdentityCardV3, ("passport", 2): PassportV2}
 )
 DOCUMENT_ADAPTER = TypeAdapter(DocumentPayload)
+
+PreviousDocumentPayload = Annotated[
+    reduce(or_, DOCUMENT_MODELS_V2), Field(discriminator="document_type")
+]
 
 # The envelope accepts current fields, then validates its exact recorded version.
 LATEST_DOCUMENT_VERSIONS = MappingProxyType(
@@ -108,6 +114,8 @@ def get_document_model(document_type: str, schema_version: int = 1):
 
 def resolve_field_schema(model, path: str) -> dict:
     """Resolve an object field path, such as statement_period.end_date, for policy validation."""
+    if path.split(".")[0] == "portrait_reference":
+        raise ValueError("Portrait requirements and face comparison are product V2 scope")
     root = model.model_json_schema()
     current = root
     for component in path.split("."):

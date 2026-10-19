@@ -62,3 +62,9 @@ or the parser directly, use another application's tools, or ask for credentials.
 A missing verified requester is an authorization failure, never a reason to act as
 the workload. SDK task input/authorization controls remain SDK-owned and do not
 manufacture permissions or missing business capabilities.
+
+In explicitly configured local developer mode, the Back Office MCP adapters verify
+both your saved Main Sequence login and the loopback API's matching identity and
+pinned SQLite source before each call. Use the same business tools and discovery
+rules there. This is developer authority, not a hosted delegated requester or a
+workload fallback; never claim that the SDK supplied a local turn requester.

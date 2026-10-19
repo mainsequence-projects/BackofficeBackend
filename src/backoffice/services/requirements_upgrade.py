@@ -4,16 +4,15 @@ from uuid import UUID
 
 from ..schemas.drafts import get_draft_model
 from ..schemas.registry import get_document_model
+from ..schemas.scope import document_facts
 from ..tables.evidence import FieldEvidenceRecord
 from .application import DR, RV, SETS, A, D, fail, stable
 from .contracts import CompleteParsing
 from .parsing import RESULT, percent
-from .source_references import bind_portrait_source
 
 # Frozen release targets, never derived from a growing registry.
 DOCUMENT_TARGETS = dict.fromkeys(
     (
-        "national_identity_card",
         "bank_statement",
         "tax_clearance_certificate",
         "residence_permit",
@@ -24,8 +23,8 @@ DOCUMENT_TARGETS = dict.fromkeys(
         "kyc_questionnaire",
     ),
     2,
-)
-POLICY_TARGETS = {"new_account_requirements": 5, "loan_requirements": 4}
+) | {"national_identity_card": 3, "passport": 2}
+POLICY_TARGETS = {"new_account_requirements": 6, "loan_requirements": 5}
 FIELDS = FieldEvidenceRecord.__table__
 
 
@@ -44,9 +43,7 @@ def upgrade(app, subject_uid, command):
             target = DOCUMENT_TARGETS.get(old["document_type"])
             if target is None or old["schema_version"] > target:
                 continue
-            payload = old["payload"]
-            if old["status"] == "draft" and old["latest_review"] is None:
-                payload = bind_portrait_source(payload, old["raw_document_refs"])
+            payload = document_facts(old["payload"])
             if old["schema_version"] == target and payload == old["payload"]:
                 continue
             model = get_document_model if old["status"] == "submitted" else get_draft_model

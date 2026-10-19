@@ -118,7 +118,7 @@ def test_one_reviewed_identity_can_support_loan_and_account_assignments(business
 @pytest.mark.parametrize(
     "kind", ["loan_contract", "employer_confirmation", "tax_clearance_certificate"]
 )
-def test_new_types_use_the_existing_worker_and_default_review_policy(flow, document_fixture, kind):
+def test_new_types_use_the_existing_worker_and_default_eighty_percent_policy(flow, document_fixture, kind):
     client, current, store, bucket, _, _, _ = flow
     person = make_person(client)
     parser = Parser(document_fixture(kind), kind=kind)
@@ -127,7 +127,7 @@ def test_new_types_use_the_existing_worker_and_default_review_policy(flow, docum
     result = worker(current, bucket, parser, store).run(response.json()["uid"])
     assert result["status"] == "completed", result
     assert result["completion"]["decision"] == "needs_review"
-    assert result["completion"]["reason_code"] == "parsing_policy_missing"
+    assert result["completion"]["reason_code"] == "parsing_score_below_threshold"
     request = parser.extractions[0]
     assert request.document_type == kind
     assert request.contract_version == 2  # Same evidence path as account documents.

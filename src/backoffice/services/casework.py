@@ -66,7 +66,8 @@ def lane(status):
         return "missing_evidence"
     if any(f["status"] == "pending_review" for f in findings):
         return "review_required"
-    return "checks_satisfied" if status["summary"]["complete"] else "review_required"
+    # An inconsistent assessment is not evidence that a human decision is needed.
+    return "updating"
 
 
 def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0, case_type_key=""):
@@ -147,7 +148,20 @@ def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0, 
                     "finding_counts": counts,
                     "workflow_state": lane(status),
                     "summary": status["summary"],
-                    "top_finding": outstanding[0] if outstanding else None,
+                    "top_finding": min(
+                        outstanding,
+                        key=lambda f: (
+                            not f.get("mandatory", True),
+                            {
+                                "failed": 0,
+                                "missing": 1,
+                                "needs_information": 1,
+                                "pending_review": 2,
+                            }.get(f["status"], 3),
+                        ),
+                    )
+                    if outstanding
+                    else None,
                     "latest_evaluated_at": latest[0]["created_at"] if latest else None,
                     "assessed_at": status["assessed_at"],
                 }

@@ -61,12 +61,14 @@ def test_catalog_audit_covers_every_document_type():
     assert set(MINIMUM_FIELDS) == set(LATEST_DOCUMENT_VERSIONS)
 
 
-@pytest.mark.parametrize("kind", [k for k, v in LATEST_DOCUMENT_VERSIONS.items() if v == 2])
+@pytest.mark.parametrize(
+    "kind", [k for k, v in LATEST_DOCUMENT_VERSIONS.items() if v >= 2 and k != "passport"]
+)
 def test_relaxations_are_versioned_and_old_contracts_stay_required(kind, document_fixture):
     payload = minimum_payload(kind, document_fixture)
     with pytest.raises(ValidationError):
         complete_draft(kind, payload, 1)
-    complete_draft(kind, payload, 2)
+    complete_draft(kind, payload, LATEST_DOCUMENT_VERSIONS[kind])
 
 
 def test_payslip_without_gross_keeps_net_and_deduction_currency_checks(document_fixture):
@@ -121,14 +123,14 @@ def test_undated_questionnaire_does_not_satisfy_freshness_policy(document_fixtur
 
 
 def test_new_policies_pin_current_versions_and_keep_existing_business_checks():
-    for policy in (new_account_requirements(5), loan_requirements(4)):
+    for policy in (new_account_requirements(6), loan_requirements(5)):
         for requirement in policy.requirements:
             for option in requirement.options:
                 assert option.schema_version == LATEST_DOCUMENT_VERSIONS[option.document_type]
         for comparison in policy.comparisons:
             for selector in (comparison.left, comparison.right):
                 assert selector.schema_version == LATEST_DOCUMENT_VERSIONS[selector.document_type]
-    loan = loan_requirements(4)
+    loan = loan_requirements(5)
     option = next(r.options[0] for r in loan.requirements if r.key == "loan_contract")
     assert option.required_fields == ["declared_monthly_net_income"]
     # Workflows can explicitly require a newly optional source detail.
@@ -158,7 +160,7 @@ def test_envelope_validates_its_exact_version(document_fixture):
     with pytest.raises(ValidationError):
         DocumentInstance(**{**payload, "schema_version": 1})
     with pytest.raises(ValidationError, match="Unknown document schema"):
-        DocumentInstance(**{**payload, "data": document_fixture("passport")})
+        DocumentInstance(**{**payload, "data": document_fixture("passport"), "schema_version": 3})
 
 
 def test_historical_policies_match_their_preserved_snapshots():

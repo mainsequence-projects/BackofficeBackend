@@ -448,6 +448,41 @@ Source: `src.backoffice.models.documents.v2`.
 | `completed_at` | `date-time or null` | No | Timezone-aware completion instant when recorded by the source or application; never substitute the upload time for an undated external form. |
 | `questionnaire_version` | `string or null` | No | Version of the questionnaire when established by the source or application; null for an external form without a version. |
 
+## `NationalIdentityCardV3`
+
+Source: `src.backoffice.models.documents.identity_facts`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'national_identity_card'` | No | Identifies this payload as national identity card. |
+| `full_name` | `string` | Yes | Holder's complete name exactly as printed on the card. |
+| `given_names` | `string or null` | No | All given names in their printed order when identified separately. |
+| `last_name` | `string or null` | No | Surname or family name when identified separately on the card. |
+| `date_of_birth` | `date` | Yes | Holder's printed date of birth, entered as YYYY-MM-DD. |
+| `identity_number` | `string` | Yes | Identity identifier printed on the card, preserving letters and leading zeros. |
+| `issuing_country` | `string or null` | No | Country or issuing authority when explicitly extracted from the source; absent from the happy-case field contract and never guessed from a person's address. |
+| `issue_date` | `date or null` | No | Date the card was issued, if printed. |
+| `validity_type` | `fixed_term, permanent, unknown or null` | No | Explicit validity classification when available; null means not classified, never permanent. A printed expiry can establish validity without this metadata. |
+| `expiration_date` | `date or null` | No | Printed expiry date; required when validity is fixed-term. |
+
+## `PassportV2`
+
+Source: `src.backoffice.models.documents.identity_facts`.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `document_type` | `'passport'` | No | Identifies this payload as passport. |
+| `full_name` | `string` | Yes | Holder's complete name exactly as printed in the visual inspection zone. |
+| `given_names` | `string or null` | No | All given names in their printed order, if separately identified. |
+| `last_name` | `string or null` | No | Printed surname or family name, if separately identified. |
+| `date_of_birth` | `date` | Yes | Holder's printed date of birth, entered as YYYY-MM-DD. |
+| `passport_number` | `string` | Yes | Passport identifier exactly as printed, preserving letters and leading zeros. |
+| `nationality` | `string` | Yes | Nationality exactly as stated by the passport; retain the original value. |
+| `issuing_country` | `string` | Yes | Country or issuing authority identified on the passport. |
+| `issue_date` | `date or null` | No | Date the passport was issued, if printed. |
+| `expiration_date` | `date` | Yes | Printed passport expiry date, entered as YYYY-MM-DD. |
+| `mrz_lines` | `list[string] or null` | No | MRZ lines in printed order, preserving every character including `<` fillers. |
+
 ## `Person`
 
 Source: `src.backoffice.models.person`.
@@ -488,7 +523,7 @@ Source: `src.backoffice.models.document`.
 | `decision` | `accepted, rejected` | Yes | Explicit reviewer decision; pending means no effective review exists. |
 | `reviewed_by` | `uuid` | Yes | Trusted Main Sequence User UID recorded by the review service. |
 | `reviewed_at` | `date-time` | Yes | Timezone-aware instant when the review decision was recorded. |
-| `reason` | `string` | Yes | Reviewer's explanation of the acceptance or rejection. |
+| `reason` | `string` | No | Optional reviewer comments recorded with the acceptance or rejection; blank when no comment was supplied. |
 
 ## `DocumentInstance`
 
@@ -502,8 +537,8 @@ Source: `src.backoffice.models.document`.
 | `created_at` | `date-time` | Yes | Server-recorded instant when the logical document was first created; not the evidence issue date. |
 | `revision_created_at` | `date-time` | Yes | Server-recorded instant when this exact revision was created. |
 | `submitted_at` | `date-time` | Yes | Server-recorded instant when this completed revision became immutable. |
-| `schema_version` | `1, 2` | No | Exact document contract version used by this revision. |
-| `data` | `NationalIdentityCard or Passport or ResidencePermit or UtilityBill or BankStatement or EmploymentContract or Payslip or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaire or LoanContract or EmployerConfirmation or TaxClearanceCertificate or NationalIdentityCardV2 or Passport or ResidencePermitV2 or UtilityBillV2 or BankStatementV2 or EmploymentContract or PayslipV2 or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaireV2 or LoanContractV2 or EmployerConfirmationV2 or TaxClearanceCertificateV2` | Yes | Completed typed document attributes selected by document_type. |
+| `schema_version` | `1, 2, 3` | No | Exact document contract version used by this revision. |
+| `data` | `NationalIdentityCard or Passport or ResidencePermit or UtilityBill or BankStatement or EmploymentContract or Payslip or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaire or LoanContract or EmployerConfirmation or TaxClearanceCertificate or NationalIdentityCardV2 or BankStatementV2 or TaxClearanceCertificateV2 or ResidencePermitV2 or UtilityBillV2 or PayslipV2 or LoanContractV2 or EmployerConfirmationV2 or KYCQuestionnaireV2 or NationalIdentityCardV3 or PassportV2 or ResidencePermitV2 or UtilityBillV2 or BankStatementV2 or EmploymentContract or PayslipV2 or TaxReturn or SourceOfFundsEvidence or KYCQuestionnaireV2 or LoanContractV2 or EmployerConfirmationV2 or TaxClearanceCertificateV2` | Yes | Completed typed document attributes selected by document_type. |
 | `raw_document_refs` | `list[RawDocumentRef]` | Yes | References to immutable ready source documents, including front/back images or a questionnaire snapshot. |
 | `latest_review` | `DocumentReview or null` | No | Effective review for this exact revision; null means pending review. |
 | `review_status` | `pending, accepted, rejected` | Read-only | Read-only review state of this revision; pending when no effective decision exists. |

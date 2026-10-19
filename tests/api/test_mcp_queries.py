@@ -146,12 +146,12 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
         expected.pop("assessed_at", None)
         assert without_assessment_clock(actual) == without_assessment_clock(expected), name
     sets = tool(client, "list_document_sets", {"limit": 1})["structuredContent"]
-    assert sets["has_more"] and sets["total_items"] == 9
-    assert (sets["items"][0]["key"], sets["items"][0]["version"]) == ("loan_requirements", 4)
+    assert sets["has_more"] and sets["total_items"] == 11
+    assert (sets["items"][0]["key"], sets["items"][0]["version"]) == ("loan_requirements", 5)
     accounts = tool(client, "list_document_sets", {"search": "new_account_requirements"})[
         "structuredContent"
     ]
-    assert [item["version"] for item in accounts["items"]] == [5, 4, 3, 2, 1]
+    assert [item["version"] for item in accounts["items"]] == [6, 5, 4, 3, 2, 1]
     assert tool(client, "list_document_sets", {"search": "%"})["structuredContent"]["items"] == []
 
 
@@ -323,7 +323,9 @@ def test_delegated_transport_uses_requester_not_admin_workload(monkeypatch):
         ("satisfied", "REQUIREMENT_SATISFIED", 1),
     ],
 )
-def test_diagnostics_preserve_review_draft_expiry_and_counts(state, code, qualifying):
+def test_diagnostics_preserve_review_draft_expiry_and_counts(
+    state, code, qualifying, document_fixture
+):
     from src.backoffice.policies.new_account_requirements import new_account_requirements
 
     policy = new_account_requirements(1).model_dump(mode="json")
@@ -343,7 +345,20 @@ def test_diagnostics_preserve_review_draft_expiry_and_counts(state, code, qualif
             "mrz_lines": ["EXAMPLE"],
         },
     }
-    snapshot = {"policy": policy, "person": {}, "documents": [doc], "evaluation_date": "2026-10-19"}
+    person = {}
+    if code == "REVIEW_REQUIRED":
+        doc["payload"] = document_fixture("passport")
+        doc["payload"]["mrz_lines"] = ["EXAMPLE"]
+        person = {
+            "full_name": doc["payload"]["full_name"],
+            "date_of_birth": doc["payload"]["date_of_birth"],
+        }
+    snapshot = {
+        "policy": policy,
+        "person": person,
+        "documents": [doc],
+        "evaluation_date": "2026-10-19",
+    }
     findings, _ = reconcile(deepcopy(snapshot), diagnostics=True)
     finding = findings[0]
     assert (finding["status"], finding["reason_code"], finding["qualifying_count"]) == (

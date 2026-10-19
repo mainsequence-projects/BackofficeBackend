@@ -90,17 +90,19 @@ def get(app, uid):
 
 def view(app, row, limit=20, offset=0):
     r, inputs = row["result"], row["input_snapshot"]
+    # Progress is a retained run snapshot. Check access without requiring the
+    # subject to be idle; a concurrent mutation lock is not revoked permission.
     candidates = []
     for candidate in r.get("candidates", []):
         try:
-            app.case(candidate["uid"])
+            app.case(candidate["uid"], reading=False)
             candidates.append(candidate)
         except HTTPException:
             pass
     allowed = True
     if r.get("subject_uid"):
         try:
-            app.case(r["subject_uid"])
+            app.case(r["subject_uid"], reading=False)
         except HTTPException:
             allowed = False
     targets = r.get("targets", []) if allowed else []
@@ -154,7 +156,22 @@ def dispatch(app, row, dispatcher=None):
         if job:
             app.db.change(RUN, {"uid": row["uid"]}, {"job_run_uid": str(UUID(job))})
     except (ProcessingError, ValueError):
-        return {**view(app, row), "dispatch_error": "processing_dispatch_unavailable"}
+        current = get(app, row["uid"])
+        if current["status"] in {"pending", "failed"}:
+            current = app.db.change(
+                RUN,
+                {"uid": row["uid"]},
+                {
+                    "status": "failed",
+                    "updated_at": now(),
+                    "result": {
+                        **current["result"],
+                        "error_code": "processing_dispatch_unavailable",
+                    },
+                },
+                expected={"status": current["status"], "updated_at": current["updated_at"]},
+            )
+        return view(app, current)
     return view(app, get(app, row["uid"]))
 
 
@@ -506,6 +523,7 @@ def source_and_child(app, worker, row, result, subject):
             "document.extract",
             dict(
                 actor_uid=app.actor,
+                parent_allocation_uid=row["uid"],
                 person_uid=subject,
                 source_uid=source_uid,
                 source_sha256=source["content_sha256"],

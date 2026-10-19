@@ -49,6 +49,27 @@ DOCUMENT_VERSIONS = {
         "employer_confirmation": 2,
         "tax_clearance_certificate": 2,
     },
+    ("new_account_requirements", 6): {
+        "national_identity_card": 3,
+        "passport": 2,
+        "utility_bill": 2,
+        "bank_statement": 2,
+        "payslip": 2,
+        "employment_contract": 1,
+        "residence_permit": 2,
+        "source_of_funds_evidence": 1,
+        "kyc_questionnaire": 2,
+    },
+    ("loan_requirements", 5): {
+        "loan_contract": 2,
+        "national_identity_card": 3,
+        "passport": 2,
+        "bank_statement": 2,
+        "payslip": 2,
+        "utility_bill": 2,
+        "employer_confirmation": 2,
+        "tax_clearance_certificate": 2,
+    },
 }
 
 

@@ -28,7 +28,7 @@ def test_example_has_alternatives_conditionality_and_pinned_versions():
 @pytest.mark.parametrize(
     "kwargs",
     [
-        {"schema_version": 2},
+        {"schema_version": 99},
         {"required_fields": ["imaginary"]},
         {"required_fields": ["full_name", "full_name"]},
         {"max_age_days": 30},

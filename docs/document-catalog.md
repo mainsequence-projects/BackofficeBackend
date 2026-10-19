@@ -2,6 +2,12 @@
 
 This is the accepted business field catalog and intended reconciliation behavior.
 
+V1 reconciles document facts. Portrait references, photo-presence checks and face
+comparison are deferred to [product V2 scope](project-plan.md#product-v1-scope-and-v2-follow-up).
+Current identity-card schema 3 and passport schema 2 contain no portrait field.
+All document forms also omit that section for historical schemas. Original source
+files and retained historical revisions remain unchanged.
+
 ## Required-field audit (2026-10-19)
 
 The minimum below is for a completed canonical payload, not a decision that a
@@ -49,8 +55,8 @@ submission. This guards against reintroducing unsupported obligatory fields.
 
 | Document type | Current schema | Required source facts | Optional details / decision |
 | --- | --- | --- | --- |
-| National identity card | 2 | Full name, birth date, identity number | Issue date already optional. Issuing country and validity type are now optional. A printed expiry is usable without a separate validity classification; explicit fixed-term validity still requires expiry and permanent validity forbids it. No expiry and no permanent-validity evidence remains unknown to the policy. |
-| Passport | 1 | Full name, birth date, passport number, nationality, issuing country, expiry | Issue date, separate name parts, MRZ and portrait reference remain optional; policies can require MRZ. |
+| National identity card | 3 | Full name, birth date, identity number | Issue date already optional. Issuing country and validity type are now optional. A printed expiry is usable without a separate validity classification; explicit fixed-term validity still requires expiry and permanent validity forbids it. No expiry and no permanent-validity evidence remains unknown to the policy. |
+| Passport | 2 | Full name, birth date, passport number, nationality, issuing country, expiry | Issue date, separate name parts and MRZ remain optional; policies can require MRZ. |
 | Residence permit | 2 | Full name, permit number, issuing country, validity type | Printed permit category is now optional; absence does not imply any entitlement. Conditional expiry remains enforced. |
 | Utility bill | 2 | Account-holder name, service address, provider, issue date | Service category is now optional. Amount, account number and billing period remain optional for address evidence. Issue date remains the freshness anchor. |
 | Bank statement | 2 | Account holders, account identifier, statement period | Bank name and separate account-level currency are now optional. Every supplied monetary amount still needs its own currency; balances must agree with the account currency when it is supplied. Separate issue date, address, balances and transactions remain optional. |
@@ -64,18 +70,18 @@ submission. This guards against reintroducing unsupported obligatory fields.
 | Tax clearance certificate | 2 | Taxpayer, issuing authority, issue date, arrears statement | Duplicate verbatim statement text is now optional. Identifier, certificate number, separate as-of date and arrears amount remain optional. Missing text or amount never implies tax clearance or zero debt. |
 
 Version 1 schemas and historical policies remain unchanged. The nine relaxed
-contracts are registered as version 2. New account policy 5 and loan policy 4 pin
-these versions, including comparison selectors, while retaining validity,
+contracts are registered as version 2. New account policy 6 and loan policy 5 pin
+the current schemas, including comparison selectors, while retaining validity,
 freshness, income and review requirements. Existing cases keep their assigned
 policy; adopting the new contracts requires an explicit policy upgrade. The explicit admin upgrade `POST /admin/persons/{uid}/happy-case-requirements`
 accepts an idempotency `operation_key` and upgrades existing subject documents
-and cases. It appends schema-2 revisions with unchanged payloads and sources,
+and cases. It appends current-schema revisions with the same document facts and sources,
 retains existing accepted/rejected decisions with provenance, and preserves all
-original revisions. A missing internal portrait source UID is bound to the sole
-attached source when a page is already supplied; multiple sources are never guessed.
+original revisions. Obsolete portrait metadata is omitted from the new revisions;
+original source attachments and historical portrait metadata remain retained.
 The original parser observations retain their original schema hash and values. Unreviewed parser results are rechecked using their saved
 classification score and the current acceptance policy. Manual drafts are not
-automatically accepted. Cases adopt account policy 5 or loan policy 4; evaluations
+automatically accepted. Cases adopt account policy 6 or loan policy 5; evaluations
 must be rerun against the new versions. Repeating the operation is safe.
 Missing optional attributes are advisory and do not change case completeness.
 
@@ -169,11 +175,9 @@ module `models/documents/national_identity_card.py`.
 | `issue_date` | `date` | O | Date the card was issued, if printed. |
 | `validity_type` | `Literal['fixed_term','permanent','unknown']` | R | Whether the source states a fixed expiry, permanent validity, or does not establish validity. |
 | `expiration_date` | `date` | C | Printed expiry date; required when validity is fixed-term. |
-| `portrait_reference` | `EvidenceRegion` | O | Location of the holder's portrait in the source document. |
 
-Checks: name and birth-date consistency, identifier presence, validity at evaluation
-time, and required portrait presence. Unknown validity requires review; absence of
-a portrait reference alone does not prove absence of a photograph.
+Checks: name and birth-date consistency, identifier presence and validity at
+evaluation time. Unknown validity requires review. Portrait and face checks are V2 scope.
 
 ## Passport
 
@@ -191,7 +195,6 @@ Model `Passport`; discriminator `passport`; module `models/documents/passport.py
 | `issue_date` | `date` | O | Date the passport was issued, if printed. |
 | `expiration_date` | `date` | R | Printed passport expiry date, entered as YYYY-MM-DD. |
 | `mrz_lines` | `list[str]` | O | MRZ lines in printed order, preserving every character including `<` fillers. |
-| `portrait_reference` | `EvidenceRegion` | O | Location of the holder's portrait in the passport source. |
 
 Checks: identity, nationality, expiry, supported MRZ format/check digits, and MRZ
 agreement with the visual zone. Additional issuing-document variants require an

@@ -165,3 +165,15 @@ There is no generic intent-inspection/resume tool in this catalog. If the origin
 command/key is unknown, or work remains locked/interrupted after a bounded recovery
 attempt, hand off to the API/UI recovery path with the known IDs and reason. Continue
 independent supported work; never conceal the block by creating a replacement case.
+
+
+Allocation targets may include pre-existing cases beyond the cases named in the
+conversation. Resolve each target's `case_uid` with `get_case` before naming its
+type; never label targets by list order. For recoverable conflicts between several
+allocations on one subject, retry retained runs one at a time after active writes
+finish. Preserve successful targets, original operation keys and evidence identities.
+
+A failed allocation target can mean that evaluation failed after evidence was
+successfully linked. Read `get_case` to verify membership before saying a document
+was not allocated. After retrying, refresh run status and current missing findings;
+do not mix an earlier failed checkpoint with a later successful case state.

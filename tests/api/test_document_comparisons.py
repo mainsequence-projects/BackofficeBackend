@@ -75,7 +75,7 @@ def prepare(flow, document_fixture, product="loan", review=True):
         client,
         f"/persons/{person}/document-sets",
         document_set_key="loan_requirements" if product == "loan" else "new_account_requirements",
-        document_set_version=4 if product == "loan" else 5,
+        document_set_version=5 if product == "loan" else 6,
     )
     post_body = command(expected_revision=1, document_uids=docs)
     assert (
@@ -191,7 +191,7 @@ def test_unreviewed_documents_are_not_sent_to_parser(flow, document_fixture):
     assert parser.calls == []
     assert (
         client.get(f"/assignments/{assignment}/status").json()["findings"][-1]["reason_code"]
-        == "COMPARISON_DOCUMENT_REVIEW_REQUIRED"
+        == "PARSING_SCORE_BELOW_THRESHOLD"
     )
 
 
@@ -257,7 +257,7 @@ def test_later_document_revision_marks_comparisons_stale_without_reusing_observa
     )
     assert client.get(f"/evaluations/{result['evaluation']['uid']}").json()["stale"]
     current_finding = client.get(f"/assignments/{assignment}/status").json()["findings"][-1]
-    assert current_finding["status"] == "pending_review"
+    assert current_finding["status"] == "needs_information"
     assert len(parser.calls) == 1
 
 

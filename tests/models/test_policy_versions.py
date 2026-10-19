@@ -10,7 +10,15 @@ from src.backoffice.policies import loan_requirements, new_account_requirements,
 SNAPSHOTS = Path(__file__).resolve().parents[1] / "fixtures/published_policies"
 
 
-@pytest.mark.parametrize("policy", [new_account_requirements(4), loan_requirements(3)])
+@pytest.mark.parametrize(
+    "policy",
+    [
+        new_account_requirements(4),
+        loan_requirements(3),
+        new_account_requirements(5),
+        loan_requirements(4),
+    ],
+)
 def test_published_schema_pins_match_preserved_definitions(policy):
     expected = json.loads((SNAPSHOTS / f"{policy.key}.v{policy.version}.json").read_text())
     assert policy_definition(policy) == expected
@@ -18,7 +26,12 @@ def test_published_schema_pins_match_preserved_definitions(policy):
 
 @pytest.mark.parametrize(
     "factory,previous,current",
-    [(new_account_requirements, 4, 5), (loan_requirements, 3, 4)],
+    [
+        (new_account_requirements, 4, 5),
+        (loan_requirements, 3, 4),
+        (new_account_requirements, 5, 6),
+        (loan_requirements, 4, 5),
+    ],
 )
 def test_new_policy_only_changes_version_and_schema_pins(factory, previous, current):
     old = policy_definition(factory(previous))

@@ -6,7 +6,7 @@ import pytest
 
 from api.app.main import processing_bucket, processing_dispatcher
 from src.backoffice.processing import allocation, workflow
-from src.backoffice.services.application import EV, RAW, RUN, Application, D
+from src.backoffice.services.application import EV, RAW, RUN, Application, D, stable
 from tests.api.test_document_processing import Bucket, Dispatcher, Parser, png
 from tests.api.test_parsing_admin import policy
 from tests.api.test_workflows import business as business
@@ -48,14 +48,14 @@ def upload(client, key=None):
     return response.json()
 
 
-def build(client, person, kind="account_opening", version=1):
+def build(client, person, kind="account_opening", version=None):
     return post(
         client,
         "/cases",
         subject_uid=person,
         case_type_key=kind,
         document_set_key="loan_requirements" if kind == "new_loan" else "new_account_requirements",
-        document_set_version=version,
+        document_set_version=version if version is not None else (5 if kind == "new_loan" else 6),
     )["uid"]
 
 
@@ -171,6 +171,49 @@ def test_strict_inputs_and_invalid_upload(intake):
         assert response.status_code == 422, response.text
 
 
+def test_dispatch_failure_remains_visible_after_refresh_and_retry_recovers(intake):
+    client, current, store, bucket, dispatcher, parser, run = intake
+    dispatcher.fail = True
+    started = upload(client)
+    assert started["status"] == "failed"
+    assert started["error_code"] == "processing_dispatch_unavailable"
+    saved = client.get("/document-intakes").json()["items"][0]
+    assert saved["error_code"] == started["error_code"]
+    assert saved["status"] == "failed"
+    dispatcher.fail = False
+    person = make_person(client)
+    build(client, person, "new_loan")
+    assert (
+        client.post(f"/document-allocations/{started['uid']}/retry", json=command()).status_code
+        == 202
+    )
+    result = run(started["uid"])
+    assert result["status"] == "completed", result
+    assert result["error_code"] is None
+
+
+def test_progress_is_persisted_before_each_parser_call(intake, monkeypatch):
+    client, current, store, bucket, dispatcher, parser, run = intake
+    uid = upload(client)["uid"]
+    classify, extract = parser.classify, parser.extract
+
+    def observed_classify(request):
+        assert client.get(f"/document-allocations/{uid}").json()["stage"] == "classifying"
+        tax = next(
+            c for c in request.document_types if c.document_type == "tax_clearance_certificate"
+        )
+        assert "tax-authority arrears or clearance certificate" in tax.description
+        return classify(request)
+
+    def observed_extract(request):
+        assert client.get(f"/document-allocations/{uid}").json()["stage"] == "extracting"
+        return extract(request)
+
+    monkeypatch.setattr(parser, "classify", observed_classify)
+    monkeypatch.setattr(parser, "extract", observed_extract)
+    assert run(uid)["status"] == "needs_input"
+
+
 def test_partial_case_failure_retries_without_relink_or_reextraction(intake, monkeypatch):
     client, current, store, bucket, dispatcher, parser, run = intake
     person = make_person(client)
@@ -224,7 +267,7 @@ def test_lost_link_response_recovers_durable_intent(intake, monkeypatch):
 def test_existing_source_and_comparison_policy_use_same_engine(intake):
     client, current, store, bucket, dispatcher, parser, run = intake
     person = make_person(client)
-    case = build(client, person, "new_loan", 2)
+    case = build(client, person, "new_loan", 5)
     # Comparison policy with one document still evaluates all requirements and retains a run.
     uid = upload(client)["uid"]
     first = run(uid)
@@ -363,3 +406,27 @@ def test_requester_directory_refresh_fails_closed_and_never_expands_role(intake,
     )
     with pytest.raises(allocation.ProcessingError):
         original(worker, row)
+
+
+def test_progress_authorization_does_not_mistake_subject_write_lock_for_lost_access(intake):
+    client, current, store, bucket, dispatcher, parser, run = intake
+    person = make_person(client)
+    build(client, person, "new_loan")
+    uid = upload(client)["uid"]
+    completed = run(uid)
+    assert completed["status"] == "completed"
+    lock_uid = stable(person, "case-lock")
+    store.ensure(
+        RUN,
+        allocation.record(
+            lock_uid,
+            "case_lock",
+            {"operation": str(uuid4()), "signature": "test-pending-write"},
+        ),
+    )
+    assert client.get(f"/persons/{person}").status_code == 409
+    progress = client.get(f"/document-allocations/{uid}")
+    assert progress.status_code == 200
+    assert progress.json()["subject_uid"] == person
+    assert progress.json()["error_code"] is None
+    assert progress.json()["targets"] == completed["targets"]

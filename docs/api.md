@@ -51,7 +51,7 @@ All UIDs and operation keys are UUIDs. Each body rejects unknown attributes.
 | Document detail | `GET /documents/{uid}` | Latest revision and its payload, source references, submission status, effective review and derived acceptance. |
 | Save a draft | `PATCH /documents/{uid}/draft`, `POST /documents/{uid}/revisions` | `operation_key`, `expected_revision`, replacement `payload`, replacement `raw_document_refs`. Every save appends a new revision. |
 | Submit | `POST /documents/{uid}/submit` | `operation_key`, `expected_revision`; complete canonical validation and at least one ready owned raw source are required. |
-| Reviews | `GET /documents/{uid}/reviews`, `POST /documents/{uid}/reviews` | Review body includes `operation_key`, `expected_revision`, `expected_decision_sequence` (initially zero), `decision`, `reason`. |
+| Reviews | `GET /documents/{uid}/reviews`, `POST /documents/{uid}/reviews` | Review body includes `operation_key`, `expected_revision`, `expected_decision_sequence` (initially zero), `decision`, and optional `comments`. The legacy `reason` input remains supported. |
 | Revisions | `GET /documents/{uid}/revisions` | Immutable historical submitted attributes and retained drafts. |
 | Exact retained revision | `GET /documents/{uid}/revisions/{revision}` | Exact historical attributes, status and raw sources, with that revision's effective review and logical document/person metadata. Returns 404 for unknown revisions and inaccessible cases; independent of history-list limits. |
 | Start an upload | `POST /source-documents/uploads` | `operation_key`, `person_uid`, `filename`, `media_type`, `byte_count`, `content_sha256`; returns `uid`, `chunk_bytes`. |
@@ -240,8 +240,12 @@ The response includes `document_type`, `score_kind: "classification_confidence"`
 `revision`, `automatic_acceptance_enabled`, `acceptance_threshold_percent`,
 `changed_by`, and `changed_at`. Percentages serialize as decimal strings. Revisions
 are independent per type: changing passports does not modify bank statements.
-No policy is created by reading; an unconfigured type returns revision zero,
-automatic acceptance disabled, and a null threshold. There is no global fallback.
+No policy is created by reading. A type without saved settings returns revision zero,
+automatic acceptance enabled, and an `80.00` threshold. Before the first trusted
+completion uses this default, the service publishes it as that type's first policy
+revision through the normal serialized, audited MetaTables workflow. Completion
+results retain that persisted policy, so later configuration changes cannot alter
+historical decisions. Saved per-type overrides take precedence over the default.
 To disable acceptance, publish a new revision with `automatic_acceptance_enabled: false`.
 Configuration affects future completion decisions; historical outcomes retain their
 original policy. Reuse the same operation key and body after an uncertain response;
@@ -276,6 +280,19 @@ The result includes `document_type`, `score_kind`, `decision`, `reason_code`,
 recorded score and threshold; historical revision reads retain their original result.
 New parsing results on a later revision require a separate operation. A recorded
 incomplete result is not silently re-scored after a threshold change.
+
+To explicitly apply today's policy to existing evidence, an organization administrator
+can call `POST /admin/documents/{uid}/reapply-parsing-policy` with `operation_key`
+and `expected_revision`. The service reads the retained classification score itself;
+the request cannot supply a replacement score. For an unreviewed revision scored under
+an older policy, it appends a revision with identical facts, sources and extraction
+observations, then runs the normal acceptance checks against the current policy.
+Original revisions and decisions remain unchanged. Human decisions and other reviewed
+revisions are preserved; missing scores and already-current policy results are skipped.
+The response records the outcome and any new parsing result. Reuse the original
+operation key and body to recover an interrupted recheck. This operation does not
+change case requirements or run case evaluations; rerun the affected case checks
+through the existing evaluations endpoint afterwards.
 
 Provider adapters convert 0–1 probabilities to percentages exactly once using
 `services.parsing_confidence.confidence_percent`, rounding downward to 0.01% rather
@@ -379,3 +396,38 @@ hosted or unexpected sources and uses only synthetic subjects.
 Automatic document intake and allocation endpoints, strict commands, pagination and
 recovery are documented in [Document allocation](document-allocation.md). The static
 site Drop files screen uses these shared services for multiple independent files.
+
+### Administrator document-set creation
+
+`POST /admin/document-sets` accepts an idempotent `operation_key`, a complete
+`definition` (`DocumentSet`), and nonempty distinct `case_type_keys` naming existing
+business case types. Only verified organization administrators may call it.
+A new key must match `[a-z][a-z0-9_]{0,119}` and start at version 1. Existing keys
+return 409; published definitions and cases are never replaced. Canonical document
+field/schema references and comparison/date contracts are validated before writes.
+The shared durable mutation journal publishes the immutable definition, its exact
+case-type associations and an admin audit event. Identical retries resume the same
+intent after an uncertain response. The published definition is the response and
+is readable through the normal document-set endpoints. This is a human admin API;
+it is not added to the helper's MCP mutation allowlist.
+
+### Evidence completeness before human decisions
+
+The evaluator checks additional required fields, canonical attributes on unaccepted
+revisions, reporting periods, submission, dates and reference information before
+assigning a pending-review finding. A requirement with too few distinct complete
+documents remains missing even when some documents await review. Comparisons
+check their fields, units, context and source citations before waiting for document
+acceptance; an absent current comparison result needs checks to run, not a human
+acceptance decision.
+
+Document reads include `review_requirement` for unaccepted revisions: a status,
+reason code, explanation, suggested next action and, when applicable, field paths.
+Findings and their document references retain the precise acceptance blocker,
+including recorded confidence and threshold. These explanations use the parsing
+result for that exact revision, never the administrator's current settings.
+Missing source citations or extraction reader results are incomplete evidence;
+reader disagreements and below-threshold complete evidence need a human decision.
+Evaluator versions 4 (requirements) and 5 (with comparisons) distinguish these
+semantics. Older evaluations and their findings remain unchanged and become stale
+against the current evaluator until a new evaluation is explicitly requested.

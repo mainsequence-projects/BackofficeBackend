@@ -64,7 +64,7 @@ def test_parser_completes_without_ancillary_fields(flow, document_fixture, kind)
     assert response.status_code == 202
     result = worker(current, bucket, parser, store).run(response.json()["uid"])
     assert result["status"] == "completed", result
-    assert result["completion"]["reason_code"] == "parsing_policy_missing"
+    assert result["completion"]["reason_code"] == "parsing_score_below_threshold"
     document = client.get(f"/documents/{result['document']['uid']}").json()
     assert document["status"] == "submitted"
     assert document["schema_version"] == LATEST_DOCUMENT_VERSIONS[kind]

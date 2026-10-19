@@ -6,6 +6,7 @@ from pathlib import Path
 from ms_tau_sdk import current_requester
 from tau_coding.extensions.api import ToolCallHookResult, ToolResultHookResult
 
+from src.backoffice_agent.local_mcp import LocalMCP
 from src.backoffice_agent.policy import APPLICATION, call_denial, load_contract, validate_catalog
 
 
@@ -13,13 +14,37 @@ def setup(tau):
     contract = load_contract()
     project_root = Path(__file__).resolve().parents[3]
     verified = False
+    local = LocalMCP.from_environment()
+    if local is not None:
+        for tool in local.tools():
+            tau.register_tool(tool)
+
+    async def local_before_call(event):
+        nonlocal verified
+        try:
+            await local.verify()
+        except Exception:
+            verified = False
+            return ToolCallHookResult(
+                block=True,
+                reason="The authenticated local developer, API identity or pinned SQLite source could not be verified.",
+            )
+        return decision(event, requester_present=True)
 
     def before_call(event, context):
+        if local is not None and event.tool_name in {
+            f"{APPLICATION}__list_tools",
+            f"{APPLICATION}__call_tool",
+        }:
+            return local_before_call(event)
+        return decision(event, requester_present=current_requester() is not None)
+
+    def decision(event, *, requester_present):
         nonlocal verified
         denial = call_denial(
             event.tool_name,
             event.arguments,
-            requester_present=current_requester() is not None,
+            requester_present=requester_present,
             catalog_verified=verified,
             project_root=project_root,
         )

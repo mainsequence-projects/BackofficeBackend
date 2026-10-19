@@ -18,14 +18,14 @@ def test_publish_adds_new_policy_versions_and_preserves_published_rows(monkeypat
         policy
         for policy in catalog
         if (policy.key, policy.version)
-        not in {("new_account_requirements", 5), ("loan_requirements", 4)}
+        not in {("new_account_requirements", 6), ("loan_requirements", 5)}
     )
     with monkeypatch.context() as patch:
         patch.setattr(application, "document_set_catalog", lambda: historical)
         store = SQLStorage()
     try:
         existing = store.rows(SETS)
-        assert len(existing) == 7
+        assert len(existing) == 9
         for path in SNAPSHOTS.glob("*.json"):
             expected = json.loads(path.read_text())
             assert (
@@ -33,7 +33,7 @@ def test_publish_adds_new_policy_versions_and_preserves_published_rows(monkeypat
                 == expected
             )
         publish_catalog(store)
-        assert store.count(SETS) == store.count(BINDINGS) == 9
+        assert store.count(SETS) == store.count(BINDINGS) == 11
         for row in existing:
             assert store.one(SETS, set_key=row["set_key"], version=row["version"]) == row
         for policy in catalog:

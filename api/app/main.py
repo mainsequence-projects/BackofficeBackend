@@ -59,6 +59,7 @@ from src.backoffice.services.contracts import (
     CreateDocument,
     CreatePerson,
     Evaluate,
+    ReapplyParsingPolicy,
     ReviewDocument,
     SaveDraft,
     SetMyCaseMembership,
@@ -68,6 +69,7 @@ from src.backoffice.services.contracts import (
     UpdatePerson,
     UploadChunk,
 )
+from src.backoffice.services.document_sets import CreateDocumentSet
 from src.backoffice.services.queries import (
     AssignmentDetail,
     AssignmentStatus,
@@ -229,6 +231,15 @@ def complete_parsing(uid: UUID, command: CompleteParsing, service: Application =
     return service.complete_parsing(uid, command)
 
 
+@router.post("/admin/documents/{uid}/reapply-parsing-policy")
+def reapply_parsing_policy(
+    uid: UUID, command: ReapplyParsingPolicy, service: Application = Service
+):
+    from src.backoffice.services.parsing import reapply_policy
+
+    return reapply_policy(service, uid, command)
+
+
 @router.post("/admin/persons/{uid}/happy-case-requirements")
 def upgrade_happy_case_requirements(uid: UUID, command: Command, service: Application = Service):
     from src.backoffice.services.requirements_upgrade import upgrade
@@ -292,6 +303,13 @@ def document_sets(
     service: Application = Service,
 ):
     return service.list_document_sets(search, limit, offset)
+
+
+@router.post("/admin/document-sets", status_code=201, response_model=DocumentSet)
+def create_document_set(command: CreateDocumentSet, service: Application = Service):
+    from src.backoffice.services.document_sets import create
+
+    return create(service, command)
 
 
 @router.get("/document-sets/{key}/versions/{version}", response_model=DocumentSet)

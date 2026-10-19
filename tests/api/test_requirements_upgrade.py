@@ -1,13 +1,13 @@
 """Existing evidence adopts relaxed contracts without losing reviews or history."""
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
+from src.backoffice.schemas.scope import document_facts
 from src.backoffice.services.application import DR, RV
 from src.backoffice.services.casework import lane
 from src.backoffice.services.contracts import CreateDocument
-from src.backoffice.services.source_references import bind_portrait_source
 from tests.api.test_workflows import business as business
 from tests.api.test_workflows import command, document, make_person, post, source
 
@@ -48,7 +48,7 @@ def test_upgrade_preserves_evidence_reviews_and_history(business, document_fixtu
     result = upgrade(client, person, body)
     assert upgrade(client, person, body) == result
     latest = client.get(f"/documents/{uid}").json()
-    assert latest["schema_version"] == 2
+    assert latest["schema_version"] == 3
     assert latest["revision"] == 2
     assert latest["payload"] == original["payload"]
     assert latest["raw_document_refs"] == original["raw_document_refs"]
@@ -57,7 +57,7 @@ def test_upgrade_preserves_evidence_reviews_and_history(business, document_fixtu
     assert latest["latest_review"]["reviewed_by"] == original_review["reviewed_by"]
     assert original_review["uid"] in latest["latest_review"]["reason"]
     assert store.one(DR, document_uid=uid, revision=1) == original
-    assert client.get(f"/cases/{case['uid']}").json()["document_set_version"] == 4
+    assert client.get(f"/cases/{case['uid']}").json()["document_set_version"] == 5
     again = upgrade(client, person)
     assert again["documents"] == again["cases"] == []
 
@@ -104,7 +104,7 @@ def test_upgrade_rechecks_trusted_score_under_relaxed_contract(business):
     assert upgrade(client, person, body) == result
     latest = client.get(f"/documents/{uid}").json()
     assert latest["payload"] == payload
-    assert latest["schema_version"] == 2
+    assert latest["schema_version"] == 3
     assert latest["accepted"] is True
     assert latest["parsing_result"]["reason_code"] == "parsing_score_meets_threshold"
     assert "issue_date" not in latest["payload"]
@@ -125,7 +125,7 @@ def test_upgrade_is_admin_only_and_does_not_accept_manual_drafts(business):
     )["uid"]
     upgrade(client, person)
     latest = client.get(f"/documents/{uid}").json()
-    assert latest["schema_version"] == 2
+    assert latest["schema_version"] == 3
     assert latest["status"] == "draft"
     assert latest["accepted"] is False
 
@@ -199,15 +199,14 @@ def test_multiple_accepted_documents_keep_distinct_review_and_parsing_keys(
 
 
 @pytest.mark.parametrize("schema_version", [1, 2])
-def test_upgrade_binds_missing_portrait_reference_to_its_attached_source(
+def test_upgrade_omits_legacy_portrait_without_rewriting_its_original_revision(
     business, document_fixture, schema_version
 ):
-    client, current, _ = business
+    client, current, store = business
     current[0].organization_admin = True
     person = make_person(client)
     raw = source(client, person)
     payload = document_fixture("national_identity_card")
-    payload["portrait_reference"] = {"raw_document_uid": None, "page_number": 1}
     uid = post(
         client,
         f"/persons/{person}/documents",
@@ -216,6 +215,14 @@ def test_upgrade_binds_missing_portrait_reference_to_its_attached_source(
         payload=payload,
         raw_document_refs=[{"raw_document_uid": raw}],
     )["uid"]
+    # A retained old revision can contain an incomplete portrait object. New
+    # writes no longer collect that field, so emulate the historical row here.
+    payload["portrait_reference"] = {"raw_document_uid": None, "page_number": 1}
+    from sqlalchemy import update
+
+    store.execute(
+        update(DR).where(DR.c.document_uid == UUID(uid)).values(payload=payload), operation="update"
+    )
     post(
         client,
         f"/documents/{uid}/parsing-results",
@@ -225,13 +232,14 @@ def test_upgrade_binds_missing_portrait_reference_to_its_attached_source(
     )
     upgrade(client, person)
     latest = client.get(f"/documents/{uid}").json()
-    assert latest["payload"]["portrait_reference"] == {"raw_document_uid": raw, "page_number": 1}
+    assert "portrait_reference" not in latest["payload"]
+    assert latest["schema_version"] == 3
     assert latest["status"] == "submitted"
-    assert latest["accepted"] is False  # No auto-acceptance policy was configured.
+    assert latest["accepted"] is True  # The default 80% policy applies to the saved 99% score.
     assert client.get(f"/documents/{uid}/revisions/1").json()["payload"] == payload
 
 
-def test_processing_binds_source_but_never_guesses_between_attachments(business):
+def test_processing_omits_portraits_without_inventing_source_metadata(business):
     client, current, _ = business
     current[0].organization_admin = True
     person = make_person(client)
@@ -242,21 +250,16 @@ def test_processing_binds_source_but_never_guesses_between_attachments(business)
         CreateDocument(
             operation_key=uuid4(),
             document_type="national_identity_card",
-            schema_version=2,
+            schema_version=3,
             payload=payload,
             raw_document_refs=[{"raw_document_uid": raw}],
         ),
         processing=True,
     )
-    assert (
-        current[0].document(result["uid"])["payload"]["portrait_reference"]["raw_document_uid"]
-        == raw
-    )
-    assert (
-        bind_portrait_source(
-            payload, [{"raw_document_uid": raw}, {"raw_document_uid": str(uuid4())}]
-        )
-        == payload
-    )
+    assert "portrait_reference" not in current[0].document(result["uid"])["payload"]
+    assert current[0].document(result["uid"])["raw_document_refs"] == [
+        {"raw_document_uid": raw, "first_page": None, "last_page": None}
+    ]
+    assert document_facts(payload) == {}
     explicit = {"portrait_reference": {"raw_document_uid": str(uuid4()), "page_number": 1}}
-    assert bind_portrait_source(explicit, [{"raw_document_uid": raw}]) == explicit
+    assert document_facts(explicit) == {}

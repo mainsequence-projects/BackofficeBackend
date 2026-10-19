@@ -89,17 +89,23 @@ One policy row is one immutable revision for one canonical `document_type`:
 | `automatic_acceptance_enabled` | Whether this type can be accepted automatically |
 | `threshold_basis_points` | Inclusive cutoff from 0 to 10000; null only when disabled |
 | `operation_key` | Unique idempotency key for publication |
-| `changed_by`, `created_at` | Verified organization administrator and UTC publication time |
+| `changed_by`, `created_at` | Verified publishing actor and UTC publication time; an administrator for overrides or a trusted processor for default initialization |
 
 The latest revision **for the exact type** is current. Publishing requires the expected
 current revision (`0` for an unconfigured type), appends history, and never overwrites
 an earlier version. Disabling also publishes a revision. No type inherits another
-type's threshold, and there is no implicit global default. Existing historical global
-rows remain readable for provenance but cannot authorize new automatic acceptance.
+type's override. Existing historical global rows remain readable for provenance
+but cannot authorize new automatic acceptance.
 
-A missing or disabled policy yields `needs_review`. A configured zero threshold is
-valid but still requires an actual score and all validation gates. Store thresholds
-in MetaTables, not environment variables, prompts, or worker constants. Read current
+Product default updated on 2026-10-19: every type starts with automatic acceptance
+On at 80%. The service persists that default as the first per-type MetaTables policy
+before using it, under the same settings lock and durable journal as admin updates.
+The initializer records the verified processing actor; explicit admin overrides
+retain their verified administrator attribution. Saved settings always take precedence.
+Disabled policies, missing scores and failed validation still yield `needs_review`.
+A configured zero threshold is valid but still requires an actual score and all
+validation gates. Effective policies and the default used for each decision are
+stored in MetaTables, not environment variables or prompts. Read current
 configuration for each new completion; do not cache it for the process lifetime.
 
 ### Authorization and API

@@ -1,0 +1,296 @@
+{
+  "document_type": "passport",
+  "version": 2,
+  "canonical_schema": {
+    "additionalProperties": false,
+    "description": "Passport facts without portrait collection or biometric requirements.",
+    "properties": {
+      "document_type": {
+        "const": "passport",
+        "default": "passport",
+        "description": "Identifies this payload as passport.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "description": "Holder's complete name exactly as printed in the visual inspection zone.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Full name",
+        "type": "string"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order, if separately identified.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed surname or family name, if separately identified.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "format": "date",
+        "title": "Date of birth",
+        "type": "string"
+      },
+      "passport_number": {
+        "description": "Passport identifier exactly as printed, preserving letters and leading zeros.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Passport number",
+        "type": "string"
+      },
+      "nationality": {
+        "description": "Nationality exactly as stated by the passport; retain the original value.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Nationality",
+        "type": "string"
+      },
+      "issuing_country": {
+        "description": "Country or issuing authority identified on the passport.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Issuing country",
+        "type": "string"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the passport was issued, if printed.",
+        "title": "Issue date"
+      },
+      "expiration_date": {
+        "description": "Printed passport expiry date, entered as YYYY-MM-DD.",
+        "format": "date",
+        "title": "Expiration date",
+        "type": "string"
+      },
+      "mrz_lines": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "MRZ lines in printed order, preserving every character including `<` fillers.",
+        "title": "Mrz lines"
+      }
+    },
+    "required": [
+      "full_name",
+      "date_of_birth",
+      "passport_number",
+      "nationality",
+      "issuing_country",
+      "expiration_date"
+    ],
+    "title": "PassportV2",
+    "type": "object"
+  },
+  "draft_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "passport",
+        "default": "passport",
+        "description": "Identifies this payload as passport.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's complete name exactly as printed in the visual inspection zone.",
+        "title": "Full name"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order, if separately identified.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed surname or family name, if separately identified.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "title": "Date of birth"
+      },
+      "passport_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Passport identifier exactly as printed, preserving letters and leading zeros.",
+        "title": "Passport number"
+      },
+      "nationality": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Nationality exactly as stated by the passport; retain the original value.",
+        "title": "Nationality"
+      },
+      "issuing_country": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Country or issuing authority identified on the passport.",
+        "title": "Issuing country"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the passport was issued, if printed.",
+        "title": "Issue date"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed passport expiry date, entered as YYYY-MM-DD.",
+        "title": "Expiration date"
+      },
+      "mrz_lines": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "MRZ lines in printed order, preserving every character including `<` fillers.",
+        "title": "Mrz lines"
+      }
+    },
+    "title": "PassportV2Draft",
+    "type": "object"
+  },
+  "content_sha256": "59262a4c3d0364c2ff79a0b47a84d2aa1feb49c0a534206f30a1e29683811329"
+}

@@ -74,6 +74,8 @@ class LocalProcessing:
             order=RUN.c.created_at.asc(),
         )
         for row in rows:
+            if row["input_snapshot"].get("parent_allocation_uid"):
+                continue  # The parent's fenced worker resumes its inline extraction.
             self.dispatch(row["uid"])
 
     async def supervise(self):

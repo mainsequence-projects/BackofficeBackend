@@ -276,6 +276,35 @@ def validate_reader_strategy(response, snapshot):
             raise ProcessingError("parser_reader_strategy_mismatch")
 
 
+def requires_document_grouping(pages):
+    """Boundary observations take precedence over inconsistent free-text labels.
+
+    Hints are observations such as an issuer or account identifier, not stable
+    document IDs. Only explicit continuation with consistent printed pagination
+    lets differing hints remain in a single document. Real starts and unresolved
+    or contradictory observations still require grouping.
+    """
+    ordered = sorted(pages, key=lambda page: page.page)
+    if sum(page.boundary == "starts_document" for page in ordered) > 1:
+        return True
+    if len({page.group_hint for page in ordered if page.group_hint}) <= 1:
+        return False
+    if not all(page.boundary == "continues_document" for page in ordered[1:]):
+        return True
+    counts = {page.printed_page_count for page in ordered if page.printed_page_count}
+    numbers = [
+        (index, page.printed_page_number)
+        for index, page in enumerate(ordered)
+        if page.printed_page_number is not None
+    ]
+    return len(counts) > 1 or any(
+        right_number - left_number != right_index - left_index
+        for (left_index, left_number), (right_index, right_number) in zip(
+            numbers, numbers[1:], strict=False
+        )
+    )
+
+
 class Worker:
     def __init__(self, app, *, parser=None, bucket=None, clock=None):
         if not (app.parsing_processor or app.organization_admin):
@@ -349,8 +378,27 @@ class Worker:
                     document_types=[
                         Candidate(
                             document_type=k,
-                            description=v["canonical_schema"].get("description")
-                            or v["canonical_schema"]["title"],
+                            description=" ".join(
+                                part
+                                for part in (
+                                    v["canonical_schema"].get("title"),
+                                    v["canonical_schema"]
+                                    .get("properties", {})
+                                    .get("document_type", {})
+                                    .get("description"),
+                                    v["canonical_schema"].get("description"),
+                                )
+                                if part
+                            )
+                            + (
+                                " Includes tax-authority administrative confirmations of no tax "
+                                "arrears or outstanding tax debt, not only documents titled "
+                                "certificate. Determine this type by its stated purpose, regardless "
+                                "of language, layout or age. A tax clearance confirmation is not "
+                                "a tax return or evidence of the origin of funds."
+                                if k == "tax_clearance_certificate"
+                                else ""
+                            ),
                         )
                         for k, v in schemas.items()
                     ],
@@ -369,10 +417,7 @@ class Worker:
             row = self.save(row, result)
         # Checkpoint recovery revalidates retained responses before using their observations.
         retained_classification = classify_response.model_validate(result["classification"])
-        if version == 2 and (
-            sum(p.boundary == "starts_document" for p in retained_classification.pages) > 1
-            or len({p.group_hint for p in retained_classification.pages if p.group_hint}) > 1
-        ):
+        if version == 2 and requires_document_grouping(retained_classification.pages):
             result["error_code"] = "multiple_documents_require_grouping"
             return self.save(row, result, "needs_input"), result
         classification = result["classification_summary"]

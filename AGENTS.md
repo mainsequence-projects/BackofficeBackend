@@ -26,6 +26,9 @@ intakes or sources to all eligible cases with user resolution of uncertain subje
 Original bytes enter through the Drop files screen/API; direct chat uploads, manual
 document edits/reviews, arbitrary staff assignment and case approval/closure remain
 outside this agent release. The SDK retains ownership of session and task controls.
+Explicit local developer mode may connect only to the pinned loopback SQLite API
+under the verified saved developer login, matched against the API identity on each
+call. It must never fabricate a delegated requester or enable hosted fallback.
 
 Validate agent changes with `python -m scripts.check_agent_contract` and
 `pytest tests/agent tests/api/test_mcp_queries.py -q` in the locked environment.

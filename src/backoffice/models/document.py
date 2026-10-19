@@ -3,10 +3,22 @@
 from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import AwareDatetime, Field, computed_field, model_validator
+from pydantic import (
+    AwareDatetime,
+    Field,
+    ValidationInfo,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
-from ..schemas.registry import DocumentPayload, LatestDocumentPayload, get_document_model
-from .common import ContractModel, NonEmptyStr
+from ..schemas.registry import (
+    DocumentPayload,
+    LatestDocumentPayload,
+    PreviousDocumentPayload,
+    get_document_model,
+)
+from .common import ContractModel
 
 
 class RawDocumentRef(ContractModel):
@@ -58,8 +70,10 @@ class DocumentReview(ContractModel):
         title="Review time",
         description="Timezone-aware instant when the review decision was recorded.",
     )
-    reason: NonEmptyStr = Field(
-        title="Review reason", description="Reviewer's explanation of the acceptance or rejection."
+    reason: str = Field(
+        default="",
+        title="Review comments",
+        description="Optional reviewer comments recorded with the acceptance or rejection; blank when no comment was supplied.",
     )
 
 
@@ -87,12 +101,12 @@ class DocumentInstance(ContractModel):
         title="Revision submitted at",
         description="Server-recorded instant when this completed revision became immutable.",
     )
-    schema_version: Literal[1, 2] = Field(
+    schema_version: Literal[1, 2, 3] = Field(
         default=1,
         title="Schema version",
         description="Exact document contract version used by this revision.",
     )
-    data: DocumentPayload | LatestDocumentPayload = Field(
+    data: DocumentPayload | PreviousDocumentPayload | LatestDocumentPayload = Field(
         title="Document attributes",
         description="Completed typed document attributes selected by document_type.",
     )
@@ -106,6 +120,18 @@ class DocumentInstance(ContractModel):
         title="Latest review",
         description="Effective review for this exact revision; null means pending review.",
     )
+
+    @field_validator("data", mode="wrap")
+    @classmethod
+    def exact_document_contract(cls, value, handler, info: ValidationInfo):
+        # Dispatch by the recorded version before any union branch can run an
+        # older base-class validator against a newer, relaxed model instance.
+        if hasattr(value, "model_dump"):
+            value = value.model_dump(mode="json", exclude_unset=True)
+        if not isinstance(value, dict) or not value.get("document_type"):
+            raise ValueError("document_type is required in document attributes")
+        model = get_document_model(value["document_type"], info.data.get("schema_version", 1))
+        return model.model_validate(value)
 
     @model_validator(mode="after")
     def review_targets_this_revision(self) -> Self:
