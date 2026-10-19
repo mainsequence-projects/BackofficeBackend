@@ -1,4 +1,34 @@
 {
-  "version": "0.0.1",
-  "configurations": []
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Back Office: local stack",
+      "type": "debugpy",
+      "request": "launch",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "debugLauncherPython": "${workspaceFolder}/.venv/bin/python",
+      "program": "${workspaceFolder}/${config:backoffice.frontendPath}/scripts/dev_stack.py",
+      "args": [
+        "--backend-dir", "${workspaceFolder}",
+        "--api-port", "28641",
+        "--site-port", "5174",
+        "--metatables-port", "18473",
+        "--agent-port", "28643",
+        "--sdk-session-source", "vscode",
+        "--restart-unhealthy-metatables"
+      ],
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "internalConsole",
+      "internalConsoleOptions": "openOnSessionStart",
+      "redirectOutput": true,
+      "subProcess": false,
+      "justMyCode": true,
+      "serverReadyAction": {
+        "pattern": "Back Office ready: (http://127\\.0\\.0\\.1:[0-9]+/)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    }
+  ]
 }

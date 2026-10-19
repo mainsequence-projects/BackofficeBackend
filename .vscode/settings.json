@@ -1,4 +1,5 @@
 {
+  "backoffice.frontendPath": "../backofficefrontend-d7b07f7a-feed-469a-90f6-b2ae8402950a",
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.envFile": "${workspaceFolder}/.env",
   "python.analysis.extraPaths": [
