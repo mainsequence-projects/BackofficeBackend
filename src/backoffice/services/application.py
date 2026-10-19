@@ -577,13 +577,18 @@ class Application:
                 fail(422, "source_must_be_ready_and_owned_by_person")
         return refs
 
-    def document(self, uid, *, reading=True):
+    def document(self, uid, *, reading=True, revision_number=None):
         row = self.required(D, uid=uid)
         self.case(row["person_uid"], reading=reading)
-        revisions = self.db.rows(
-            DR, DR.c.document_uid == UUID(str(uid)), limit=1, order=DR.c.revision.desc()
-        )
-        revision = revisions[0] if revisions else None
+        if revision_number is None:
+            revisions = self.db.rows(
+                DR, DR.c.document_uid == UUID(str(uid)), limit=1, order=DR.c.revision.desc()
+            )
+            revision = revisions[0] if revisions else None
+        else:
+            if not 1 <= revision_number <= 2**31 - 1:
+                fail(404, "record_not_found")
+            revision = self.required(DR, document_uid=uid, revision=revision_number)
         reviews = (
             self.db.rows(
                 RV,

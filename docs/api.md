@@ -48,6 +48,7 @@ All UIDs and operation keys are UUIDs. Each body rejects unknown attributes.
 | Submit | `POST /documents/{uid}/submit` | `operation_key`, `expected_revision`; complete canonical validation and at least one ready owned raw source are required. |
 | Reviews | `GET /documents/{uid}/reviews`, `POST /documents/{uid}/reviews` | Review body includes `operation_key`, `expected_revision`, `expected_decision_sequence` (initially zero), `decision`, `reason`. |
 | Revisions | `GET /documents/{uid}/revisions` | Immutable historical submitted attributes and retained drafts. |
+| Exact retained revision | `GET /documents/{uid}/revisions/{revision}` | Exact historical attributes, status and raw sources, with that revision's effective review and logical document/person metadata. Returns 404 for unknown revisions and inaccessible cases; independent of history-list limits. |
 | Start an upload | `POST /source-documents/uploads` | `operation_key`, `person_uid`, `filename`, `media_type`, `byte_count`, `content_sha256`; returns `uid`, `chunk_bytes`. |
 | Write a chunk | `PUT /source-documents/uploads/{uid}/chunks/{index}` | `content_base64`; identical retries succeed, differing replacements fail. |
 | Resume an upload | `GET /source-documents/{uid}` | Manifest and `received_chunks` so the client sends only missing indices. |
@@ -76,6 +77,12 @@ submitted revision pointer. A review must target the current submitted revision.
 No client can set `accepted` or supply its own reviewer identity. Creating a new
 draft shows pending acceptance and makes earlier evaluations stale; the earlier
 submitted revision and its decisions remain in history.
+
+Findings can open `/documents/{uid}/revisions/{revision}` to inspect their retained
+attributes and sources. This read-only route retrieves the exact revision directly
+and its highest review sequence, even when newer history exceeds the paginated
+revision or review lists. It never substitutes the latest revision. Document-level
+metadata, including `person_uid` and the current submitted pointer, remains present.
 
 Profile, assignment, document and review updates carry the version observed by
 the editor. Stale versions return 409. Review decisions also compare their latest
@@ -155,7 +162,7 @@ and an appropriate human/Team owner. Existing namespaces need an editor grant fo
 the migration Job. Reviewer configuration is separate. No hosted migration is run
 from a developer process.
 
-Validation includes 76 offline backend tests, physical migration up/down/repeat
+Validation includes 79 offline backend tests, physical migration up/down/repeat
 checks, lost-response recovery, ownership/reviewer denial, stale versions, uploads
 and HTTP business workflows. `scripts/verify_local_api.py` additionally passed
 against the actual installed MetaTables 0.1.48 API using isolated local SQLite:

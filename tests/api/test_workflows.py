@@ -502,3 +502,131 @@ def test_late_worker_cannot_rewind_a_newer_submission(business, document_fixture
     assert (
         client.post(f"/documents/{doc['uid']}/submit", json=first_command).json()["revision"] == 1
     )
+
+
+def test_exact_revision_keeps_accepted_attributes_and_sources_after_a_new_draft(
+    business, document_fixture
+):
+    client, current, _ = business
+    current[0].reviewer = True
+    person = make_person(client)
+    payload = document_fixture("passport")
+    uid = document(client, person, "passport", payload)
+    review = post(
+        client,
+        f"/documents/{uid}/reviews",
+        expected_revision=1,
+        expected_decision_sequence=0,
+        decision="accepted",
+        reason="Verified retained revision",
+    )
+    original = client.get(f"/documents/{uid}").json()
+    replacement_source = source(client, person, b"Corrected source for a later draft")
+    response = client.patch(
+        f"/documents/{uid}/draft",
+        json=command(
+            expected_revision=1,
+            payload={**payload, "passport_number": "CORRECTED-002"},
+            raw_document_refs=[{"raw_document_uid": replacement_source}],
+        ),
+    )
+    assert response.status_code == 200, response.text
+    retained = client.get(f"/documents/{uid}/revisions/1")
+    assert retained.status_code == 200, retained.text
+    retained = retained.json()
+    assert retained["uid"] == uid
+    assert retained["person_uid"] == person
+    assert retained["document_type"] == "passport"
+    assert retained["schema_version"] == 1
+    assert retained["revision"] == 1 and retained["status"] == "submitted"
+    assert retained["payload"] == original["payload"]
+    assert retained["raw_document_refs"] == original["raw_document_refs"]
+    assert retained["accepted"] is True and retained["review_status"] == "accepted"
+    assert retained["latest_review"]["uid"] == review["uid"]
+    latest = client.get(f"/documents/{uid}").json()
+    assert latest["revision"] == 2 and latest["accepted"] is False
+    assert latest["payload"]["passport_number"] == "CORRECTED-002"
+    exact_draft = client.get(f"/documents/{uid}/revisions/2").json()
+    assert exact_draft["status"] == "draft" and exact_draft["latest_review"] is None
+
+
+def test_exact_revision_is_not_limited_by_revision_or_review_list_pages(business, document_fixture):
+    from src.backoffice.services.application import DR, RV, D
+
+    client, current, store = business
+    current[0].reviewer = True
+    person = make_person(client)
+    uid = document(client, person, "passport", document_fixture("passport"))
+    # Two decisions on the retained revision verify the effective sequence.
+    post(
+        client,
+        f"/documents/{uid}/reviews",
+        expected_revision=1,
+        expected_decision_sequence=0,
+        decision="rejected",
+        reason="Initial decision",
+    )
+    effective = post(
+        client,
+        f"/documents/{uid}/reviews",
+        expected_revision=1,
+        expected_decision_sequence=1,
+        decision="accepted",
+        reason="Corrected review decision",
+    )
+    original = store.one(DR, document_uid=uid, revision=1)
+    now = datetime.now(UTC)
+    # Keep the API scenario small, then seed valid retained history beyond both
+    # collection limits using the same real table constraints as normal writes.
+    for number in range(2, 62):
+        at = (now + timedelta(seconds=number)).isoformat()
+        store.ensure(
+            DR,
+            {
+                **original,
+                "uid": str(uuid4()),
+                "revision": number,
+                "created_at": at,
+                "submitted_at": at,
+            },
+        )
+        for sequence in (1, 2):
+            store.ensure(
+                RV,
+                {
+                    "uid": str(uuid4()),
+                    "document_uid": uid,
+                    "revision": number,
+                    "decision_sequence": sequence,
+                    "decision": "rejected",
+                    "reviewed_by": current[0].actor,
+                    "reviewed_at": at,
+                    "reason": "Later revision history fixture",
+                    "operation_key": str(uuid4()),
+                },
+            )
+    store.change(D, {"uid": uid}, {"current_revision": 61})
+    assert all(
+        row["revision"] != 1 for row in client.get(f"/documents/{uid}/revisions").json()["items"]
+    )
+    assert all(
+        row["revision"] != 1 for row in client.get(f"/documents/{uid}/reviews").json()["items"]
+    )
+    retained = client.get(f"/documents/{uid}/revisions/1")
+    assert retained.status_code == 200, retained.text
+    assert retained.json()["accepted"] is True
+    assert retained.json()["latest_review"]["uid"] == effective["uid"]
+    assert retained.json()["latest_review"]["decision_sequence"] == 2
+    assert retained.json()["current_revision"] == 61
+
+
+def test_exact_revision_denies_foreign_cases_and_unknown_revisions(business, document_fixture):
+    client, current, store = business
+    person = make_person(client)
+    uid = document(client, person, "passport", document_fixture("passport"))
+    for number in (0, -1, 99, 2**63):
+        assert client.get(f"/documents/{uid}/revisions/{number}").status_code == 404
+    assert client.get(f"/documents/{uuid4()}/revisions/1").status_code == 404
+    current[0] = Application(uuid4(), store=store)
+    assert client.get(f"/documents/{uid}/revisions/1").status_code == 404
+    assert client.get(f"/documents/{uid}/revisions/99").status_code == 404

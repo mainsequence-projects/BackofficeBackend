@@ -282,6 +282,11 @@ def revisions(
     }
 
 
+@app.get("/documents/{uid}/revisions/{revision}")
+def document_revision(uid: UUID, revision: int, service: Application = Service):
+    return service.document(uid, revision_number=revision)
+
+
 @app.patch("/documents/{uid}/draft")
 @app.post("/documents/{uid}/revisions", status_code=201)
 def save_draft(uid: UUID, command: SaveDraft, service: Application = Service):

@@ -126,7 +126,7 @@ MetaTables `0.1.49` imports `ShareableObjectMixin`, absent from SDK `9.0.30`;
 dependency resolution alone does not establish import compatibility. Upgrade the
 pair together and rerun tests before changing these pins.
 
-The current implementation passes 76 backend tests. Real local API verification
+The current implementation passes 79 backend tests. Real local API verification
 also passes with MetaTables 0.1.48, including source uploads, exact-revision
 acceptance, completed reconciliation and subsequent stale detection. See the
 [API verification record](api.md#setup-deployment-and-verification) for scope.
