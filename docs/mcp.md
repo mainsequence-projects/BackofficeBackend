@@ -107,12 +107,13 @@ existing SDK login:
 .venv/bin/python -m scripts.verify_mcp_queries
 ```
 
-The verifier requires a ready local SQLite runtime, published catalog and an accessible
-assignment among the first ten people. It makes no fixture writes, checks all ten tools
-against REST, and rechecks the runtime DataSource afterward. Pass `--seed` to create one clearly
-labeled local person and assignment when no accessible fixture exists; these two
-setup commands are retained for inspection, while the MCP queries remain read-only. It uses in-process HTTP
-for the business API and the running local MetaTables service for actual storage.
+The verifier requires a ready local SQLite runtime and published catalog. It reads
+existing records only and rechecks the runtime DataSource afterward. It reports the
+number of tools checked and whether an existing assignment was available among the
+first ten people; an empty dataset never triggers record creation. There is no seed
+option. It uses in-process HTTP for the business API and the running local MetaTables
+service for actual storage. Tests that need synthetic people use disposable test
+storage; never add dummy people to a working local or hosted dataset.
 
 See [ADR 0001](adr/0001-back-office-helper-mcp-and-document-processing.md) for the full
 planned catalog and later upload/classification/extraction work.

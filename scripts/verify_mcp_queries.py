@@ -3,7 +3,6 @@
 import argparse
 import json
 import os
-from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from mainsequence.client.utils import get_authorization_headers
@@ -15,12 +14,7 @@ from scripts.local_api import require_local_runtime
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--seed",
-        action="store_true",
-        help="Create one labeled local person and assignment for this verification; retained for inspection.",
-    )
-    args = parser.parse_args()
+    parser.parse_args()
     if os.environ.get("APP_NAME"):
         raise RuntimeError("This verifier is for local development only")
     configure_developer_session()
@@ -33,6 +27,7 @@ def main():
         "Accept": "application/json, text/event-stream",
     }
     with TestClient(create_app(), headers=headers) as client:
+        checked_tools = set()
 
         def query(name, arguments, path):
             response = client.post(
@@ -56,6 +51,7 @@ def main():
             expected.pop("assessed_at", None)
             if actual != expected:
                 raise AssertionError(f"{name} differs from REST")
+            checked_tools.add(name)
             return actual
 
         query("get_current_user", {}, "/me")
@@ -69,30 +65,6 @@ def main():
             {"key": policy["key"], "version": policy["version"]},
             f"/document-sets/{policy['key']}/versions/{policy['version']}",
         )
-        if args.seed:
-            if require_local_runtime(get_runtime_status()) != source_uid:
-                raise RuntimeError("Runtime changed before fixture writes")
-            response = client.post(
-                "/persons",
-                json={
-                    "operation_key": str(uuid4()),
-                    "profile": {
-                        "full_name": "MCP query verification",
-                        "external_reference": f"local-mcp-query-verification-{uuid4()}",
-                    },
-                },
-            )
-            response.raise_for_status()
-            person_uid = response.json()["uid"]
-            response = client.post(
-                f"/persons/{person_uid}/document-sets",
-                json={
-                    "operation_key": str(uuid4()),
-                    "document_set_key": policy["key"],
-                    "document_set_version": policy["version"],
-                },
-            )
-            response.raise_for_status()
         people = query("search_persons", {"limit": 10}, "/persons?limit=10")
         checked_assignment = False
         for person in people["items"]:
@@ -118,21 +90,18 @@ def main():
                 )
                 checked_assignment = True
                 break
-        if not checked_assignment:
-            raise RuntimeError(
-                "No accessible assignment among the first ten people; create a local fixture before verifying missing requirements"
-            )
         if require_local_runtime(get_runtime_status()) != source_uid:
             raise RuntimeError("Runtime changed during verification")
     print(
         json.dumps(
             {
                 "status": "passed",
-                "tools": 10,
+                "tools": len(checked_tools),
+                "assignment_queries_checked": checked_assignment,
                 "local_mode": True,
                 "dialect": "sqlite",
                 "data_source_uid": source_uid,
-                "fixture_commands": 2 if args.seed else 0,
+                "fixture_commands": 0,
             }
         )
     )
