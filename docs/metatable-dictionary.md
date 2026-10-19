@@ -12,6 +12,7 @@ Namespace: `backoffice`. Physical name: `backoffice__person`.
 
 | Column | Type | Nullable | Label | Description |
 | --- | --- | --- | --- | --- |
+| `created_by` | `CHAR(32)` | Yes | Case owner | Trusted creator identity; legacy rows without an owner are reviewer-only. |
 | `current_revision` | `INTEGER` | No | Current revision | Positive reference-profile revision; the service advances this after recording its historical snapshot. |
 | `profile` | `JSON` | No | Reference profile | Serialized Person contract containing the current verified reference attributes. |
 | `updated_at` | `DATETIME` | No | Updated at | UTC instant of the latest reference-profile change. |

@@ -1,8 +1,9 @@
 # Document and MetaTable foundation
 
-This milestone implements contracts and authored storage definitions. No hosted
-tables have been created by this implementation. The application still needs its
-business services, API/MCP operations, upload finalization, evaluator and Tau agent.
+The backend implements document contracts, managed storage definitions, business
+REST services, upload finalization and reconciliation. The Tau agent and MCP
+adapters remain separate milestones. See [API contracts](api.md) for implemented
+operations and local verification; hosted activation is a separate delivery step.
 
 ## Implemented folders
 
@@ -14,6 +15,7 @@ src/backoffice/
   policies/                # Example NewAccountRequirements definition
   tables/                  # Sixteen Main Sequence MetaTable definitions
   migrations/              # Provider, Main Sequence Alembic environment and frozen revision
+  services/                # Business commands, governed storage, reviews and evaluation
 scripts/
   export_contracts.py      # Deterministic schemas and documentation generation
   migrate_backoffice.py    # Explicit Main Sequence Job entry point
@@ -87,8 +89,8 @@ model is not an authorized review-write API. Persist the base envelope with
 address alternatives, three distinct payslip periods, conditional contract and
 residence-permit requirements, funds evidence, and a questionnaire. Its 90-day
 address age and evidence choices require business approval before publication.
-Missing condition inputs will require information in the future evaluator. This
-function defines requirements; it does not yet evaluate them or establish legal KYC compliance.
+Missing condition inputs produce needs-information findings in the implemented
+evaluator. This policy is explicitly illustrative and does not establish legal KYC compliance.
 
 ## Main Sequence table contracts
 
@@ -102,13 +104,14 @@ Physical constraints enforce unique revisions, published schema references,
 same-person assignment membership and field evidence, state values, positive
 counts, source chunk bounds, review sequence and idempotency uniqueness. Raw bytes
 are represented by manifests and ordered base64 chunks with a provisional 256 KiB
-decoded chunk ceiling. Upload/reassembly and runtime size benchmarking are pending.
+decoded chunk ceiling and a 10 MiB source ceiling. The implemented service verifies
+ordered chunk content and reassembles it through bounded MetaTables reads.
 
-Services still must enforce immutable submitted content, append-only reviews and
+The implemented services enforce immutable submitted content, append-only reviews and
 history, authorization, source readiness/ownership inside JSON references, complete
 payload validation, pointer advancement, and recoverable multi-call operations.
-SQL relationships cannot enforce those JSON or lifecycle rules. Table definitions
-alone are not a production reconciliation service.
+SQL relationships alone cannot enforce those JSON or lifecycle rules. The service
+uses durable operation plans and case control rows to recover cross-table writes.
 
 Person/document revision pointers deliberately have no circular foreign key. The
 service must write and validate the historical row before advancing the pointer,
@@ -123,11 +126,10 @@ MetaTables `0.1.48` imports `ShareableObjectMixin`, absent from SDK `9.0.30`;
 dependency resolution alone does not establish import compatibility. Upgrade the
 pair together and rerun tests before changing these pins.
 
-The 0.1.48 update passes the SDK capability check, all 60 backend tests, all 11
-static-site launcher tests, and generated-contract checks. A full local-stack
-verification was attempted against the isolated test runtime but could not finish:
-the configured Main Sequence platform API at `127.0.0.1:8000` reset connections
-during `/api/v1/users/me/`. Repeat the stack verification once that API responds.
+The current implementation passes 72 backend tests. Real local API verification
+also passes with MetaTables 0.1.48, including source uploads, exact-revision
+acceptance, completed reconciliation and subsequent stale detection. See the
+[API verification record](api.md#setup-deployment-and-verification) for scope.
 
 Authoring follows `metatables migrations scaffold --help` and the guidance shipped
 with the installed MetaTables package under
@@ -140,7 +142,8 @@ with the installed MetaTables package under
 These are Main Sequence's application migration contracts. The provider is
 `src.backoffice.migrations:migration`; its version table is
 `backoffice__alembic_version`, and its first revision is `backoffice_0001`.
-The frozen revision contains explicit DDL and does not import live models.
+The frozen initial revision contains explicit DDL and does not import live models.
+Additive revision `backoffice_0002` records trusted case ownership.
 
 ## Validation and migration lifecycle
 
@@ -148,9 +151,9 @@ Run the commands in the [README](../README.md). Tests build real MetaTables
 registration requests, execute the provider's Alembic environment in a disposable
 SQLite database, upgrade twice without losing data, compare the schema with the
 models, downgrade, and upgrade again. They exercise foreign-key, unique and check
-constraints. HTTP requests are blocked during tests. This verifies authored
-contracts and migration mechanics, not hosted authentication, catalog registration,
-permissions, or API transport.
+constraints. HTTP requests are blocked during tests. This verifies authored contracts, migration mechanics and business HTTP behavior.
+Separate real API integration checks verify local catalog/transport behavior; hosted
+authentication, workload roles and engine behavior require deployment verification.
 
 For local API integration, follow the installed MetaTables local-development
 guidance: select the shared laptop runtime, inspect
@@ -169,7 +172,8 @@ Hosted migration is a Main Sequence deployment Job running
 [scripts/migrate_backoffice.py](../scripts/migrate_backoffice.py) from the candidate
 image. It calls `upgrade_application` explicitly. Do not run this entry point from
 a developer machine against a hosted environment. Application startup never
-migrates. A future workflow must gate API and agent rollout on migration success.
+migrates. The implemented workflow gates API rollout on migration success; the
+future agent deployment must depend on that same migration step.
 
 Before that deployment milestone:
 
@@ -186,7 +190,7 @@ Before that deployment milestone:
 5. Verify client/API compatibility, catalog registration, workload access and repeat
    migration behavior in that Environment.
 
-No deployment workflow is activated in this foundation commit. Hosted registration
-and seed publication are deferred. Keep applied revisions immutable; later changes
+The deployment workflow is now authored and validated. Hosted activation is a
+separate operation; the explicit Job publishes the authored schemas and policy. Keep applied revisions immutable; later changes
 require new revisions. A release rollback does not undo schema changes; any
 downgrade requires an explicit data-preservation plan.

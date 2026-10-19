@@ -1,0 +1,52 @@
+api_version: "3.0.0"
+name: backoffice
+scope:
+  environments: [production]
+resources:
+  - key: backoffice_api
+    kind: fastapi
+    spec:
+      source_path: api/app/main.py
+      min_scale: 0
+      max_scale: 5
+      automatic_deployment: true
+      revision_retention_count: 3
+      automatic_redeployment:
+        enabled: true
+        tag_regex: null
+      cors_allowed_origins:
+        - https://*.site-dev.main-sequence.app
+      public_ingress: []
+      mcp_enabled: false
+    access:
+      branches:
+        - repository: MetaTables
+          policy: reader
+  - key: migrate-backoffice
+    kind: job
+    spec:
+      name: Back Office migrations
+      execution_path: scripts/migrate_backoffice.py
+      cpu_request: "1"
+      memory_request: "2"
+      max_runtime_seconds: 600
+      spot: false
+      automatic_redeployment:
+        enabled: true
+        tag_regex: null
+    access:
+      branches:
+        - repository: MetaTables
+          policy: reader
+execution:
+  steps:
+    image:
+      prepare_image: backoffice_api
+    migrate:
+      run_job: migrate-backoffice
+      image_from: image
+      needs: [image]
+    deploy_api:
+      deploy: backoffice_api
+      image_from: image
+      needs: [migrate]

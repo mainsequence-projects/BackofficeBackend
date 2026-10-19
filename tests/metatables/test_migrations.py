@@ -34,11 +34,13 @@ NOW = datetime(2026, 10, 1, tzinfo=UTC)
 def migrated():
     engine = create_engine("sqlite://")
     with engine.connect() as connection:
-        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
         connection.commit()
         config = alembic_config_for_provider(migration, sqlalchemy_url="sqlite://")
         config.attributes["connection"] = connection
         command.upgrade(config, "head")
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        connection.commit()
         yield connection, config
     engine.dispose()
 
@@ -67,9 +69,11 @@ def test_migration_round_trip_matches_models_and_preserves_existing_rows(migrate
         connection.exec_driver_sql(
             "SELECT version_num FROM backoffice__alembic_version"
         ).scalar_one()
-        == "backoffice_0001"
+        == "backoffice_0002"
     )
     connection.rollback()
+    connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+    connection.commit()
     command.downgrade(config, "base")
     assert inspect(connection).get_table_names() == ["backoffice__alembic_version"]
     command.upgrade(config, "head")

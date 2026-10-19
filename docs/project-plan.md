@@ -3,7 +3,8 @@
 Status: accepted product design. The Pydantic contracts, example requirement set,
 16 MetaTable declarations, and initial migration are now implemented in code.
 See the [foundation guide](foundation.md) for verification and current limits.
-Business services, deployed tables, REST/MCP operations, and the Tau agent remain planned.
+Business services and REST operations are implemented; see [API contracts](api.md).
+Hosted activation, MCP adapters and the Tau agent are separate delivery checks.
 
 The platform evaluates whether a person has the documents required by an assigned
 document set. Every result must identify the applicable requirement, the submitted
@@ -204,7 +205,8 @@ helper exists without checking the pinned package.
 ## Backend folder scaffolding
 
 This is the full target structure. See the foundation guide for the smaller tree
-implemented in this milestone; the API entry point and `data_nodes` remain starter code.
+implemented in the foundation; the business API and services are now implemented.
+The `data_nodes` scaffold is reserved for later processing work.
 
 ```text
 backofficebackend/

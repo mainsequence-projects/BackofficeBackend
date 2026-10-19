@@ -4,17 +4,20 @@ Document reconciliation contracts and persistence on the Main Sequence platform.
 Pydantic defines document attributes and form schemas. Main Sequence MetaTables
 own application storage. The planned reconciliation agent uses `ms-tau-sdk`.
 
-Implemented in this foundation:
+Implemented:
 
 - Ten documented document models, recursive drafts, and JSON Schema export.
 - Person profiles, versioned document sets, assignments, raw-source references,
   and revision-specific reviews with derived read-only acceptance.
 - Sixteen documented MetaTable declarations, a frozen initial migration, and an
   explicit Main Sequence migration Job entry point.
-- An illustrative `new_account_requirements` policy and offline contract tests.
+- People, assignments, bounded raw-source uploads, versioned drafts/submission,
+  authorized reviews, reconciliation findings, audit history and durable retry recovery.
+- An illustrative `new_account_requirements` policy and offline contract/HTTP tests.
 
-The business API, MCP tools, upload service, evaluator, Tau agent, and hosted
-migration are subsequent milestones. The existing API remains starter code.
+The business API is implemented and verified against local Main Sequence MetaTables.
+MCP adapters and the Tau agent remain separate milestones. The deployment workflow
+gates the API on its explicit migration Job; hosted activation is verified separately.
 
 ## Development
 
@@ -23,8 +26,8 @@ Use Python 3.13+ and the committed dependency lock:
 ```bash
 uv sync --locked
 uv run pytest -q
-uv run ruff check src/backoffice scripts tests
-uv run ruff format --check src/backoffice scripts tests
+uv run ruff check src/backoffice api scripts tests
+uv run ruff format --check src/backoffice api scripts tests
 uv run python -m scripts.export_contracts --check
 ```
 
@@ -41,6 +44,7 @@ worker and developer-session adapters remain outside deployable `api/` entry poi
 
 ## Documentation
 
+- [Business API, permissions and operational contracts](docs/api.md)
 - [Foundation implementation and migration guide](docs/foundation.md)
 - [Generated model reference](docs/model-reference.md)
 - [Generated MetaTable dictionary](docs/metatable-dictionary.md)
@@ -49,11 +53,11 @@ worker and developer-session adapters remain outside deployable `api/` entry poi
 - [Main Sequence, API, MCP, and Tau contracts](docs/platform-contracts.md)
 
 The companion `backofficefrontend` repository owns the Command Center application,
-agent chat integration, and user guide. Its current contribution is the implementation plan.
+agent chat integration, and user guide. It consumes the documented business API.
 
 ## API discovery
 
-The starter [api/app/main.py](api/app/main.py) retains Main Sequence request identity.
+The business [api/app/main.py](api/app/main.py) retains Main Sequence request identity.
 Deployable FastAPI applications stay at `api/<name>/main.py` so CodeRepository
 resource discovery can identify their entry points. Importing models, exporting
 schemas, and starting this API do not migrate tables.

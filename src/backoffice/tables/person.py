@@ -16,6 +16,14 @@ class PersonRecord(Identified, Created, Base):
     __metatable_labels__ = ("backoffice", "person", "reference")
     __table_args__ = (CheckConstraint("current_revision >= 1", name="positive_revision"),)
 
+    created_by: Mapped[UUID | None] = mapped_column(
+        Uuid,
+        info=info(
+            "Case owner",
+            "Trusted creator identity; legacy rows without an owner are reviewer-only.",
+        ),
+    )
+
     current_revision: Mapped[int] = mapped_column(
         Integer,
         info=info(
