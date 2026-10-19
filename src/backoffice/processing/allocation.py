@@ -22,7 +22,7 @@ from ..services.reconciliation import normalized, reconcile
 from ..services.storage import typed
 from .adapters import MainSequenceBucket, MainSequenceDispatcher, ProcessingError, inspect_source
 from .allocation_contracts import BindIntake
-from .workflow import LEASE_SECONDS, Worker
+from .workflow import LEASE_SECONDS, Worker, configured_reader_mode
 
 KIND = "document.allocate"
 MAX_SUBJECTS = 10000
@@ -177,7 +177,7 @@ def upload(app, command, content, *, bucket=None, dispatcher=None):
     )
     row = app.db.one(RUN, uid=uid)
     if row is None:
-        reader = os.environ.get("BACKOFFICE_EXTRACTION_READER_MODE", "single")
+        reader = configured_reader_mode()
         if reader not in {"single", "independent_readers"}:
             fail(503, "invalid_extraction_reader_configuration")
         row = app.db.ensure(
@@ -246,7 +246,7 @@ def start(app, command, dispatcher=None):
                         source=source,
                         schemas=schemas(app),
                         parser_contract_version=2,
-                        reader_mode=os.environ.get("BACKOFFICE_EXTRACTION_READER_MODE", "single"),
+                        reader_mode=configured_reader_mode(),
                         existing_source_uid=source["uid"],
                     ),
                     {"stage": "uploaded", "revision": 1},

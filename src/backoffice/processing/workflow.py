@@ -16,6 +16,7 @@ from ..services.application import RAW, RUN, SCHEMA, fail, stable
 from ..services.contracts import Command, CompleteParsing, CreateDocument, StartUpload
 from ..services.parsing_confidence import document_classification
 from ..services.storage import typed
+from .classification_hints import classifier_description
 from .adapters import (
     MainSequenceBucket,
     MainSequenceDispatcher,
@@ -174,7 +175,7 @@ def start(app, source_uid, command, dispatcher=None):
         fail(422, "unsupported_processing_media_type")
 
     def build(op, now):
-        reader_mode = os.environ.get("BACKOFFICE_EXTRACTION_READER_MODE", "single")
+        reader_mode = configured_reader_mode()
         if reader_mode not in {"single", "independent_readers"}:
             fail(503, "invalid_extraction_reader_configuration")
         schemas = {}
@@ -264,6 +265,15 @@ def validate_pages(pages, source, filename, page_count):
     return expected
 
 
+# The parser pairs a vision reader with Textract (own confidence and boxes, a different failure
+# mode); one reader is the development fallback. Override with BACKOFFICE_EXTRACTION_READER_MODE.
+DEFAULT_READER_MODE = "independent_readers"
+
+
+def configured_reader_mode() -> str:
+    return os.environ.get("BACKOFFICE_EXTRACTION_READER_MODE", DEFAULT_READER_MODE)
+
+
 def validate_reader_strategy(response, snapshot):
     if (
         snapshot.get("parser_contract_version") == 2
@@ -349,8 +359,7 @@ class Worker:
                     document_types=[
                         Candidate(
                             document_type=k,
-                            description=v["canonical_schema"].get("description")
-                            or v["canonical_schema"]["title"],
+                            description=classifier_description(k, v["canonical_schema"]),
                         )
                         for k, v in schemas.items()
                     ],

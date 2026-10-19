@@ -75,7 +75,11 @@ def test_shared_worker_retains_exact_revision_and_authorized_evidence(flow, docu
         ("reader_missing", "extraction_reader_missing"),
     ],
 )
-def test_back_office_blocks_automatic_acceptance_from_extraction_observations(flow, mode, reason):
+def test_back_office_blocks_automatic_acceptance_from_extraction_observations(
+    flow, mode, reason, monkeypatch
+):
+    # Single-reader observations: pin the mode the default now overrides.
+    monkeypatch.setenv("BACKOFFICE_EXTRACTION_READER_MODE", "single")
     client, current, store, bucket, _, person, original = flow
     policy(client, current, "60", document_type="passport")
 
