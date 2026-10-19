@@ -1,0 +1,287 @@
+{
+  "document_type": "source_of_funds_evidence",
+  "version": 1,
+  "canonical_schema": {
+    "$defs": {
+      "Money": {
+        "additionalProperties": false,
+        "description": "Exact monetary value; JSON serializes the amount as a decimal string.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "Money",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Structured facts from a source-of-funds evidence.",
+    "properties": {
+      "document_type": {
+        "const": "source_of_funds_evidence",
+        "default": "source_of_funds_evidence",
+        "description": "Identifies this payload as source-of-funds evidence.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "owner_name": {
+        "description": "Person or entity identified as the owner or recipient of the funds.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Owner name",
+        "type": "string"
+      },
+      "source_type": {
+        "description": "Stated origin category, such as salary, savings, asset sale, inheritance, gift, business income, or other.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Source type",
+        "type": "string"
+      },
+      "amount": {
+        "$ref": "#/$defs/Money",
+        "description": "Amount whose source is being explained, with its currency.",
+        "title": "Amount"
+      },
+      "event_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date of the originating event or transfer, when stated.",
+        "title": "Event date"
+      },
+      "originator_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Named payer, donor, seller, estate, or other originating party.",
+        "title": "Originator name"
+      },
+      "explanation": {
+        "description": "Factual explanation connecting the originating event to the funds being assessed.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Explanation",
+        "type": "string"
+      },
+      "supporting_document_ids": {
+        "anyOf": [
+          {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Linked evidence documents supporting the explanation; required for policies that request substantiation.",
+        "title": "Supporting document ids"
+      }
+    },
+    "required": [
+      "owner_name",
+      "source_type",
+      "amount",
+      "explanation"
+    ],
+    "title": "SourceOfFundsEvidence",
+    "type": "object"
+  },
+  "draft_schema": {
+    "$defs": {
+      "MoneyDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "title": "Currency"
+          }
+        },
+        "title": "MoneyDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "source_of_funds_evidence",
+        "default": "source_of_funds_evidence",
+        "description": "Identifies this payload as source-of-funds evidence.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "owner_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Person or entity identified as the owner or recipient of the funds.",
+        "title": "Owner name"
+      },
+      "source_type": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Stated origin category, such as salary, savings, asset sale, inheritance, gift, business income, or other.",
+        "title": "Source type"
+      },
+      "amount": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/MoneyDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Amount whose source is being explained, with its currency.",
+        "title": "Amount"
+      },
+      "event_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date of the originating event or transfer, when stated.",
+        "title": "Event date"
+      },
+      "originator_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Named payer, donor, seller, estate, or other originating party.",
+        "title": "Originator name"
+      },
+      "explanation": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Factual explanation connecting the originating event to the funds being assessed.",
+        "title": "Explanation"
+      },
+      "supporting_document_ids": {
+        "anyOf": [
+          {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Linked evidence documents supporting the explanation; required for policies that request substantiation.",
+        "title": "Supporting document ids"
+      }
+    },
+    "title": "SourceOfFundsEvidenceDraft",
+    "type": "object"
+  },
+  "content_sha256": "f62ed55ef215b771f0d2066e1a1f57c4afd62c9b271621d95f320bc35abd420b"
+}

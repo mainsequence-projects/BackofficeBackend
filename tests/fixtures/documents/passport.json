@@ -1,0 +1,12 @@
+{
+  "document_type": "passport",
+  "full_name": "Alex Morgan",
+  "given_names": "Alex",
+  "last_name": "Morgan",
+  "date_of_birth": "1990-03-12",
+  "passport_number": "000123456",
+  "nationality": "Example nationality",
+  "issuing_country": "Example Republic",
+  "issue_date": "2024-01-10",
+  "expiration_date": "2034-01-09"
+}

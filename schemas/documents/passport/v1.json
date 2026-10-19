@@ -1,0 +1,425 @@
+{
+  "document_type": "passport",
+  "version": 1,
+  "canonical_schema": {
+    "$defs": {
+      "EvidenceRegion": {
+        "additionalProperties": false,
+        "description": "A location within one immutable raw source.",
+        "properties": {
+          "raw_document_uid": {
+            "description": "UID of the immutable source document containing this evidence.",
+            "format": "uuid",
+            "title": "Source document UID",
+            "type": "string"
+          },
+          "page_number": {
+            "description": "One-based page number in the source document.",
+            "exclusiveMinimum": 0,
+            "title": "Page number",
+            "type": "integer"
+          },
+          "bounding_box": {
+            "anyOf": [
+              {
+                "items": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Normalized [left, top, right, bottom] coordinates on the upright page; null when only the page is known.",
+            "title": "Bounding box"
+          }
+        },
+        "required": [
+          "raw_document_uid",
+          "page_number"
+        ],
+        "title": "EvidenceRegion",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Structured facts from a passport.",
+    "properties": {
+      "document_type": {
+        "const": "passport",
+        "default": "passport",
+        "description": "Identifies this payload as passport.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "description": "Holder's complete name exactly as printed in the visual inspection zone.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Full name",
+        "type": "string"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order, if separately identified.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed surname or family name, if separately identified.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "format": "date",
+        "title": "Date of birth",
+        "type": "string"
+      },
+      "passport_number": {
+        "description": "Passport identifier exactly as printed, preserving letters and leading zeros.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Passport number",
+        "type": "string"
+      },
+      "nationality": {
+        "description": "Nationality exactly as stated by the passport; retain the original value.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Nationality",
+        "type": "string"
+      },
+      "issuing_country": {
+        "description": "Country or issuing authority identified on the passport.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Issuing country",
+        "type": "string"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the passport was issued, if printed.",
+        "title": "Issue date"
+      },
+      "expiration_date": {
+        "description": "Printed passport expiry date, entered as YYYY-MM-DD.",
+        "format": "date",
+        "title": "Expiration date",
+        "type": "string"
+      },
+      "mrz_lines": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "MRZ lines in printed order, preserving every character including `<` fillers.",
+        "title": "Mrz lines"
+      },
+      "portrait_reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/EvidenceRegion"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Location of the holder's portrait in the passport source.",
+        "title": "Portrait reference"
+      }
+    },
+    "required": [
+      "full_name",
+      "date_of_birth",
+      "passport_number",
+      "nationality",
+      "issuing_country",
+      "expiration_date"
+    ],
+    "title": "Passport",
+    "type": "object"
+  },
+  "draft_schema": {
+    "$defs": {
+      "EvidenceRegionDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "raw_document_uid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "UID of the immutable source document containing this evidence.",
+            "title": "Source document UID"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "One-based page number in the source document.",
+            "title": "Page number"
+          },
+          "bounding_box": {
+            "anyOf": [
+              {
+                "items": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Normalized [left, top, right, bottom] coordinates on the upright page; null when only the page is known.",
+            "title": "Bounding box"
+          }
+        },
+        "title": "EvidenceRegionDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "passport",
+        "default": "passport",
+        "description": "Identifies this payload as passport.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's complete name exactly as printed in the visual inspection zone.",
+        "title": "Full name"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order, if separately identified.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed surname or family name, if separately identified.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "title": "Date of birth"
+      },
+      "passport_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Passport identifier exactly as printed, preserving letters and leading zeros.",
+        "title": "Passport number"
+      },
+      "nationality": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Nationality exactly as stated by the passport; retain the original value.",
+        "title": "Nationality"
+      },
+      "issuing_country": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Country or issuing authority identified on the passport.",
+        "title": "Issuing country"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the passport was issued, if printed.",
+        "title": "Issue date"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed passport expiry date, entered as YYYY-MM-DD.",
+        "title": "Expiration date"
+      },
+      "mrz_lines": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "MRZ lines in printed order, preserving every character including `<` fillers.",
+        "title": "Mrz lines"
+      },
+      "portrait_reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/EvidenceRegionDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Location of the holder's portrait in the passport source.",
+        "title": "Portrait reference"
+      }
+    },
+    "title": "PassportDraft",
+    "type": "object"
+  },
+  "content_sha256": "9947df976cb66da16124e07d2e116f162951cfd190300ad232d8773b3ca2a850"
+}

@@ -1,0 +1,23 @@
+{
+  "document_type": "payslip",
+  "employee_name": "Alex Morgan",
+  "employer": {
+    "name": "Example Employer"
+  },
+  "pay_period": {
+    "start_date": "2026-08-01",
+    "end_date": "2026-08-31"
+  },
+  "gross_pay": {
+    "amount": "3500.00",
+    "currency": "EUR"
+  },
+  "net_pay": {
+    "amount": "2700.00",
+    "currency": "EUR"
+  },
+  "deductions": {
+    "amount": "800.00",
+    "currency": "EUR"
+  }
+}

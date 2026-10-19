@@ -1,0 +1,27 @@
+{
+  "document_type": "bank_statement",
+  "account_holders": [
+    "Alex Morgan"
+  ],
+  "bank_name": "Example Bank",
+  "account_identifier": "0000123456",
+  "holder_address": {
+    "address_line_1": "14 Example Street",
+    "city": "Prague",
+    "postal_code": "11000",
+    "country_code": "CZ"
+  },
+  "statement_period": {
+    "start_date": "2026-08-01",
+    "end_date": "2026-08-31"
+  },
+  "currency": "EUR",
+  "opening_balance": {
+    "amount": "1000.25",
+    "currency": "EUR"
+  },
+  "closing_balance": {
+    "amount": "1200.25",
+    "currency": "EUR"
+  }
+}

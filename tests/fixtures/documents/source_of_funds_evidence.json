@@ -1,0 +1,10 @@
+{
+  "document_type": "source_of_funds_evidence",
+  "owner_name": "Alex Morgan",
+  "source_type": "employment_income",
+  "amount": {
+    "amount": "2700.00",
+    "currency": "EUR"
+  },
+  "explanation": "Salary credited for August 2026."
+}

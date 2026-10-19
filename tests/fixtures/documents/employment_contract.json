@@ -1,0 +1,15 @@
+{
+  "document_type": "employment_contract",
+  "employee_name": "Alex Morgan",
+  "employer": {
+    "name": "Example Employer"
+  },
+  "employment_type": "permanent",
+  "start_date": "2024-04-01",
+  "salary": {
+    "amount": "3500.00",
+    "currency": "EUR"
+  },
+  "salary_frequency": "monthly",
+  "salary_basis": "gross"
+}

@@ -1,0 +1,400 @@
+{
+  "document_type": "national_identity_card",
+  "version": 1,
+  "canonical_schema": {
+    "$defs": {
+      "EvidenceRegion": {
+        "additionalProperties": false,
+        "description": "A location within one immutable raw source.",
+        "properties": {
+          "raw_document_uid": {
+            "description": "UID of the immutable source document containing this evidence.",
+            "format": "uuid",
+            "title": "Source document UID",
+            "type": "string"
+          },
+          "page_number": {
+            "description": "One-based page number in the source document.",
+            "exclusiveMinimum": 0,
+            "title": "Page number",
+            "type": "integer"
+          },
+          "bounding_box": {
+            "anyOf": [
+              {
+                "items": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Normalized [left, top, right, bottom] coordinates on the upright page; null when only the page is known.",
+            "title": "Bounding box"
+          }
+        },
+        "required": [
+          "raw_document_uid",
+          "page_number"
+        ],
+        "title": "EvidenceRegion",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Structured facts from a national identity card.",
+    "properties": {
+      "document_type": {
+        "const": "national_identity_card",
+        "default": "national_identity_card",
+        "description": "Identifies this payload as national identity card.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "description": "Holder's complete name exactly as printed on the card.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Full name",
+        "type": "string"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order when identified separately.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Surname or family name when identified separately on the card.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "format": "date",
+        "title": "Date of birth",
+        "type": "string"
+      },
+      "identity_number": {
+        "description": "Identity identifier printed on the card, preserving letters and leading zeros.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Identity number",
+        "type": "string"
+      },
+      "issuing_country": {
+        "description": "Country or issuing authority identified on the card.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Issuing country",
+        "type": "string"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the card was issued, if printed.",
+        "title": "Issue date"
+      },
+      "validity_type": {
+        "description": "Whether the source states a fixed expiry, permanent validity, or does not establish validity.",
+        "enum": [
+          "fixed_term",
+          "permanent",
+          "unknown"
+        ],
+        "title": "Validity type",
+        "type": "string"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed expiry date; required when validity is fixed-term.",
+        "title": "Expiration date"
+      },
+      "portrait_reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/EvidenceRegion"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Location of the holder's portrait in the source document.",
+        "title": "Portrait reference"
+      }
+    },
+    "required": [
+      "full_name",
+      "date_of_birth",
+      "identity_number",
+      "issuing_country",
+      "validity_type"
+    ],
+    "title": "NationalIdentityCard",
+    "type": "object"
+  },
+  "draft_schema": {
+    "$defs": {
+      "EvidenceRegionDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "raw_document_uid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "UID of the immutable source document containing this evidence.",
+            "title": "Source document UID"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "One-based page number in the source document.",
+            "title": "Page number"
+          },
+          "bounding_box": {
+            "anyOf": [
+              {
+                "items": {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Normalized [left, top, right, bottom] coordinates on the upright page; null when only the page is known.",
+            "title": "Bounding box"
+          }
+        },
+        "title": "EvidenceRegionDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "national_identity_card",
+        "default": "national_identity_card",
+        "description": "Identifies this payload as national identity card.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's complete name exactly as printed on the card.",
+        "title": "Full name"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order when identified separately.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Surname or family name when identified separately on the card.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "title": "Date of birth"
+      },
+      "identity_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Identity identifier printed on the card, preserving letters and leading zeros.",
+        "title": "Identity number"
+      },
+      "issuing_country": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Country or issuing authority identified on the card.",
+        "title": "Issuing country"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the card was issued, if printed.",
+        "title": "Issue date"
+      },
+      "validity_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "fixed_term",
+              "permanent",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Whether the source states a fixed expiry, permanent validity, or does not establish validity.",
+        "title": "Validity type"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed expiry date; required when validity is fixed-term.",
+        "title": "Expiration date"
+      },
+      "portrait_reference": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/EvidenceRegionDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Location of the holder's portrait in the source document.",
+        "title": "Portrait reference"
+      }
+    },
+    "title": "NationalIdentityCardDraft",
+    "type": "object"
+  },
+  "content_sha256": "af5d7fa9caba6d77f11badd2e1d550a1148291ed221e8448279e6a1ca1798a6f"
+}

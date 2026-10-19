@@ -1,0 +1,654 @@
+{
+  "document_type": "employment_contract",
+  "version": 1,
+  "canonical_schema": {
+    "$defs": {
+      "Employer": {
+        "additionalProperties": false,
+        "description": "Employer identity stated in a document.",
+        "properties": {
+          "name": {
+            "description": "Employer's legal or trading name exactly as printed.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Employer name",
+            "type": "string"
+          },
+          "registration_number": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Employer registration identifier as printed, preserving formatting and leading zeros; null when absent.",
+            "title": "Registration number"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PostalAddress"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Employer address stated in the document; null when absent.",
+            "title": "Employer address"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "Employer",
+        "type": "object"
+      },
+      "Money": {
+        "additionalProperties": false,
+        "description": "Exact monetary value; JSON serializes the amount as a decimal string.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "Money",
+        "type": "object"
+      },
+      "PostalAddress": {
+        "additionalProperties": false,
+        "description": "An address as printed; policy decides which local components are necessary.",
+        "properties": {
+          "address_line_1": {
+            "description": "Primary street, building, or locality line exactly as stated by the source.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Address line 1",
+            "type": "string"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Additional unit, floor, building, or locality information; null when absent.",
+            "title": "Address line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "City or locality named in the address; null when absent.",
+            "title": "City"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "State, province, or administrative region named in the address; null when absent.",
+            "title": "Region"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
+            "title": "Postal code"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+            "title": "Country code"
+          }
+        },
+        "required": [
+          "address_line_1"
+        ],
+        "title": "PostalAddress",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Structured facts from a employment contract.",
+    "properties": {
+      "document_type": {
+        "const": "employment_contract",
+        "default": "employment_contract",
+        "description": "Identifies this payload as employment contract.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "employee_name": {
+        "description": "Employee's complete name as stated in the contract.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Employee name",
+        "type": "string"
+      },
+      "employer": {
+        "$ref": "#/$defs/Employer",
+        "description": "Employer identity and optional registration/address details stated in the contract."
+      },
+      "job_title": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Position or occupation named in the contract.",
+        "title": "Job title"
+      },
+      "employment_type": {
+        "description": "Employment arrangement stated by the contract, such as permanent or fixed-term.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Employment type",
+        "type": "string"
+      },
+      "start_date": {
+        "description": "Contractual employment start date.",
+        "format": "date",
+        "title": "Start date",
+        "type": "string"
+      },
+      "end_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Contractual end date when a fixed term is stated.",
+        "title": "End date"
+      },
+      "salary": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Money"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Contractual salary amount in the stated currency and frequency.",
+        "title": "Salary"
+      },
+      "salary_frequency": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Period the salary covers, such as hourly, monthly, or annually; required when salary is supplied.",
+        "title": "Salary frequency"
+      },
+      "salary_basis": {
+        "anyOf": [
+          {
+            "enum": [
+              "gross",
+              "net",
+              "unspecified"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Whether the stated salary is gross or net; required when salary is supplied.",
+        "title": "Salary basis"
+      },
+      "signed_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Signature date stated in the contract.",
+        "title": "Signed date"
+      }
+    },
+    "required": [
+      "employee_name",
+      "employer",
+      "employment_type",
+      "start_date"
+    ],
+    "title": "EmploymentContract",
+    "type": "object"
+  },
+  "draft_schema": {
+    "$defs": {
+      "EmployerDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Employer's legal or trading name exactly as printed.",
+            "title": "Employer name"
+          },
+          "registration_number": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Employer registration identifier as printed, preserving formatting and leading zeros; null when absent.",
+            "title": "Registration number"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PostalAddressDraft"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Employer address stated in the document; null when absent.",
+            "title": "Employer address"
+          }
+        },
+        "title": "EmployerDraft",
+        "type": "object"
+      },
+      "MoneyDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "title": "Currency"
+          }
+        },
+        "title": "MoneyDraft",
+        "type": "object"
+      },
+      "PostalAddressDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "address_line_1": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Primary street, building, or locality line exactly as stated by the source.",
+            "title": "Address line 1"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Additional unit, floor, building, or locality information; null when absent.",
+            "title": "Address line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "City or locality named in the address; null when absent.",
+            "title": "City"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "State, province, or administrative region named in the address; null when absent.",
+            "title": "Region"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
+            "title": "Postal code"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+            "title": "Country code"
+          }
+        },
+        "title": "PostalAddressDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "employment_contract",
+        "default": "employment_contract",
+        "description": "Identifies this payload as employment contract.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "employee_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Employee's complete name as stated in the contract.",
+        "title": "Employee name"
+      },
+      "employer": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/EmployerDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Employer identity and optional registration/address details stated in the contract.",
+        "title": "Employer"
+      },
+      "job_title": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Position or occupation named in the contract.",
+        "title": "Job title"
+      },
+      "employment_type": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Employment arrangement stated by the contract, such as permanent or fixed-term.",
+        "title": "Employment type"
+      },
+      "start_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Contractual employment start date.",
+        "title": "Start date"
+      },
+      "end_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Contractual end date when a fixed term is stated.",
+        "title": "End date"
+      },
+      "salary": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/MoneyDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Contractual salary amount in the stated currency and frequency.",
+        "title": "Salary"
+      },
+      "salary_frequency": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Period the salary covers, such as hourly, monthly, or annually; required when salary is supplied.",
+        "title": "Salary frequency"
+      },
+      "salary_basis": {
+        "anyOf": [
+          {
+            "enum": [
+              "gross",
+              "net",
+              "unspecified"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Whether the stated salary is gross or net; required when salary is supplied.",
+        "title": "Salary basis"
+      },
+      "signed_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Signature date stated in the contract.",
+        "title": "Signed date"
+      }
+    },
+    "title": "EmploymentContractDraft",
+    "type": "object"
+  },
+  "content_sha256": "b863407ded17b026def7ddcabc70c01e28d379599f2faaa88a2ec2e1b2863e79"
+}

@@ -1,0 +1,13 @@
+{
+  "document_type": "utility_bill",
+  "account_holder_name": "Alex Morgan",
+  "service_address": {
+    "address_line_1": "14 Example Street",
+    "city": "Prague",
+    "postal_code": "11000",
+    "country_code": "CZ"
+  },
+  "provider_name": "Example Energy",
+  "utility_type": "electricity",
+  "issue_date": "2026-09-03"
+}

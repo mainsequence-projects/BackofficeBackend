@@ -1,0 +1,307 @@
+{
+  "document_type": "residence_permit",
+  "version": 1,
+  "canonical_schema": {
+    "additionalProperties": false,
+    "description": "Structured facts from a residence permit.",
+    "properties": {
+      "document_type": {
+        "const": "residence_permit",
+        "default": "residence_permit",
+        "description": "Identifies this payload as residence permit.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "description": "Permit holder's complete name exactly as printed.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Full name",
+        "type": "string"
+      },
+      "date_of_birth": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's printed date of birth, if present.",
+        "title": "Date of birth"
+      },
+      "permit_number": {
+        "description": "Residence-permit identifier exactly as printed.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Permit number",
+        "type": "string"
+      },
+      "issuing_country": {
+        "description": "Country or authority that issued the residence permit.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Issuing country",
+        "type": "string"
+      },
+      "permit_type": {
+        "description": "Printed permit category or class without inferring additional entitlements.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Permit type",
+        "type": "string"
+      },
+      "residency_status": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Residency status explicitly stated by the source.",
+        "title": "Residency status"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed permit issue date.",
+        "title": "Issue date"
+      },
+      "validity_type": {
+        "description": "Validity stated by the document; unknown when the source does not establish it.",
+        "enum": [
+          "fixed_term",
+          "permanent",
+          "unknown"
+        ],
+        "title": "Validity type",
+        "type": "string"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed expiry date; required for fixed-term validity.",
+        "title": "Expiration date"
+      },
+      "conditions": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Restrictions or conditions transcribed from the permit.",
+        "title": "Conditions"
+      }
+    },
+    "required": [
+      "full_name",
+      "permit_number",
+      "issuing_country",
+      "permit_type",
+      "validity_type"
+    ],
+    "title": "ResidencePermit",
+    "type": "object"
+  },
+  "draft_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "residence_permit",
+        "default": "residence_permit",
+        "description": "Identifies this payload as residence permit.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Permit holder's complete name exactly as printed.",
+        "title": "Full name"
+      },
+      "date_of_birth": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's printed date of birth, if present.",
+        "title": "Date of birth"
+      },
+      "permit_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Residence-permit identifier exactly as printed.",
+        "title": "Permit number"
+      },
+      "issuing_country": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Country or authority that issued the residence permit.",
+        "title": "Issuing country"
+      },
+      "permit_type": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed permit category or class without inferring additional entitlements.",
+        "title": "Permit type"
+      },
+      "residency_status": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Residency status explicitly stated by the source.",
+        "title": "Residency status"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed permit issue date.",
+        "title": "Issue date"
+      },
+      "validity_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "fixed_term",
+              "permanent",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Validity stated by the document; unknown when the source does not establish it.",
+        "title": "Validity type"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed expiry date; required for fixed-term validity.",
+        "title": "Expiration date"
+      },
+      "conditions": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Restrictions or conditions transcribed from the permit.",
+        "title": "Conditions"
+      }
+    },
+    "title": "ResidencePermitDraft",
+    "type": "object"
+  },
+  "content_sha256": "724670e9ec06cb109cd4ad44af3f30e8d0427e1d712f5d88a06572f5137ba7ed"
+}

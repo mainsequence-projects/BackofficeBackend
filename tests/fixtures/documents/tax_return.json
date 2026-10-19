@@ -1,0 +1,13 @@
+{
+  "document_type": "tax_return",
+  "taxpayer_name": "Alex Morgan",
+  "tax_jurisdiction": "Example Republic",
+  "tax_period": {
+    "start_date": "2025-01-01",
+    "end_date": "2025-12-31"
+  },
+  "declared_income": {
+    "amount": "42000.00",
+    "currency": "EUR"
+  }
+}

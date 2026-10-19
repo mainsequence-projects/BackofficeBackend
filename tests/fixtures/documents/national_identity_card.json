@@ -1,0 +1,8 @@
+{
+  "document_type": "national_identity_card",
+  "full_name": "Alex Morgan",
+  "date_of_birth": "1990-03-12",
+  "identity_number": "001234",
+  "issuing_country": "Example Republic",
+  "validity_type": "permanent"
+}

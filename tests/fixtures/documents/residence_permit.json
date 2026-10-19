@@ -1,0 +1,9 @@
+{
+  "document_type": "residence_permit",
+  "full_name": "Alex Morgan",
+  "permit_number": "001234",
+  "issuing_country": "Example Republic",
+  "permit_type": "Temporary residence",
+  "validity_type": "fixed_term",
+  "expiration_date": "2027-06-30"
+}

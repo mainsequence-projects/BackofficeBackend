@@ -1,0 +1,164 @@
+{
+  "key": "new_account_requirements",
+  "version": 1,
+  "name": "New account requirements",
+  "description": "Illustrative account-opening evidence policy; age limits and income coverage must be approved for the business before publication.",
+  "allow_document_reuse": true,
+  "requirements": [
+    {
+      "key": "identity",
+      "description": "One accepted identity document with established current validity.",
+      "options": [
+        {
+          "document_type": "national_identity_card",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": true,
+          "max_age_days": null,
+          "freshness_field": null
+        },
+        {
+          "document_type": "passport",
+          "schema_version": 1,
+          "required_fields": [
+            "mrz_lines"
+          ],
+          "require_unexpired": true,
+          "max_age_days": null,
+          "freshness_field": null
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "address",
+      "description": "One accepted source with a matching address dated within 90 days of evaluation.",
+      "options": [
+        {
+          "document_type": "utility_bill",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "issue_date"
+        },
+        {
+          "document_type": "bank_statement",
+          "schema_version": 1,
+          "required_fields": [
+            "holder_address"
+          ],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "statement_period.end_date"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "employment_income",
+      "description": "For employed applicants, three accepted payslips covering distinct reporting periods.",
+      "options": [
+        {
+          "document_type": "payslip",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null
+        }
+      ],
+      "mandatory": true,
+      "min_count": 3,
+      "distinct_period_field": "pay_period",
+      "condition": {
+        "field": "employment_status",
+        "equals": "employed"
+      }
+    },
+    {
+      "key": "employment_contract",
+      "description": "For employed applicants, an accepted contract supporting employer and employment status.",
+      "options": [
+        {
+          "document_type": "employment_contract",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": {
+        "field": "employment_status",
+        "equals": "employed"
+      }
+    },
+    {
+      "key": "residency",
+      "description": "An accepted current permit when the person's reference profile says a permit is required.",
+      "options": [
+        {
+          "document_type": "residence_permit",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": true,
+          "max_age_days": null,
+          "freshness_field": null
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": {
+        "field": "residency_permit_required",
+        "equals": true
+      }
+    },
+    {
+      "key": "source_of_funds",
+      "description": "Accepted evidence explaining the origin of the funds.",
+      "options": [
+        {
+          "document_type": "source_of_funds_evidence",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "customer_questionnaire",
+      "description": "One complete accepted customer questionnaire.",
+      "options": [
+        {
+          "document_type": "kyc_questionnaire",
+          "schema_version": 1,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    }
+  ]
+}

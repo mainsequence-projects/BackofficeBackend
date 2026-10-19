@@ -1,0 +1,19 @@
+{
+  "document_type": "kyc_questionnaire",
+  "full_name": "Alex Morgan",
+  "employment_status": "employed",
+  "account_purpose": "Receive salary and pay expenses",
+  "expected_monthly_inflow": {
+    "amount": "2700.00",
+    "currency": "EUR"
+  },
+  "expected_monthly_outflow": {
+    "amount": "2200.00",
+    "currency": "EUR"
+  },
+  "source_of_funds": [
+    "Employment income"
+  ],
+  "completed_at": "2026-09-04T09:00:00Z",
+  "questionnaire_version": "1"
+}
