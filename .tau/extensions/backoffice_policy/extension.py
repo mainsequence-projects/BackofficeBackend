@@ -41,7 +41,7 @@ def setup(tau):
             selected = validate_catalog(entries, contract)
         except (ValueError, TypeError, KeyError, IndexError, AttributeError):
             return ToolResultHookResult(
-                content="Back Office MCP discovery or contract verification failed. Queries are blocked.",
+                content="Back Office MCP discovery or contract verification failed. Business tools are blocked.",
                 details={"is_error": True, "failure": "mcp_contract_unavailable"},
             )
         verified = True

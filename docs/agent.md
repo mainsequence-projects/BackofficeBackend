@@ -11,22 +11,36 @@ The agent binds to `backoffice_api` through `spec.mcp_applications`. Tau exposes
 `backoffice_api__list_tools` and `backoffice_api__call_tool`. The project extension
 in `.tau/extensions/backoffice_policy/extension.py` adds hooks, not new tools.
 
-The hooks require a verified requester and restrict business operations to the ten
-person/document-set/status queries in `src/backoffice_agent/policy.py`. Discovery
-must match the pinned input contracts and read-only annotations. Extra server tools
-are removed from the discovery result and cannot be called by guessing their names.
-Failed discovery blocks subsequent queries. Other application/resource wrappers are
-blocked. Skill-scoped reads permit only the four release-owned guidance files in
-`SKILL_FILES`; arbitrary workspace and development-skill reads remain blocked.
-SDK task input/authorization controls remain SDK-owned.
+The hooks require a verified requester and restrict business operations to the
+reviewed MCP catalog in `src/backoffice_agent/policy.py`. Runtime discovery validates
+the SDK-projected input schemas and read-only annotations against the release-owned snapshot. The offline release gate also validates output
+schemas and all side-effect annotations. Extra server
+tools are filtered out and cannot be called by guessing their names. Failed
+discovery blocks subsequent calls. Other application/resource wrappers are blocked.
+Skill reads permit only the four release-owned guidance files in `SKILL_FILES`;
+arbitrary workspace and development-skill reads remain blocked. SDK task/session
+controls retain SDK ownership.
 
-The SDK still lists its retained native controls; the restriction is enforced before
-execution rather than pretending its native catalog contains ten direct query tools.
-Extensions are trusted project code, not a Python sandbox. Changing the extension or
-the allowlist changes this application's authority and requires review.
+Canonical case tools read actual CaseType, subject, pinned Document Set, selected
+evidence, workspace, reviewer membership and evaluation state. The approved mutation
+slice creates subjects and cases, links same-subject documents, changes only the
+requester's own reviewer membership, processes existing ready subject-owned sources
+and starts/retries shared extraction or evaluation runs. The
+[API MCP catalog](mcp.md) describes the exact supported tools and their arguments,
+including processing capability boundaries. The helper never calls the database,
+bucket or parser directly. It cannot assign arbitrary staff, manually edit/review
+documents, approve loans/accounts or close cases.
 
-The agent does not upload, extract, assign, edit, submit or review documents. User
-answers are based on live MCP findings, pinned set versions and evidence references.
+The SDK still lists its retained native controls; restriction is enforced before
+execution. Extensions are trusted project code, not a Python sandbox. Changing the
+extension or allowlist changes authority and requires review. This release's case
+mutations were explicitly authorized; the skill does not grant extra permissions.
+
+The subject is the person represented in the evidence, not the requester or a staff
+reviewer. Back Office may automatically accept a revision under the configured
+per-type classification policy and validation guards. Such revisions do not require
+staff re-review merely because acceptance was automatic. Effective state and current
+requirements may still demand review or renewal. Acceptance is not case approval.
 
 ## Deployment
 
@@ -38,9 +52,10 @@ The contract Job runs `scripts/check_agent_contract.py` against the candidate AP
 catalog without querying business storage. It verifies the pinned input/output
 schemas, annotations and required artifacts. The agent image is prepared separately
 because its deployable entry point differs; the workflow supplies the same source
-event. The agent receives reader access to the API resource, no MetaTables branch
-grant, and declares `acts_for_requester: true`. Platform authorization must permit
-that declaration; the application does not grant itself delegation authority.
+event. The agent receives a viewer API-resource grant (which includes invocation),
+no MetaTables branch grant, and declares `acts_for_requester: true`. Back Office
+still enforces business permissions for every operation. Platform authorization
+must permit that declaration; the application does not grant itself delegation authority.
 
 Provider/model defaults are `openai-codex`, `gpt-5.6-luna`, `medium`, matching the
 local launcher. Existing sessions retain their selected model; changing a default
@@ -76,7 +91,10 @@ on 2026-10-19. AI 0.0.16 ships the proposed attachment ADR 018 as documentation
 only; its changelog explicitly says no attachment feature ships.
 Assistant file input therefore awaits compatible package releases. Business
 document processing is a separate API capability and does not add chat attachments
-or expand this helper's read-only tool permissions.
+or supply the helper with an original-byte upload tool. The helper can process an
+existing ready subject-owned source through its approved MCP tool, or automatically
+allocate a persisted intake/source with the ADR 0007 tools. The static-site Drop files
+screen supplies the authenticated original-byte intake transport.
 
 The local 2.0.20/0.0.16 check used the actual SDK Vite proxy and live runtime.
 A synthetic file-only chat payload returned HTTP 400 with
@@ -119,38 +137,39 @@ The source card and repository-owned helper skill are under `.agents/`. Managed
 development skills were synchronized explicitly from the pinned SDK; no startup
 path changes those instructions.
 
-The comparison implementation advances the reviewed MCP snapshot to version 3. Only
-`list_document_sets` and `get_document_set` output schemas gain comparison-policy
-metadata. Tool inputs, all ten tools, read-only annotations, verified-requester
-checks and the two Tau exclusion flags remain unchanged. The helper cannot trigger
-comparisons; status queries reuse retained observations and otherwise report them
-as pending. Publish this pinned snapshot with the matching API release.
+The earlier comparison-only release used snapshot version 3 with ten read-only
+queries: it added comparison metadata to Document Set output schemas and reused
+retained observations. The case-building release supersedes that business scope
+with canonical reads and approved mutations, including comparison execution. Ship
+its reviewed snapshot with the matching API and helper; preserve verified-requester
+checks and both Tau exclusion flags.
 
 
 ## Case analysis and case-building skill
 
 The runtime skill is [.tau/skills/backoffice-casework/SKILL.md](../.tau/skills/backoffice-casework/SKILL.md),
 with self-contained ontology and case-building references. The source agent card
-advertises it and `.tau/SYSTEM.md` routes case-analysis/building requests to it.
-The installed Tau skill loader discovers it normally. The SDK retains its scoped
-reader; the project hook permits only the exact release-owned guidance files.
-The candidate contract Job checks those files are present.
+advertises it and `.tau/SYSTEM.md` routes case requests to it. The installed Tau skill
+loader discovers it normally. The SDK retains its scoped reader; the project hook
+permits only the exact release-owned guidance files. The candidate contract Job
+checks those files are present.
 
-The skill uses one case → pinned policy → selected evidence → revision review →
-evaluation workflow for loans and account opening. It separates the business
-subject from the verified requester and assigned staff. Existing assignment IDs
-refer to the same cases, but the current MCP projection cannot confirm stored
-CaseType or reviewer memberships. The skill reports these limitations explicitly.
+The skill uses one subject → typed case → pinned policy → selected evidence →
+effective revision acceptance → evaluation workflow for loans and account opening.
+It uses canonical tools for actual case metadata and membership; legacy assignments
+still refer to the same case IDs. Analysis-only requests stay read-only. Authorized
+case-building requests use supported mutations with durable operation keys and
+observed revisions; ambiguities are resolved before dependent writes.
 
-In this release **build a case** means preparing an actionable creation/completion
-plan and handing it to **Cases → New case** or the subject's **Requirements** page.
-No case creation, evidence writes, staff assignment or evaluation tools were added.
-REST support does not imply agent support. Actual case mutation requires a later
-business-tool release with reviewed contracts, authorization and recovery behavior.
+The initial plan-only boundary in [ADR 0005](adr/0005-casework-skill-and-scoped-guidance.md)
+is superseded for business operations by
+[ADR 0006](adr/0006-case-building-mcp-workflow.md). The exact-file guidance exception
+remains. Unsupported source transport and manual-review actions receive explicit
+UI handoffs; planned, performed, queued and blocked work remain distinct.
 
-See [ADR 0005](adr/0005-casework-skill-and-scoped-guidance.md) for the narrow read
-exception. `tests/agent/test_casework_skill.py` exercises real Tau discovery and SDK
-skill reads through the project hooks, including rejected paths, symlink escapes,
-write-tool names and requester/discovery failures. No model inference is used in
-these tests. Keep the runtime references aligned with [the ontology](cases.md)
-when that model or the MCP capability contract changes.
+`tests/agent/test_casework_skill.py` exercises real Tau discovery and SDK skill reads
+through the project hooks, including rejected paths and symlink escapes. Agent/MCP
+tests cover requester/discovery requirements and the reviewed capability contract.
+These tests use no model inference and do not establish hosted readiness. Keep the
+runtime references aligned with [the ontology](cases.md) and the MCP catalog as they
+evolve together.

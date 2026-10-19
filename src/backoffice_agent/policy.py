@@ -1,11 +1,11 @@
-"""Versioned, read-only application MCP boundary for Tau's native hooks."""
+"""Versioned, scoped application MCP boundary for Tau's native hooks."""
 
 import hashlib
 import json
 from pathlib import Path
 
 APPLICATION = "backoffice_api"
-ALLOWED_TOOLS = frozenset(
+READ_TOOLS = frozenset(
     {
         "get_current_user",
         "search_persons",
@@ -17,8 +17,38 @@ ALLOWED_TOOLS = frozenset(
         "get_assignment",
         "get_document_set_status",
         "get_missing_requirements",
+        "list_case_types",
+        "list_cases",
+        "list_person_cases",
+        "get_case",
+        "get_case_workspace",
+        "get_case_reviewers",
+        "list_person_documents",
+        "list_person_sources",
+        "get_document",
+        "get_document_extraction_evidence",
+        "list_case_evaluations",
+        "get_evaluation",
+        "get_processing_run",
+        "get_document_allocation",
+        "list_document_intakes",
     }
 )
+MUTATION_TOOLS = frozenset(
+    {
+        "create_person",
+        "create_case",
+        "link_case_documents",
+        "set_my_case_membership",
+        "evaluate_case",
+        "process_source_document",
+        "retry_processing_run",
+        "allocate_document",
+        "resolve_document_allocation",
+        "retry_document_allocation",
+    }
+)
+ALLOWED_TOOLS = READ_TOOLS | MUTATION_TOOLS
 TASK_CONTROLS = frozenset({"task_request_input", "task_request_authorization"})
 CONTRACT_PATH = Path(__file__).with_name("mcp_contract.json")
 SKILL_FILES = (
@@ -68,8 +98,8 @@ def validate_catalog(entries, contract=None):
             continue
         if name in selected:
             raise ValueError("Duplicate approved MCP tool")
-        if entry.get("readOnly") is not True:
-            raise ValueError("Approved MCP tool is not declared read-only")
+        if entry.get("readOnly") is not (name in READ_TOOLS):
+            raise ValueError("Approved MCP tool side-effect declaration changed")
         if entry.get("inputSchema") != expected[name]["inputSchema"]:
             raise ValueError("Approved MCP input contract changed")
         selected[name] = entry
@@ -85,13 +115,13 @@ def call_denial(name, arguments, *, requester_present, catalog_verified, project
         # Static guidance contains no business data and does not authorize MCP calls.
         return None
     if name not in {f"{APPLICATION}__list_tools", f"{APPLICATION}__call_tool"}:
-        return "Only the Back Office MCP query tools are available for business work."
+        return "Only the Back Office MCP tools are available for business work."
     if not requester_present:
         return "A verified requester is required; workload-identity fallback is disabled."
     if name.endswith("__call_tool"):
         tool = arguments.get("tool")
         if not isinstance(tool, str) or tool not in ALLOWED_TOOLS:
-            return "This business tool is outside the Back Office helper's read-only allowlist."
+            return "This business tool is outside the Back Office helper's approved allowlist."
         if not catalog_verified:
-            return "List the Back Office MCP tools successfully before calling a query."
+            return "List the Back Office MCP tools successfully before calling a business tool."
     return None

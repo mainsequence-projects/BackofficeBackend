@@ -4,7 +4,7 @@ from uuid import UUID
 
 from ..services.application import RUN, canonical, fail, stable
 from ..services.comparisons import plan
-from ..services.contracts import Command, Evaluate
+from ..services.contracts import Command, Evaluate, EvaluateCase
 from .comparison_contracts import CompareDocumentsResponse
 
 KIND = "document.compare"
@@ -76,7 +76,9 @@ def run(worker, row, result):
     inputs = row["input_snapshot"]
     frozen = inputs["evaluation_input"]
     # A completed durable evaluation intent must be recoverable even after later edits.
-    command = Evaluate.model_validate(inputs["evaluation_command"])
+    # Preserve legacy intents while retaining the case-bound MCP command verbatim.
+    command_type = EvaluateCase if "case_uid" in inputs["evaluation_command"] else Evaluate
+    command = command_type.model_validate(inputs["evaluation_command"])
     completed_intent = app.db.one(RUN, uid=command.operation_key)
     if completed_intent is None and canonical(
         app.evaluation_input(inputs["assignment_uid"], processing=True)

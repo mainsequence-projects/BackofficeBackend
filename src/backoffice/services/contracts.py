@@ -194,3 +194,25 @@ class CreateCase(AssignSet):
         max_length=80,
         description="Explicit business process key whose permitted document-set versions constrain this case.",
     )
+
+
+class BuildCase(CreateCase):
+    """Strict case creation for the agent's scoped workflow."""
+
+    document_set_version: StrictInt = Field(ge=1, description="Exact published policy version.")
+
+
+class LinkCaseDocuments(AssignmentDocuments):
+    case_uid: UUID = Field(description="Case whose append-only evidence membership is changed.")
+    expected_revision: StrictInt = Field(ge=1, description="Loaded case revision.")
+
+
+class EvaluateCase(Evaluate):
+    case_uid: UUID = Field(
+        description="Case to evaluate; retained in the durable operation intent."
+    )
+    expected_revision: StrictInt = Field(ge=1, description="Loaded case revision.")
+
+
+class SetMyCaseResponsibility(SetMyCaseMembership):
+    case_uid: UUID = Field(description="Case to take or leave as the verified staff caller.")

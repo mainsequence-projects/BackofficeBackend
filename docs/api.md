@@ -161,8 +161,11 @@ to any of these make the stored result stale without rewriting it.
 The authored onboarding policy is explicitly illustrative. The service does not
 perform OCR, validate document authenticity or MRZ check digits, infer source-of-funds
 legitimacy, or make a legal onboarding decision. Human reviews and approved policy
-choices remain explicit. Ten read-only [MCP query tools](mcp.md) now share these services. Tau, extraction
-and mutation MCP adapters remain separate work.
+choices remain explicit. The [MCP catalog](mcp.md) exposes 23 queries and seven
+scoped case-building mutations through the same services. The Tau helper can create
+subjects and typed cases, process existing ready sources, append same-subject evidence,
+manage its requester’s own responsibility and evaluate cases. Original uploads,
+manual review and final business decisions retain their documented UI/API boundaries.
 
 Live status reads compare two input collections and reject intervening changes with
 409 `assessment_inputs_changed_retry_query`. Findings expose the primary blocker per
@@ -363,10 +366,16 @@ User UID. These identifiers never share a foreign-key relationship. Reviewer nam
 come from verified request identity, not submitted document data. Membership uses
 its own optimistic revision, the existing durable mutation/audit mechanism, and
 migration `backoffice_0007`; it does not alter case evidence revisions, invalidate
-an evaluation, grant read/review permissions, or record approval. No new helper
-MCP tools were added.
+an evaluation, grant read/review permissions, or record approval. `get_case_reviewers` and `set_my_case_membership` expose this
+same service through MCP; their command uses `my_revision` and the `assigned` boolean.
+See [ADR 0006](adr/0006-case-building-mcp-workflow.md) for the coordinated helper release.
 
 Local verification: `python -m scripts.verify_casework --source-uid <verified-local-uid>`
 exercises both policies through the local MetaTables API. A fresh process can
 read retained memberships using `--verify-case-uid <case-uid>`. The script refuses
 hosted or unexpected sources and uses only synthetic subjects.
+
+
+Automatic document intake and allocation endpoints, strict commands, pagination and
+recovery are documented in [Document allocation](document-allocation.md). The static
+site Drop files screen uses these shared services for multiple independent files.

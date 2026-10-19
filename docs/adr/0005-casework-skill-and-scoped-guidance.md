@@ -1,6 +1,6 @@
 # ADR 0005: Casework guidance within the read-only helper boundary
 
-- Status: Accepted
+- Status: Accepted; read-only business scope superseded by [ADR 0006](0006-case-building-mcp-workflow.md). The scoped guidance-read decision remains in force.
 - Date: 2026-10-19
 - Extends: [ADR 0004](0004-explicit-business-cases.md) and the helper boundary in
   [ADR 0001](0001-back-office-helper-mcp-and-document-processing.md).

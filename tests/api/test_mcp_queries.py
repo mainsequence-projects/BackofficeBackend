@@ -10,9 +10,10 @@ from mainsequence.server import fastapi as sdk_identity
 from test_workflows import SQLStorage, make_person, post
 
 from api.app import main
-from src.backoffice.services.application import Application
+from src.backoffice.services.application import Application, P
 from src.backoffice.services.contracts import AssignSet, CreatePerson
 from src.backoffice.services.reconciliation import reconcile
+from src.backoffice_agent.policy import ALLOWED_TOOLS, READ_TOOLS
 
 HEADERS = {"Accept": "application/json, text/event-stream"}
 
@@ -82,11 +83,8 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
     assert initialized.status_code == 200
     assert initialized.json()["result"]["serverInfo"]["name"] == "backoffice"
     catalog = rpc(client, "tools/list").json()["result"]["tools"]
-    assert len(catalog) == 10
-    assert all(
-        t["annotations"]["readOnlyHint"] and not t["annotations"]["destructiveHint"]
-        for t in catalog
-    )
+    assert {t["name"] for t in catalog} == ALLOWED_TOOLS
+    assert all(t["annotations"]["readOnlyHint"] is (t["name"] in READ_TOOLS) for t in catalog)
     assert all(t.get("outputSchema") for t in catalog)
     assert "review_document" not in {t["name"] for t in catalog}
     original = store.execute
@@ -116,6 +114,25 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
             f"/assignments/{uid}/missing-requirements",
         ),
     ]
+    cases += [
+        ("list_case_types", {}, "/case-types"),
+        ("list_cases", {}, "/cases"),
+        ("list_person_cases", {"person_uid": person}, f"/persons/{person}/cases"),
+        ("get_case", {"case_uid": uid}, f"/cases/{uid}"),
+        ("get_case_workspace", {"case_uid": uid}, f"/cases/{uid}/workspace"),
+        ("get_case_reviewers", {"case_uid": uid}, f"/cases/{uid}/reviewers"),
+        ("list_person_documents", {"person_uid": person}, f"/persons/{person}/documents"),
+        ("list_person_sources", {"person_uid": person}, f"/persons/{person}/sources"),
+        ("list_case_evaluations", {"case_uid": uid}, f"/cases/{uid}/evaluations"),
+    ]
+
+    def without_assessment_clock(value):
+        if isinstance(value, dict):
+            return {k: without_assessment_clock(v) for k, v in value.items() if k != "assessed_at"}
+        if isinstance(value, list):
+            return [without_assessment_clock(v) for v in value]
+        return value
+
     for name, arguments, path in cases:
         result = tool(client, name, arguments)
         assert not result.get("isError"), result
@@ -127,7 +144,7 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
             assert expected.pop("is_organization_admin") is False
         actual.pop("assessed_at", None)
         expected.pop("assessed_at", None)
-        assert actual == expected, name
+        assert without_assessment_clock(actual) == without_assessment_clock(expected), name
     sets = tool(client, "list_document_sets", {"limit": 1})["structuredContent"]
     assert sets["has_more"] and sets["total_items"] == 5
     assert (sets["items"][0]["key"], sets["items"][0]["version"]) == ("loan_requirements", 2)
@@ -261,6 +278,32 @@ def test_delegated_transport_uses_requester_not_admin_workload(monkeypatch):
             "can_review": False,
         }
         assert not tool(client, "get_missing_requirements", {"assignment_uid": uid}).get("isError")
+        created = tool(
+            client,
+            "create_person",
+            {
+                "command": {
+                    "operation_key": str(uuid4()),
+                    "profile": {"full_name": "Delegated Subject"},
+                }
+            },
+        )["structuredContent"]["uid"]
+        assert store.one(P, uid=created)["created_by"] == str(owner)
+        assert (
+            tool(
+                client,
+                "set_my_case_membership",
+                {
+                    "command": {
+                        "operation_key": str(uuid4()),
+                        "case_uid": uid,
+                        "expected_revision": 0,
+                        "assigned": True,
+                    }
+                },
+            )["structuredContent"]["error"]["status"]
+            == 403
+        )
         requester.user_uid = stranger
         assert (
             tool(client, "get_missing_requirements", {"assignment_uid": uid})["structuredContent"][

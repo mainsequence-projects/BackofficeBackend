@@ -148,6 +148,38 @@ class Application:
             fail(404, "document_set_version_not_found")
         return policy["definition"]
 
+    def list_documents(self, person_uid, limit=50, offset=0):
+        self.case(person_uid)
+        page = self.db.page(
+            D,
+            D.c.person_uid == UUID(str(person_uid)),
+            limit=limit,
+            offset=offset,
+            order=D.c.created_at.desc(),
+        )
+        page["items"] = [self.document(row["uid"]) for row in page["items"]]
+        return page
+
+    def list_sources(self, person_uid, limit=50, offset=0):
+        self.case(person_uid)
+        return self.db.page(
+            RAW,
+            RAW.c.person_uid == UUID(str(person_uid)),
+            limit=limit,
+            offset=offset,
+            order=RAW.c.created_at.desc(),
+        )
+
+    def list_evaluations(self, case_uid, limit=20, offset=0):
+        self.assignment(case_uid)
+        return self.db.page(
+            EV,
+            EV.c.assignment_uid == UUID(str(case_uid)),
+            limit=limit,
+            offset=offset,
+            order=EV.c.created_at.desc(),
+        )
+
     def list_assignments(self, person_uid, limit=50, offset=0):
         self.case(person_uid)
         page = self.db.page(
@@ -283,7 +315,12 @@ class Application:
         snapshot = row["input_snapshot"]
         if snapshot.get("actor_uid") != self.actor:
             fail(404, "record_not_found")
-        if row["kind"] in {"document.extract", "document.compare"}:
+        if row["kind"] in {
+            "document.extract",
+            "document.compare",
+            "document.allocate",
+            "allocation.request",
+        }:
             fail(409, "use_document_processing_endpoint")
         if row["kind"].startswith("admin.") and not self.organization_admin:
             fail(403, "organization_admin_required")
@@ -476,6 +513,8 @@ class Application:
         return {**row, "document_uids": [x["document_uid"] for x in members]}
 
     def set_documents(self, uid, command):
+        if hasattr(command, "case_uid") and str(command.case_uid) != str(uid):
+            fail(422, "case_command_target_mismatch")
         assignment = self.assignment(uid, reading=False)
 
         def build(op, now):
@@ -979,6 +1018,8 @@ class Application:
     def evaluate(self, uid, command, *, dispatcher=None, processing=False, comparison_run=None):
         from .reconciliation import reconcile
 
+        if hasattr(command, "case_uid") and str(command.case_uid) != str(uid):
+            fail(422, "case_command_target_mismatch")
         if processing and not (self.parsing_processor or self.organization_admin):
             fail(403, "parsing_processor_required")
         if comparison_run is not None and not processing:

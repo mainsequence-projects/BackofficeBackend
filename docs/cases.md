@@ -45,7 +45,9 @@ storage column for older writers and retained operation intents.
 4. Upload/process subject-owned documents using the shared document pipeline.
    The parser classifies, extracts typed claims and returns cited comparisons.
 5. Link selected documents with `PUT /cases/{uid}/documents`, using the observed
-   case revision. Inspect sources and record authorized document-revision reviews.
+   case revision. Read effective acceptance; inspect/review revisions needing staff
+   attention. Backend automatic acceptance does not itself require another manual
+   review, and neither acceptance path approves the case.
 6. Run `POST /cases/{uid}/evaluations`. Back Office applies the pinned rules and
    tolerances. Comparison policies use the shared background job; others return
    synchronously. Both preserve the assessment inputs.
@@ -54,8 +56,9 @@ storage column for older writers and retained operation intents.
 
 A complete evidence assessment is not a loan approval or an opened account.
 Case-level approval/closure and multiple subject roles are not implemented here.
-The deployed helper remains read-only; this ontology does not authorize it to
-create cases, upload evidence or review documents.
+The helper uses approved MCP tools for authorized case creation, processing existing
+ready subject-owned sources, evidence linking and evaluation. Source intake and manual document review require their supported
+interfaces; no skill grants arbitrary storage or reviewer access.
 
 ## Compatibility and verification
 
@@ -72,6 +75,7 @@ compatibility routes. Hosted rollout uses the deployment migration Job; local
 verification does not establish production readiness.
 
 The agent uses the [casework skill](../.tau/skills/backoffice-casework/SKILL.md) to
-analyze accessible cases and prepare creation/completion plans. Its read-only
-capability boundary and skill-loading design are documented in
-[ADR 0005](adr/0005-casework-skill-and-scoped-guidance.md).
+analyze accessible cases and execute authorized creation/completion work through
+the shared MCP services. [ADR 0006](adr/0006-case-building-mcp-workflow.md) documents
+the expanded business capability; [ADR 0005](adr/0005-casework-skill-and-scoped-guidance.md)
+retains the scoped guidance-file loading design.

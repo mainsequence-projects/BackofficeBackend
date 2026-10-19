@@ -27,7 +27,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def entries():
     return [
-        {"name": name, "inputSchema": spec["inputSchema"], "readOnly": True}
+        {
+            "name": name,
+            "inputSchema": spec["inputSchema"],
+            "readOnly": spec["annotations"]["readOnlyHint"],
+        }
         for name, spec in load_contract()["tools"].items()
     ]
 
@@ -38,13 +42,13 @@ def test_actual_api_catalog_matches_versioned_contract():
 
 def test_catalog_filters_extra_tools_and_refuses_missing_mutable_or_changed_tools():
     extra = {"name": "delete_person", "inputSchema": {}, "readOnly": False}
-    assert len(validate_catalog(entries() + [extra])) == 10
+    assert len(validate_catalog(entries() + [extra])) == len(ALLOWED_TOOLS)
     for change in ("missing", "mutable", "schema", "duplicate"):
         modified = deepcopy(entries())
         if change == "missing":
             modified.pop()
         elif change == "mutable":
-            modified[0]["readOnly"] = False
+            modified[0]["readOnly"] = not modified[0]["readOnly"]
         elif change == "schema":
             modified[0]["inputSchema"] = {}
         else:
@@ -70,8 +74,11 @@ def test_non_business_routes_cannot_execute(name):
     assert call_denial(name, {}, requester_present=True, catalog_verified=True)
 
 
-def test_requester_and_discovery_required_even_for_known_query():
-    args = {"tool": "get_person", "arguments": {"person_uid": "arbitrary"}}
+@pytest.mark.parametrize(
+    "business_tool", ["get_person", "create_case", "evaluate_case", "process_source_document"]
+)
+def test_requester_and_discovery_required_even_for_known_query(business_tool):
+    args = {"tool": business_tool, "arguments": {"person_uid": "arbitrary"}}
     name = f"{APPLICATION}__call_tool"
     assert call_denial(name, args, requester_present=False, catalog_verified=True)
     assert call_denial(name, args, requester_present=True, catalog_verified=False)

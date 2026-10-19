@@ -47,15 +47,25 @@ def main():
             rest = client.get(path)
             rest.raise_for_status()
             expected = rest.json()
-            actual.pop("assessed_at", None)
-            expected.pop("assessed_at", None)
-            if actual != expected:
+            if name == "get_current_user":
+                expected.pop("is_organization_admin", None)
+
+            def without_clock(value):
+                if isinstance(value, dict):
+                    return {k: without_clock(v) for k, v in value.items() if k != "assessed_at"}
+                if isinstance(value, list):
+                    return [without_clock(v) for v in value]
+                return value
+
+            if without_clock(actual) != without_clock(expected):
                 raise AssertionError(f"{name} differs from REST")
             checked_tools.add(name)
             return actual
 
         query("get_current_user", {}, "/me")
         query("get_person_schema", {}, "/person-schema")
+        query("list_case_types", {}, "/case-types")
+        query("list_cases", {"limit": 1}, "/cases?limit=1")
         sets = query("list_document_sets", {"limit": 10}, "/document-sets?limit=10")
         if not sets["items"]:
             raise RuntimeError("Publish the local catalog before running this verifier")
@@ -70,6 +80,9 @@ def main():
         for person in people["items"]:
             uid = person["uid"]
             query("get_person", {"person_uid": uid}, f"/persons/{uid}")
+            query("list_person_cases", {"person_uid": uid}, f"/persons/{uid}/cases")
+            query("list_person_documents", {"person_uid": uid}, f"/persons/{uid}/documents")
+            query("list_person_sources", {"person_uid": uid}, f"/persons/{uid}/sources")
             assignments = query(
                 "list_person_assignments", {"person_uid": uid}, f"/persons/{uid}/assignments"
             )
@@ -87,6 +100,18 @@ def main():
                     "get_missing_requirements",
                     {"assignment_uid": assignment},
                     f"/assignments/{assignment}/missing-requirements",
+                )
+                query("get_case", {"case_uid": assignment}, f"/cases/{assignment}")
+                query(
+                    "get_case_workspace", {"case_uid": assignment}, f"/cases/{assignment}/workspace"
+                )
+                query(
+                    "get_case_reviewers", {"case_uid": assignment}, f"/cases/{assignment}/reviewers"
+                )
+                query(
+                    "list_case_evaluations",
+                    {"case_uid": assignment},
+                    f"/cases/{assignment}/evaluations",
                 )
                 checked_assignment = True
                 break

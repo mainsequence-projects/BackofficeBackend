@@ -1,88 +1,213 @@
 {
-  "version": 3,
+  "sha256": "088dc243d25e2f7ea38d2604c90a5cd15ae3ceede244e64ecdac243c77c97291",
   "tools": {
-    "get_current_user": {
-      "inputSchema": {
-        "properties": {},
-        "title": "get_current_userArguments",
-        "type": "object"
+    "allocate_document": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false,
+        "title": null
       },
-      "outputSchema": {
-        "additionalProperties": false,
+      "inputSchema": {
+        "$defs": {
+          "AllocateDocument": {
+            "additionalProperties": false,
+            "properties": {
+              "intake_uid": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Intake Uid"
+              },
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              },
+              "source_uid": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Source Uid"
+              }
+            },
+            "required": [
+              "operation_key"
+            ],
+            "title": "AllocateDocument",
+            "type": "object"
+          }
+        },
         "properties": {
-          "user_uid": {
-            "description": "Verified effective caller; a delegated call reports its requester.",
-            "format": "uuid",
-            "title": "User Uid",
-            "type": "string"
-          },
-          "can_review": {
-            "description": "Whether the effective caller has reviewer permission.",
-            "title": "Can Review",
-            "type": "boolean"
+          "command": {
+            "$ref": "#/$defs/AllocateDocument"
           }
         },
         "required": [
-          "user_uid",
-          "can_review"
+          "command"
         ],
-        "title": "CurrentUser",
-        "type": "object"
-      },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    "search_persons": {
-      "inputSchema": {
-        "properties": {
-          "search": {
-            "default": "",
-            "description": "Literal case-insensitive search text.",
-            "maxLength": 100,
-            "title": "Search",
-            "type": "string"
-          },
-          "limit": {
-            "default": 50,
-            "description": "Maximum items, from 1 to 100.",
-            "maximum": 100,
-            "minimum": 1,
-            "title": "Limit",
-            "type": "integer"
-          },
-          "offset": {
-            "default": 0,
-            "description": "Zero-based page offset; pages are not snapshots.",
-            "minimum": 0,
-            "title": "Offset",
-            "type": "integer"
-          }
-        },
-        "title": "search_personsArguments",
+        "title": "allocate_documentArguments",
         "type": "object"
       },
       "outputSchema": {
+        "additionalProperties": true,
+        "title": "allocate_documentDictOutput",
+        "type": "object"
+      }
+    },
+    "create_case": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
         "$defs": {
-          "Person": {
+          "BuildCase": {
             "additionalProperties": false,
+            "description": "Strict case creation for the agent's scoped workflow.",
             "properties": {
-              "uid": {
-                "description": "Stable business-person UID; this is not a Main Sequence authentication identity.",
-                "format": "uuid",
-                "title": "Person UID",
+              "case_type_key": {
+                "description": "Explicit business process key whose permitted document-set versions constrain this case.",
+                "maxLength": 80,
+                "minLength": 1,
+                "title": "Case Type Key",
                 "type": "string"
               },
-              "revision": {
-                "default": 1,
-                "description": "Positive revision of the person's reference profile.",
+              "document_set_key": {
+                "description": "Exact authored policy key.",
+                "minLength": 1,
+                "pattern": "\\S",
+                "title": "Document Set Key",
+                "type": "string"
+              },
+              "document_set_version": {
+                "description": "Exact published policy version.",
                 "minimum": 1,
-                "title": "Profile revision",
+                "title": "Document Set Version",
                 "type": "integer"
+              },
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              },
+              "subject_uid": {
+                "description": "Existing business Person UID; never a staff reviewer UID.",
+                "format": "uuid",
+                "title": "Subject Uid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key",
+              "document_set_key",
+              "document_set_version",
+              "subject_uid",
+              "case_type_key"
+            ],
+            "title": "BuildCase",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/BuildCase"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "create_caseArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "create_caseDictOutput",
+        "type": "object"
+      }
+    },
+    "create_person": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "CreatePerson": {
+            "additionalProperties": false,
+            "properties": {
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              },
+              "profile": {
+                "$ref": "#/$defs/PersonInput",
+                "description": "Reference attributes, distinct from claims in uploaded documents."
+              }
+            },
+            "required": [
+              "operation_key",
+              "profile"
+            ],
+            "title": "CreatePerson",
+            "type": "object"
+          },
+          "PersonInput": {
+            "additionalProperties": false,
+            "properties": {
+              "date_of_birth": {
+                "anyOf": [
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Verified reference date of birth; null when unknown.",
+                "title": "Date of birth"
+              },
+              "employment_status": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Reference employment category, such as employed or self_employed; null when unknown.",
+                "title": "Employment status"
               },
               "external_reference": {
                 "anyOf": [
@@ -144,20 +269,6 @@
                 "description": "Reference surname or family name when applicable; null otherwise.",
                 "title": "Last name"
               },
-              "date_of_birth": {
-                "anyOf": [
-                  {
-                    "format": "date",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Verified reference date of birth; null when unknown.",
-                "title": "Date of birth"
-              },
               "nationalities": {
                 "anyOf": [
                   {
@@ -176,34 +287,6 @@
                 "description": "Declared or verified nationalities; null when not yet recorded.",
                 "title": "Nationalities"
               },
-              "residential_address": {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/PostalAddress"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Reference residential address used for comparison; null when unknown.",
-                "title": "Residential address"
-              },
-              "employment_status": {
-                "anyOf": [
-                  {
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Reference employment category, such as employed or self_employed; null when unknown.",
-                "title": "Employment status"
-              },
               "residency_permit_required": {
                 "anyOf": [
                   {
@@ -216,12 +299,22 @@
                 "default": null,
                 "description": "Case-specific determination of whether residence-permit evidence is required; null until determined.",
                 "title": "Residence permit required"
+              },
+              "residential_address": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/PostalAddress"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Reference residential address used for comparison; null when unknown.",
+                "title": "Residential address"
               }
             },
-            "required": [
-              "uid"
-            ],
-            "title": "Person",
+            "title": "PersonInput",
             "type": "object"
           },
           "PostalAddress": {
@@ -265,11 +358,10 @@
                 "description": "City or locality named in the address; null when absent.",
                 "title": "City"
               },
-              "region": {
+              "country_code": {
                 "anyOf": [
                   {
-                    "minLength": 1,
-                    "pattern": "\\S",
+                    "pattern": "^[A-Z]{2}$",
                     "type": "string"
                   },
                   {
@@ -277,8 +369,8 @@
                   }
                 ],
                 "default": null,
-                "description": "State, province, or administrative region named in the address; null when absent.",
-                "title": "Region"
+                "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+                "title": "Country code"
               },
               "postal_code": {
                 "anyOf": [
@@ -295,10 +387,11 @@
                 "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
                 "title": "Postal code"
               },
-              "country_code": {
+              "region": {
                 "anyOf": [
                   {
-                    "pattern": "^[A-Z]{2}$",
+                    "minLength": 1,
+                    "pattern": "\\S",
                     "type": "string"
                   },
                   {
@@ -306,8 +399,8 @@
                   }
                 ],
                 "default": null,
-                "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
-                "title": "Country code"
+                "description": "State, province, or administrative region named in the address; null when absent.",
+                "title": "Region"
               }
             },
             "required": [
@@ -317,56 +410,1658 @@
             "type": "object"
           }
         },
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/CreatePerson"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "create_personArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "create_personDictOutput",
+        "type": "object"
+      }
+    },
+    "evaluate_case": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "EvaluateCase": {
+            "additionalProperties": false,
+            "properties": {
+              "case_uid": {
+                "description": "Case to evaluate; retained in the durable operation intent.",
+                "format": "uuid",
+                "title": "Case Uid",
+                "type": "string"
+              },
+              "expected_revision": {
+                "description": "Loaded case revision.",
+                "minimum": 1,
+                "title": "Expected Revision",
+                "type": "integer"
+              },
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key",
+              "expected_revision",
+              "case_uid"
+            ],
+            "title": "EvaluateCase",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/EvaluateCase"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "evaluate_caseArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "evaluate_caseDictOutput",
+        "type": "object"
+      }
+    },
+    "get_assignment": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "assignment_uid": {
+            "format": "uuid",
+            "title": "Assignment Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignment_uid"
+        ],
+        "title": "get_assignmentArguments",
+        "type": "object"
+      },
+      "outputSchema": {
         "additionalProperties": false,
         "properties": {
-          "items": {
-            "description": "Items in this bounded page.",
+          "created_at": {
+            "description": "UTC creation timestamp.",
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "document_uids": {
+            "description": "Document identifiers explicitly selected for this assignment.",
             "items": {
-              "$ref": "#/$defs/Person"
+              "format": "uuid",
+              "type": "string"
             },
-            "title": "Items",
+            "title": "Document Uids",
             "type": "array"
           },
-          "total_items": {
-            "description": "Total records matching the same access and search filters.",
-            "title": "Total Items",
+          "person_uid": {
+            "description": "Business person whose case owns this record.",
+            "format": "uuid",
+            "title": "Person Uid",
+            "type": "string"
+          },
+          "revision": {
+            "description": "Current assignment revision.",
+            "title": "Revision",
             "type": "integer"
           },
+          "set_key": {
+            "description": "Stable key of the pinned requirement policy.",
+            "title": "Set Key",
+            "type": "string"
+          },
+          "set_version": {
+            "description": "Exact immutable policy version; never implicitly upgraded.",
+            "title": "Set Version",
+            "type": "integer"
+          },
+          "uid": {
+            "description": "Stable assignment identifier.",
+            "format": "uuid",
+            "title": "Uid",
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "UTC timestamp of the latest assignment change.",
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "person_uid",
+          "set_key",
+          "set_version",
+          "revision",
+          "created_at",
+          "updated_at",
+          "document_uids"
+        ],
+        "title": "AssignmentDetail",
+        "type": "object"
+      }
+    },
+    "get_case": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "case_uid": {
+            "format": "uuid",
+            "title": "Case Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_uid"
+        ],
+        "title": "get_caseArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_caseDictOutput",
+        "type": "object"
+      }
+    },
+    "get_case_reviewers": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "case_uid": {
+            "format": "uuid",
+            "title": "Case Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_uid"
+        ],
+        "title": "get_case_reviewersArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_case_reviewersDictOutput",
+        "type": "object"
+      }
+    },
+    "get_case_workspace": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "case_uid": {
+            "format": "uuid",
+            "title": "Case Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_uid"
+        ],
+        "title": "get_case_workspaceArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_case_workspaceDictOutput",
+        "type": "object"
+      }
+    },
+    "get_current_user": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {},
+        "title": "get_current_userArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "can_review": {
+            "description": "Whether the effective caller has reviewer permission.",
+            "title": "Can Review",
+            "type": "boolean"
+          },
+          "user_uid": {
+            "description": "Verified effective caller; a delegated call reports its requester.",
+            "format": "uuid",
+            "title": "User Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_uid",
+          "can_review"
+        ],
+        "title": "CurrentUser",
+        "type": "object"
+      }
+    },
+    "get_document": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "document_uid": {
+            "format": "uuid",
+            "title": "Document Uid",
+            "type": "string"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revision"
+          }
+        },
+        "required": [
+          "document_uid"
+        ],
+        "title": "get_documentArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_documentDictOutput",
+        "type": "object"
+      }
+    },
+    "get_document_allocation": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "allocation_uid": {
+            "format": "uuid",
+            "title": "Allocation Uid",
+            "type": "string"
+          },
           "limit": {
-            "description": "Maximum records requested for this page.",
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
             "title": "Limit",
             "type": "integer"
           },
           "offset": {
-            "description": "Zero-based start of this page.",
+            "default": 0,
+            "minimum": 0,
             "title": "Offset",
             "type": "integer"
-          },
-          "has_more": {
-            "description": "Whether more matching records follow this page.",
-            "title": "Has More",
-            "type": "boolean"
           }
         },
         "required": [
-          "items",
-          "total_items",
-          "limit",
-          "offset",
-          "has_more"
+          "allocation_uid"
         ],
-        "title": "Page[Person]",
+        "title": "get_document_allocationArguments",
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_document_allocationDictOutput",
+        "type": "object"
+      }
+    },
+    "get_document_extraction_evidence": {
       "annotations": {
-        "title": null,
-        "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true,
-        "openWorldHint": false
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "document_uid": {
+            "format": "uuid",
+            "title": "Document Uid",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 1,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "document_uid",
+          "revision"
+        ],
+        "title": "get_document_extraction_evidenceArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_document_extraction_evidenceDictOutput",
+        "type": "object"
+      }
+    },
+    "get_document_set": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "key": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "version"
+        ],
+        "title": "get_document_setArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "ComparisonRule": {
+            "additionalProperties": false,
+            "properties": {
+              "absolute_tolerance": {
+                "anyOf": [
+                  {
+                    "minimum": 0.0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "default": "0",
+                "description": "Nonnegative allowed absolute difference, in the compared unit; numeric rules only.",
+                "title": "Absolute Tolerance"
+              },
+              "description": {
+                "description": "Business explanation retained in the finding; never sent to the parser.",
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "Description",
+                "type": "string"
+              },
+              "key": {
+                "description": "Stable comparison rule key, unique alongside requirement keys.",
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "title": "Key",
+                "type": "string"
+              },
+              "left": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Left document/field selector; the numeric relative tolerance uses this value as its baseline."
+              },
+              "mandatory": {
+                "default": true,
+                "description": "Whether an applicable unresolved or failed comparison blocks requirement completion.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "operator": {
+                "description": "Back Office operator applied only after cited comparability has been established.",
+                "enum": [
+                  "exact",
+                  "numeric",
+                  "semantic"
+                ],
+                "title": "Operator",
+                "type": "string"
+              },
+              "relative_tolerance_basis_points": {
+                "default": 0,
+                "description": "Allowed relative difference in basis points of the absolute left value; numeric rules only. Zero baseline uses absolute tolerance only.",
+                "maximum": 10000,
+                "minimum": 0,
+                "title": "Relative Tolerance Basis Points",
+                "type": "integer"
+              },
+              "right": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Right document/field selector."
+              },
+              "topic": {
+                "description": "Factual concept the parser should compare, without rules or thresholds.",
+                "maxLength": 500,
+                "minLength": 1,
+                "title": "Topic",
+                "type": "string"
+              },
+              "when_both_present": {
+                "default": false,
+                "description": "When true, absent document types make this rule inapplicable; missing fields in present documents still block it.",
+                "title": "When Both Present",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "topic",
+              "left",
+              "right",
+              "operator"
+            ],
+            "title": "ComparisonRule",
+            "type": "object"
+          },
+          "ComparisonSelector": {
+            "additionalProperties": false,
+            "properties": {
+              "context_fields": {
+                "description": "Additional cited fields needed to interpret period, basis or entity; missing context leaves comparison unresolved.",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "title": "Context Fields",
+                "type": "array"
+              },
+              "document_type": {
+                "description": "Document type selected from this assignment only.",
+                "enum": [
+                  "national_identity_card",
+                  "passport",
+                  "residence_permit",
+                  "utility_bill",
+                  "bank_statement",
+                  "employment_contract",
+                  "payslip",
+                  "tax_return",
+                  "source_of_funds_evidence",
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
+                ],
+                "title": "Document Type",
+                "type": "string"
+              },
+              "field": {
+                "description": "Canonical object field path to compare, such as net_pay.amount.",
+                "maxLength": 240,
+                "minLength": 1,
+                "title": "Field",
+                "type": "string"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact canonical schema version.",
+                "minimum": 1,
+                "title": "Schema Version",
+                "type": "integer"
+              },
+              "unit_field": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Field identifying the currency or unit; both sides must agree exactly.",
+                "title": "Unit Field"
+              }
+            },
+            "required": [
+              "document_type",
+              "field"
+            ],
+            "title": "ComparisonSelector",
+            "type": "object"
+          },
+          "DocumentOption": {
+            "additionalProperties": false,
+            "properties": {
+              "document_type": {
+                "description": "One supported type of evidence that may satisfy the requirement.",
+                "enum": [
+                  "national_identity_card",
+                  "passport",
+                  "residence_permit",
+                  "utility_bill",
+                  "bank_statement",
+                  "employment_contract",
+                  "payslip",
+                  "tax_return",
+                  "source_of_funds_evidence",
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
+                ],
+                "title": "Document type",
+                "type": "string"
+              },
+              "freshness_field": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
+                "title": "Freshness date field"
+              },
+              "max_age_days": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
+                "title": "Maximum age"
+              },
+              "max_age_months": {
+                "anyOf": [
+                  {
+                    "maximum": 1200,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
+                "title": "Maximum age in calendar months"
+              },
+              "renewal_basis": {
+                "default": "reviewed_at",
+                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
+                "enum": [
+                  "reviewed_at",
+                  "submitted_at"
+                ],
+                "title": "Renewal measured from",
+                "type": "string"
+              },
+              "renewal_interval_months": {
+                "anyOf": [
+                  {
+                    "maximum": 1200,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
+                "title": "Renewal interval in calendar months"
+              },
+              "require_unexpired": {
+                "default": false,
+                "description": "Whether the evaluator must establish document validity on the evaluation date.",
+                "title": "Require current validity",
+                "type": "boolean"
+              },
+              "required_fields": {
+                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
+                "items": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                },
+                "title": "Additional required fields",
+                "type": "array"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact document schema version accepted by this option.",
+                "minimum": 1,
+                "title": "Schema version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "document_type"
+            ],
+            "title": "DocumentOption",
+            "type": "object"
+          },
+          "DocumentRequirement": {
+            "additionalProperties": false,
+            "properties": {
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/RequirementCondition"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Condition on the person profile; null means the requirement always applies.",
+                "title": "Applicability condition"
+              },
+              "description": {
+                "description": "English explanation of the evidence needed and why it is required.",
+                "minLength": 1,
+                "pattern": "\\S",
+                "title": "Requirement description",
+                "type": "string"
+              },
+              "distinct_period_field": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Period field used to require distinct reporting periods; null means no period grouping.",
+                "title": "Distinct reporting period"
+              },
+              "key": {
+                "description": "Stable requirement identifier within the document-set version.",
+                "minLength": 1,
+                "pattern": "\\S",
+                "title": "Requirement key",
+                "type": "string"
+              },
+              "mandatory": {
+                "default": true,
+                "description": "Whether this requirement must be satisfied when applicable.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "min_count": {
+                "default": 1,
+                "description": "Minimum number of distinct qualifying documents; duplicate uploads never increase the count.",
+                "minimum": 1,
+                "title": "Minimum document count",
+                "type": "integer"
+              },
+              "options": {
+                "description": "Evidence alternatives; qualifying documents from these alternatives satisfy this requirement.",
+                "items": {
+                  "$ref": "#/$defs/DocumentOption"
+                },
+                "minItems": 1,
+                "title": "Accepted alternatives",
+                "type": "array"
+              }
+            },
+            "required": [
+              "key",
+              "description",
+              "options"
+            ],
+            "title": "DocumentRequirement",
+            "type": "object"
+          },
+          "RequirementCondition": {
+            "additionalProperties": false,
+            "properties": {
+              "equals": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ],
+                "description": "Exact reference value that makes the requirement applicable.",
+                "title": "Expected value"
+              },
+              "field": {
+                "description": "Person reference field evaluated for applicability; a missing value leaves applicability unknown.",
+                "enum": [
+                  "employment_status",
+                  "residency_permit_required"
+                ],
+                "title": "Reference field",
+                "type": "string"
+              }
+            },
+            "required": [
+              "field",
+              "equals"
+            ],
+            "title": "RequirementCondition",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "allow_document_reuse": {
+            "default": true,
+            "description": "Whether the same qualifying document may satisfy more than one requirement; duplicates within a requirement never increase its count.",
+            "title": "Allow document reuse",
+            "type": "boolean"
+          },
+          "comparisons": {
+            "description": "Versioned cross-document rules evaluated by the same Back Office engine; parser observations never carry these decisions or tolerances.",
+            "items": {
+              "$ref": "#/$defs/ComparisonRule"
+            },
+            "maxItems": 25,
+            "title": "Comparisons",
+            "type": "array"
+          },
+          "description": {
+            "description": "Business purpose and coverage of this version's requirements.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "description": "Stable reusable document-set identifier, such as new_account_requirements.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Set key",
+            "type": "string"
+          },
+          "name": {
+            "description": "Readable English name for this document set.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Name",
+            "type": "string"
+          },
+          "requirements": {
+            "description": "Named requirements that are evaluated independently for each assigned person.",
+            "items": {
+              "$ref": "#/$defs/DocumentRequirement"
+            },
+            "minItems": 1,
+            "title": "Requirements",
+            "type": "array"
+          },
+          "version": {
+            "description": "Published immutable version pinned by a person's assignment.",
+            "minimum": 1,
+            "title": "Set version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "version",
+          "name",
+          "description",
+          "requirements"
+        ],
+        "title": "DocumentSet",
+        "type": "object"
+      }
+    },
+    "get_document_set_status": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "assignment_uid": {
+            "format": "uuid",
+            "title": "Assignment Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignment_uid"
+        ],
+        "title": "get_document_set_statusArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "DocumentOption": {
+            "additionalProperties": false,
+            "properties": {
+              "document_type": {
+                "description": "One supported type of evidence that may satisfy the requirement.",
+                "enum": [
+                  "national_identity_card",
+                  "passport",
+                  "residence_permit",
+                  "utility_bill",
+                  "bank_statement",
+                  "employment_contract",
+                  "payslip",
+                  "tax_return",
+                  "source_of_funds_evidence",
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
+                ],
+                "title": "Document type",
+                "type": "string"
+              },
+              "freshness_field": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
+                "title": "Freshness date field"
+              },
+              "max_age_days": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
+                "title": "Maximum age"
+              },
+              "max_age_months": {
+                "anyOf": [
+                  {
+                    "maximum": 1200,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
+                "title": "Maximum age in calendar months"
+              },
+              "renewal_basis": {
+                "default": "reviewed_at",
+                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
+                "enum": [
+                  "reviewed_at",
+                  "submitted_at"
+                ],
+                "title": "Renewal measured from",
+                "type": "string"
+              },
+              "renewal_interval_months": {
+                "anyOf": [
+                  {
+                    "maximum": 1200,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
+                "title": "Renewal interval in calendar months"
+              },
+              "require_unexpired": {
+                "default": false,
+                "description": "Whether the evaluator must establish document validity on the evaluation date.",
+                "title": "Require current validity",
+                "type": "boolean"
+              },
+              "required_fields": {
+                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
+                "items": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                },
+                "title": "Additional required fields",
+                "type": "array"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact document schema version accepted by this option.",
+                "minimum": 1,
+                "title": "Schema version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "document_type"
+            ],
+            "title": "DocumentOption",
+            "type": "object"
+          },
+          "RequirementFinding": {
+            "additionalProperties": false,
+            "properties": {
+              "alternatives": {
+                "description": "Accepted evidence choices and their field/date constraints.",
+                "items": {
+                  "$ref": "#/$defs/DocumentOption"
+                },
+                "title": "Alternatives",
+                "type": "array"
+              },
+              "applicable": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Resolved applicability; null means the profile lacks necessary information.",
+                "title": "Applicable"
+              },
+              "document_references": {
+                "description": "Exact document/revision/review references and relevant policy dates.",
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Document References",
+                "type": "array"
+              },
+              "explanation": {
+                "description": "Policy description and explanation of the primary finding.",
+                "title": "Explanation",
+                "type": "string"
+              },
+              "field_paths": {
+                "description": "Document or reference-profile paths implicated by the finding.",
+                "items": {
+                  "type": "string"
+                },
+                "title": "Field Paths",
+                "type": "array"
+              },
+              "mandatory": {
+                "description": "Whether this applicable requirement affects completion.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "next_action": {
+                "description": "Suggested action grounded in the primary evaluator reason.",
+                "title": "Next Action",
+                "type": "string"
+              },
+              "qualifying_count": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Distinct qualifying evidence count; null when applicability is unknown or false.",
+                "title": "Qualifying Count"
+              },
+              "reason_code": {
+                "description": "Evaluator reason for the primary requirement finding.",
+                "title": "Reason Code",
+                "type": "string"
+              },
+              "required_count": {
+                "description": "Minimum distinct qualifying documents required by the policy.",
+                "title": "Required Count",
+                "type": "integer"
+              },
+              "requirement_key": {
+                "description": "Stable requirement key within the pinned policy.",
+                "title": "Requirement Key",
+                "type": "string"
+              },
+              "shortfall": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Additional qualifying evidence needed; null when applicability is unknown or false.",
+                "title": "Shortfall"
+              },
+              "status": {
+                "description": "Deterministic state; pending review and missing evidence remain distinct.",
+                "enum": [
+                  "satisfied",
+                  "missing",
+                  "failed",
+                  "pending_review",
+                  "needs_information",
+                  "not_applicable"
+                ],
+                "title": "Status",
+                "type": "string"
+              }
+            },
+            "required": [
+              "requirement_key",
+              "status",
+              "reason_code",
+              "explanation",
+              "field_paths",
+              "document_references",
+              "mandatory",
+              "applicable",
+              "alternatives",
+              "required_count",
+              "qualifying_count",
+              "shortfall",
+              "next_action"
+            ],
+            "title": "RequirementFinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "assessed_at": {
+            "description": "UTC timestamp when the input consistency check completed.",
+            "format": "date-time",
+            "title": "Assessed At",
+            "type": "string"
+          },
+          "assignment_revision": {
+            "description": "Selected-evidence assignment revision used in this assessment.",
+            "title": "Assignment Revision",
+            "type": "integer"
+          },
+          "assignment_uid": {
+            "description": "Assignment assessed by this response.",
+            "format": "uuid",
+            "title": "Assignment Uid",
+            "type": "string"
+          },
+          "diagnostics_complete": {
+            "default": false,
+            "description": "False: findings expose the primary blocker per requirement.",
+            "title": "Diagnostics Complete",
+            "type": "boolean"
+          },
+          "evaluator_version": {
+            "description": "Version of deterministic evaluation logic used.",
+            "title": "Evaluator Version",
+            "type": "string"
+          },
+          "findings": {
+            "description": "Requirement findings within the explicitly stated scope.",
+            "items": {
+              "$ref": "#/$defs/RequirementFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "person_revision": {
+            "description": "Reference-profile revision used in this assessment.",
+            "title": "Person Revision",
+            "type": "integer"
+          },
+          "person_uid": {
+            "description": "Business person whose case owns this record.",
+            "format": "uuid",
+            "title": "Person Uid",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Only explicitly selected assignment documents are assessed.",
+            "title": "Scope",
+            "type": "string"
+          },
+          "set_key": {
+            "description": "Stable key of the pinned requirement policy.",
+            "title": "Set Key",
+            "type": "string"
+          },
+          "set_version": {
+            "description": "Exact immutable policy version; never implicitly upgraded.",
+            "title": "Set Version",
+            "type": "integer"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "description": "Completion counts, evaluation date, policy notice and next action date.",
+            "title": "Summary",
+            "type": "object"
+          }
+        },
+        "required": [
+          "person_uid",
+          "person_revision",
+          "assignment_uid",
+          "assignment_revision",
+          "set_key",
+          "set_version",
+          "evaluator_version",
+          "assessed_at",
+          "summary",
+          "findings",
+          "scope"
+        ],
+        "title": "AssignmentStatus",
+        "type": "object"
+      }
+    },
+    "get_evaluation": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "evaluation_uid": {
+            "format": "uuid",
+            "title": "Evaluation Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evaluation_uid"
+        ],
+        "title": "get_evaluationArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_evaluationDictOutput",
+        "type": "object"
+      }
+    },
+    "get_missing_requirements": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "assignment_uid": {
+            "format": "uuid",
+            "title": "Assignment Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assignment_uid"
+        ],
+        "title": "get_missing_requirementsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "DocumentOption": {
+            "additionalProperties": false,
+            "properties": {
+              "document_type": {
+                "description": "One supported type of evidence that may satisfy the requirement.",
+                "enum": [
+                  "national_identity_card",
+                  "passport",
+                  "residence_permit",
+                  "utility_bill",
+                  "bank_statement",
+                  "employment_contract",
+                  "payslip",
+                  "tax_return",
+                  "source_of_funds_evidence",
+                  "kyc_questionnaire",
+                  "loan_contract",
+                  "employer_confirmation",
+                  "tax_clearance_certificate"
+                ],
+                "title": "Document type",
+                "type": "string"
+              },
+              "freshness_field": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
+                "title": "Freshness date field"
+              },
+              "max_age_days": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
+                "title": "Maximum age"
+              },
+              "max_age_months": {
+                "anyOf": [
+                  {
+                    "maximum": 1200,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
+                "title": "Maximum age in calendar months"
+              },
+              "renewal_basis": {
+                "default": "reviewed_at",
+                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
+                "enum": [
+                  "reviewed_at",
+                  "submitted_at"
+                ],
+                "title": "Renewal measured from",
+                "type": "string"
+              },
+              "renewal_interval_months": {
+                "anyOf": [
+                  {
+                    "maximum": 1200,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
+                "title": "Renewal interval in calendar months"
+              },
+              "require_unexpired": {
+                "default": false,
+                "description": "Whether the evaluator must establish document validity on the evaluation date.",
+                "title": "Require current validity",
+                "type": "boolean"
+              },
+              "required_fields": {
+                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
+                "items": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                },
+                "title": "Additional required fields",
+                "type": "array"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact document schema version accepted by this option.",
+                "minimum": 1,
+                "title": "Schema version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "document_type"
+            ],
+            "title": "DocumentOption",
+            "type": "object"
+          },
+          "RequirementFinding": {
+            "additionalProperties": false,
+            "properties": {
+              "alternatives": {
+                "description": "Accepted evidence choices and their field/date constraints.",
+                "items": {
+                  "$ref": "#/$defs/DocumentOption"
+                },
+                "title": "Alternatives",
+                "type": "array"
+              },
+              "applicable": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Resolved applicability; null means the profile lacks necessary information.",
+                "title": "Applicable"
+              },
+              "document_references": {
+                "description": "Exact document/revision/review references and relevant policy dates.",
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Document References",
+                "type": "array"
+              },
+              "explanation": {
+                "description": "Policy description and explanation of the primary finding.",
+                "title": "Explanation",
+                "type": "string"
+              },
+              "field_paths": {
+                "description": "Document or reference-profile paths implicated by the finding.",
+                "items": {
+                  "type": "string"
+                },
+                "title": "Field Paths",
+                "type": "array"
+              },
+              "mandatory": {
+                "description": "Whether this applicable requirement affects completion.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "next_action": {
+                "description": "Suggested action grounded in the primary evaluator reason.",
+                "title": "Next Action",
+                "type": "string"
+              },
+              "qualifying_count": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Distinct qualifying evidence count; null when applicability is unknown or false.",
+                "title": "Qualifying Count"
+              },
+              "reason_code": {
+                "description": "Evaluator reason for the primary requirement finding.",
+                "title": "Reason Code",
+                "type": "string"
+              },
+              "required_count": {
+                "description": "Minimum distinct qualifying documents required by the policy.",
+                "title": "Required Count",
+                "type": "integer"
+              },
+              "requirement_key": {
+                "description": "Stable requirement key within the pinned policy.",
+                "title": "Requirement Key",
+                "type": "string"
+              },
+              "shortfall": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Additional qualifying evidence needed; null when applicability is unknown or false.",
+                "title": "Shortfall"
+              },
+              "status": {
+                "description": "Deterministic state; pending review and missing evidence remain distinct.",
+                "enum": [
+                  "satisfied",
+                  "missing",
+                  "failed",
+                  "pending_review",
+                  "needs_information",
+                  "not_applicable"
+                ],
+                "title": "Status",
+                "type": "string"
+              }
+            },
+            "required": [
+              "requirement_key",
+              "status",
+              "reason_code",
+              "explanation",
+              "field_paths",
+              "document_references",
+              "mandatory",
+              "applicable",
+              "alternatives",
+              "required_count",
+              "qualifying_count",
+              "shortfall",
+              "next_action"
+            ],
+            "title": "RequirementFinding",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "assessed_at": {
+            "description": "UTC timestamp when the input consistency check completed.",
+            "format": "date-time",
+            "title": "Assessed At",
+            "type": "string"
+          },
+          "assignment_revision": {
+            "description": "Selected-evidence assignment revision used in this assessment.",
+            "title": "Assignment Revision",
+            "type": "integer"
+          },
+          "assignment_uid": {
+            "description": "Assignment assessed by this response.",
+            "format": "uuid",
+            "title": "Assignment Uid",
+            "type": "string"
+          },
+          "diagnostics_complete": {
+            "default": false,
+            "description": "False: findings expose the primary blocker per requirement.",
+            "title": "Diagnostics Complete",
+            "type": "boolean"
+          },
+          "evaluator_version": {
+            "description": "Version of deterministic evaluation logic used.",
+            "title": "Evaluator Version",
+            "type": "string"
+          },
+          "findings": {
+            "description": "Requirement findings within the explicitly stated scope.",
+            "items": {
+              "$ref": "#/$defs/RequirementFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "outstanding_requirements": {
+            "description": "Number of returned unresolved requirements, including optional ones.",
+            "title": "Outstanding Requirements",
+            "type": "integer"
+          },
+          "person_revision": {
+            "description": "Reference-profile revision used in this assessment.",
+            "title": "Person Revision",
+            "type": "integer"
+          },
+          "person_uid": {
+            "description": "Business person whose case owns this record.",
+            "format": "uuid",
+            "title": "Person Uid",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Only explicitly selected assignment documents are assessed.",
+            "title": "Scope",
+            "type": "string"
+          },
+          "set_key": {
+            "description": "Stable key of the pinned requirement policy.",
+            "title": "Set Key",
+            "type": "string"
+          },
+          "set_version": {
+            "description": "Exact immutable policy version; never implicitly upgraded.",
+            "title": "Set Version",
+            "type": "integer"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "description": "Completion counts, evaluation date, policy notice and next action date.",
+            "title": "Summary",
+            "type": "object"
+          },
+          "total_requirements": {
+            "description": "Total requirements in the pinned policy, including satisfied and optional ones.",
+            "title": "Total Requirements",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "person_uid",
+          "person_revision",
+          "assignment_uid",
+          "assignment_revision",
+          "set_key",
+          "set_version",
+          "evaluator_version",
+          "assessed_at",
+          "summary",
+          "findings",
+          "scope",
+          "total_requirements",
+          "outstanding_requirements"
+        ],
+        "title": "MissingRequirements",
+        "type": "object"
       }
     },
     "get_person": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
       "inputSchema": {
         "properties": {
           "person_uid": {
@@ -424,11 +2119,10 @@
                 "description": "City or locality named in the address; null when absent.",
                 "title": "City"
               },
-              "region": {
+              "country_code": {
                 "anyOf": [
                   {
-                    "minLength": 1,
-                    "pattern": "\\S",
+                    "pattern": "^[A-Z]{2}$",
                     "type": "string"
                   },
                   {
@@ -436,8 +2130,8 @@
                   }
                 ],
                 "default": null,
-                "description": "State, province, or administrative region named in the address; null when absent.",
-                "title": "Region"
+                "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+                "title": "Country code"
               },
               "postal_code": {
                 "anyOf": [
@@ -454,10 +2148,11 @@
                 "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
                 "title": "Postal code"
               },
-              "country_code": {
+              "region": {
                 "anyOf": [
                   {
-                    "pattern": "^[A-Z]{2}$",
+                    "minLength": 1,
+                    "pattern": "\\S",
                     "type": "string"
                   },
                   {
@@ -465,8 +2160,8 @@
                   }
                 ],
                 "default": null,
-                "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
-                "title": "Country code"
+                "description": "State, province, or administrative region named in the address; null when absent.",
+                "title": "Region"
               }
             },
             "required": [
@@ -478,18 +2173,34 @@
         },
         "additionalProperties": false,
         "properties": {
-          "uid": {
-            "description": "Stable business-person UID; this is not a Main Sequence authentication identity.",
-            "format": "uuid",
-            "title": "Person UID",
-            "type": "string"
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Verified reference date of birth; null when unknown.",
+            "title": "Date of birth"
           },
-          "revision": {
-            "default": 1,
-            "description": "Positive revision of the person's reference profile.",
-            "minimum": 1,
-            "title": "Profile revision",
-            "type": "integer"
+          "employment_status": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Reference employment category, such as employed or self_employed; null when unknown.",
+            "title": "Employment status"
           },
           "external_reference": {
             "anyOf": [
@@ -551,20 +2262,6 @@
             "description": "Reference surname or family name when applicable; null otherwise.",
             "title": "Last name"
           },
-          "date_of_birth": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Verified reference date of birth; null when unknown.",
-            "title": "Date of birth"
-          },
           "nationalities": {
             "anyOf": [
               {
@@ -583,6 +2280,19 @@
             "description": "Declared or verified nationalities; null when not yet recorded.",
             "title": "Nationalities"
           },
+          "residency_permit_required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Case-specific determination of whether residence-permit evidence is required; null until determined.",
+            "title": "Residence permit required"
+          },
           "residential_address": {
             "anyOf": [
               {
@@ -596,33 +2306,18 @@
             "description": "Reference residential address used for comparison; null when unknown.",
             "title": "Residential address"
           },
-          "employment_status": {
-            "anyOf": [
-              {
-                "minLength": 1,
-                "pattern": "\\S",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Reference employment category, such as employed or self_employed; null when unknown.",
-            "title": "Employment status"
+          "revision": {
+            "default": 1,
+            "description": "Positive revision of the person's reference profile.",
+            "minimum": 1,
+            "title": "Profile revision",
+            "type": "integer"
           },
-          "residency_permit_required": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Case-specific determination of whether residence-permit evidence is required; null until determined.",
-            "title": "Residence permit required"
+          "uid": {
+            "description": "Stable business-person UID; this is not a Main Sequence authentication identity.",
+            "format": "uuid",
+            "title": "Person UID",
+            "type": "string"
           }
         },
         "required": [
@@ -630,16 +2325,16 @@
         ],
         "title": "Person",
         "type": "object"
-      },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
       }
     },
     "get_person_schema": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
       "inputSchema": {
         "properties": {},
         "title": "get_person_schemaArguments",
@@ -649,27 +2344,122 @@
         "additionalProperties": true,
         "title": "get_person_schemaDictOutput",
         "type": "object"
-      },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
       }
     },
-    "list_document_sets": {
+    "get_processing_run": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
       "inputSchema": {
         "properties": {
-          "search": {
-            "default": "",
-            "description": "Literal case-insensitive search text.",
-            "maxLength": 100,
-            "title": "Search",
+          "run_uid": {
+            "format": "uuid",
+            "title": "Run Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_uid"
+        ],
+        "title": "get_processing_runArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_processing_runDictOutput",
+        "type": "object"
+      }
+    },
+    "link_case_documents": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "LinkCaseDocuments": {
+            "additionalProperties": false,
+            "properties": {
+              "case_uid": {
+                "description": "Case whose append-only evidence membership is changed.",
+                "format": "uuid",
+                "title": "Case Uid",
+                "type": "string"
+              },
+              "document_uids": {
+                "description": "Distinct documents owned by the assignment's person.",
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 200,
+                "title": "Document Uids",
+                "type": "array"
+              },
+              "expected_revision": {
+                "description": "Loaded case revision.",
+                "minimum": 1,
+                "title": "Expected Revision",
+                "type": "integer"
+              },
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key",
+              "expected_revision",
+              "document_uids",
+              "case_uid"
+            ],
+            "title": "LinkCaseDocuments",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/LinkCaseDocuments"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "link_case_documentsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "link_case_documentsDictOutput",
+        "type": "object"
+      }
+    },
+    "list_case_evaluations": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "case_uid": {
+            "format": "uuid",
+            "title": "Case Uid",
             "type": "string"
           },
           "limit": {
-            "default": 50,
+            "default": 20,
             "description": "Maximum items, from 1 to 100.",
             "maximum": 100,
             "minimum": 1,
@@ -684,6 +2474,166 @@
             "type": "integer"
           }
         },
+        "required": [
+          "case_uid"
+        ],
+        "title": "list_case_evaluationsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_case_evaluationsDictOutput",
+        "type": "object"
+      }
+    },
+    "list_case_types": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {},
+        "title": "list_case_typesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_case_typesDictOutput",
+        "type": "object"
+      }
+    },
+    "list_cases": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "case_type_key": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Case Type Key",
+            "type": "string"
+          },
+          "limit": {
+            "default": 10,
+            "maximum": 20,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Zero-based page offset; pages are not snapshots.",
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "responsibility": {
+            "default": "all",
+            "enum": [
+              "all",
+              "mine",
+              "unassigned"
+            ],
+            "title": "Responsibility",
+            "type": "string"
+          },
+          "search": {
+            "default": "",
+            "description": "Literal case-insensitive search text.",
+            "maxLength": 100,
+            "title": "Search",
+            "type": "string"
+          },
+          "set_key": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Set Key",
+            "type": "string"
+          }
+        },
+        "title": "list_casesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_casesDictOutput",
+        "type": "object"
+      }
+    },
+    "list_document_intakes": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 20,
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "title": "list_document_intakesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_document_intakesDictOutput",
+        "type": "object"
+      }
+    },
+    "list_document_sets": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 50,
+            "description": "Maximum items, from 1 to 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Zero-based page offset; pages are not snapshots.",
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "search": {
+            "default": "",
+            "description": "Literal case-insensitive search text.",
+            "maxLength": 100,
+            "title": "Search",
+            "type": "string"
+          }
+        },
         "title": "list_document_setsArguments",
         "type": "object"
       },
@@ -692,58 +2642,6 @@
           "ComparisonRule": {
             "additionalProperties": false,
             "properties": {
-              "key": {
-                "description": "Stable comparison rule key, unique alongside requirement keys.",
-                "maxLength": 100,
-                "minLength": 1,
-                "pattern": "^[a-z][a-z0-9_]*$",
-                "title": "Key",
-                "type": "string"
-              },
-              "description": {
-                "description": "Business explanation retained in the finding; never sent to the parser.",
-                "maxLength": 1000,
-                "minLength": 1,
-                "title": "Description",
-                "type": "string"
-              },
-              "topic": {
-                "description": "Factual concept the parser should compare, without rules or thresholds.",
-                "maxLength": 500,
-                "minLength": 1,
-                "title": "Topic",
-                "type": "string"
-              },
-              "left": {
-                "$ref": "#/$defs/ComparisonSelector",
-                "description": "Left document/field selector; the numeric relative tolerance uses this value as its baseline."
-              },
-              "right": {
-                "$ref": "#/$defs/ComparisonSelector",
-                "description": "Right document/field selector."
-              },
-              "operator": {
-                "description": "Back Office operator applied only after cited comparability has been established.",
-                "enum": [
-                  "exact",
-                  "numeric",
-                  "semantic"
-                ],
-                "title": "Operator",
-                "type": "string"
-              },
-              "mandatory": {
-                "default": true,
-                "description": "Whether an applicable unresolved or failed comparison blocks requirement completion.",
-                "title": "Mandatory",
-                "type": "boolean"
-              },
-              "when_both_present": {
-                "default": false,
-                "description": "When true, absent document types make this rule inapplicable; missing fields in present documents still block it.",
-                "title": "When Both Present",
-                "type": "boolean"
-              },
               "absolute_tolerance": {
                 "anyOf": [
                   {
@@ -758,6 +2656,41 @@
                 "description": "Nonnegative allowed absolute difference, in the compared unit; numeric rules only.",
                 "title": "Absolute Tolerance"
               },
+              "description": {
+                "description": "Business explanation retained in the finding; never sent to the parser.",
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "Description",
+                "type": "string"
+              },
+              "key": {
+                "description": "Stable comparison rule key, unique alongside requirement keys.",
+                "maxLength": 100,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "title": "Key",
+                "type": "string"
+              },
+              "left": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Left document/field selector; the numeric relative tolerance uses this value as its baseline."
+              },
+              "mandatory": {
+                "default": true,
+                "description": "Whether an applicable unresolved or failed comparison blocks requirement completion.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "operator": {
+                "description": "Back Office operator applied only after cited comparability has been established.",
+                "enum": [
+                  "exact",
+                  "numeric",
+                  "semantic"
+                ],
+                "title": "Operator",
+                "type": "string"
+              },
               "relative_tolerance_basis_points": {
                 "default": 0,
                 "description": "Allowed relative difference in basis points of the absolute left value; numeric rules only. Zero baseline uses absolute tolerance only.",
@@ -765,6 +2698,23 @@
                 "minimum": 0,
                 "title": "Relative Tolerance Basis Points",
                 "type": "integer"
+              },
+              "right": {
+                "$ref": "#/$defs/ComparisonSelector",
+                "description": "Right document/field selector."
+              },
+              "topic": {
+                "description": "Factual concept the parser should compare, without rules or thresholds.",
+                "maxLength": 500,
+                "minLength": 1,
+                "title": "Topic",
+                "type": "string"
+              },
+              "when_both_present": {
+                "default": false,
+                "description": "When true, absent document types make this rule inapplicable; missing fields in present documents still block it.",
+                "title": "When Both Present",
+                "type": "boolean"
               }
             },
             "required": [
@@ -781,6 +2731,15 @@
           "ComparisonSelector": {
             "additionalProperties": false,
             "properties": {
+              "context_fields": {
+                "description": "Additional cited fields needed to interpret period, basis or entity; missing context leaves comparison unresolved.",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "title": "Context Fields",
+                "type": "array"
+              },
               "document_type": {
                 "description": "Document type selected from this assignment only.",
                 "enum": [
@@ -801,19 +2760,19 @@
                 "title": "Document Type",
                 "type": "string"
               },
-              "schema_version": {
-                "default": 1,
-                "description": "Exact canonical schema version.",
-                "minimum": 1,
-                "title": "Schema Version",
-                "type": "integer"
-              },
               "field": {
                 "description": "Canonical object field path to compare, such as net_pay.amount.",
                 "maxLength": 240,
                 "minLength": 1,
                 "title": "Field",
                 "type": "string"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact canonical schema version.",
+                "minimum": 1,
+                "title": "Schema Version",
+                "type": "integer"
               },
               "unit_field": {
                 "anyOf": [
@@ -827,15 +2786,6 @@
                 "default": null,
                 "description": "Field identifying the currency or unit; both sides must agree exactly.",
                 "title": "Unit Field"
-              },
-              "context_fields": {
-                "description": "Additional cited fields needed to interpret period, basis or entity; missing context leaves comparison unresolved.",
-                "items": {
-                  "type": "string"
-                },
-                "maxItems": 8,
-                "title": "Context Fields",
-                "type": "array"
               }
             },
             "required": [
@@ -868,43 +2818,6 @@
                 "title": "Document type",
                 "type": "string"
               },
-              "schema_version": {
-                "default": 1,
-                "description": "Exact document schema version accepted by this option.",
-                "minimum": 1,
-                "title": "Schema version",
-                "type": "integer"
-              },
-              "required_fields": {
-                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
-                "items": {
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "type": "string"
-                },
-                "title": "Additional required fields",
-                "type": "array"
-              },
-              "require_unexpired": {
-                "default": false,
-                "description": "Whether the evaluator must establish document validity on the evaluation date.",
-                "title": "Require current validity",
-                "type": "boolean"
-              },
-              "max_age_days": {
-                "anyOf": [
-                  {
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
-                "title": "Maximum age"
-              },
               "freshness_field": {
                 "anyOf": [
                   {
@@ -919,6 +2832,20 @@
                 "default": null,
                 "description": "Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
                 "title": "Freshness date field"
+              },
+              "max_age_days": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
+                "title": "Maximum age"
               },
               "max_age_months": {
                 "anyOf": [
@@ -935,6 +2862,16 @@
                 "description": "Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
                 "title": "Maximum age in calendar months"
               },
+              "renewal_basis": {
+                "default": "reviewed_at",
+                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
+                "enum": [
+                  "reviewed_at",
+                  "submitted_at"
+                ],
+                "title": "Renewal measured from",
+                "type": "string"
+              },
               "renewal_interval_months": {
                 "anyOf": [
                   {
@@ -950,15 +2887,28 @@
                 "description": "Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
                 "title": "Renewal interval in calendar months"
               },
-              "renewal_basis": {
-                "default": "reviewed_at",
-                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
-                "enum": [
-                  "reviewed_at",
-                  "submitted_at"
-                ],
-                "title": "Renewal measured from",
-                "type": "string"
+              "require_unexpired": {
+                "default": false,
+                "description": "Whether the evaluator must establish document validity on the evaluation date.",
+                "title": "Require current validity",
+                "type": "boolean"
+              },
+              "required_fields": {
+                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
+                "items": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                },
+                "title": "Additional required fields",
+                "type": "array"
+              },
+              "schema_version": {
+                "default": 1,
+                "description": "Exact document schema version accepted by this option.",
+                "minimum": 1,
+                "title": "Schema version",
+                "type": "integer"
               }
             },
             "required": [
@@ -970,12 +2920,18 @@
           "DocumentRequirement": {
             "additionalProperties": false,
             "properties": {
-              "key": {
-                "description": "Stable requirement identifier within the document-set version.",
-                "minLength": 1,
-                "pattern": "\\S",
-                "title": "Requirement key",
-                "type": "string"
+              "condition": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/RequirementCondition"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Condition on the person profile; null means the requirement always applies.",
+                "title": "Applicability condition"
               },
               "description": {
                 "description": "English explanation of the evidence needed and why it is required.",
@@ -983,28 +2939,6 @@
                 "pattern": "\\S",
                 "title": "Requirement description",
                 "type": "string"
-              },
-              "options": {
-                "description": "Evidence alternatives; qualifying documents from these alternatives satisfy this requirement.",
-                "items": {
-                  "$ref": "#/$defs/DocumentOption"
-                },
-                "minItems": 1,
-                "title": "Accepted alternatives",
-                "type": "array"
-              },
-              "mandatory": {
-                "default": true,
-                "description": "Whether this requirement must be satisfied when applicable.",
-                "title": "Mandatory",
-                "type": "boolean"
-              },
-              "min_count": {
-                "default": 1,
-                "description": "Minimum number of distinct qualifying documents; duplicate uploads never increase the count.",
-                "minimum": 1,
-                "title": "Minimum document count",
-                "type": "integer"
               },
               "distinct_period_field": {
                 "anyOf": [
@@ -1021,18 +2955,34 @@
                 "description": "Period field used to require distinct reporting periods; null means no period grouping.",
                 "title": "Distinct reporting period"
               },
-              "condition": {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/RequirementCondition"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Condition on the person profile; null means the requirement always applies.",
-                "title": "Applicability condition"
+              "key": {
+                "description": "Stable requirement identifier within the document-set version.",
+                "minLength": 1,
+                "pattern": "\\S",
+                "title": "Requirement key",
+                "type": "string"
+              },
+              "mandatory": {
+                "default": true,
+                "description": "Whether this requirement must be satisfied when applicable.",
+                "title": "Mandatory",
+                "type": "boolean"
+              },
+              "min_count": {
+                "default": 1,
+                "description": "Minimum number of distinct qualifying documents; duplicate uploads never increase the count.",
+                "minimum": 1,
+                "title": "Minimum document count",
+                "type": "integer"
+              },
+              "options": {
+                "description": "Evidence alternatives; qualifying documents from these alternatives satisfy this requirement.",
+                "items": {
+                  "$ref": "#/$defs/DocumentOption"
+                },
+                "minItems": 1,
+                "title": "Accepted alternatives",
+                "type": "array"
               }
             },
             "required": [
@@ -1046,25 +2996,20 @@
           "DocumentSet": {
             "additionalProperties": false,
             "properties": {
-              "key": {
-                "description": "Stable reusable document-set identifier, such as new_account_requirements.",
-                "minLength": 1,
-                "pattern": "\\S",
-                "title": "Set key",
-                "type": "string"
+              "allow_document_reuse": {
+                "default": true,
+                "description": "Whether the same qualifying document may satisfy more than one requirement; duplicates within a requirement never increase its count.",
+                "title": "Allow document reuse",
+                "type": "boolean"
               },
-              "version": {
-                "description": "Published immutable version pinned by a person's assignment.",
-                "minimum": 1,
-                "title": "Set version",
-                "type": "integer"
-              },
-              "name": {
-                "description": "Readable English name for this document set.",
-                "minLength": 1,
-                "pattern": "\\S",
-                "title": "Name",
-                "type": "string"
+              "comparisons": {
+                "description": "Versioned cross-document rules evaluated by the same Back Office engine; parser observations never carry these decisions or tolerances.",
+                "items": {
+                  "$ref": "#/$defs/ComparisonRule"
+                },
+                "maxItems": 25,
+                "title": "Comparisons",
+                "type": "array"
               },
               "description": {
                 "description": "Business purpose and coverage of this version's requirements.",
@@ -1073,11 +3018,19 @@
                 "title": "Description",
                 "type": "string"
               },
-              "allow_document_reuse": {
-                "default": true,
-                "description": "Whether the same qualifying document may satisfy more than one requirement; duplicates within a requirement never increase its count.",
-                "title": "Allow document reuse",
-                "type": "boolean"
+              "key": {
+                "description": "Stable reusable document-set identifier, such as new_account_requirements.",
+                "minLength": 1,
+                "pattern": "\\S",
+                "title": "Set key",
+                "type": "string"
+              },
+              "name": {
+                "description": "Readable English name for this document set.",
+                "minLength": 1,
+                "pattern": "\\S",
+                "title": "Name",
+                "type": "string"
               },
               "requirements": {
                 "description": "Named requirements that are evaluated independently for each assigned person.",
@@ -1088,14 +3041,11 @@
                 "title": "Requirements",
                 "type": "array"
               },
-              "comparisons": {
-                "description": "Versioned cross-document rules evaluated by the same Back Office engine; parser observations never carry these decisions or tolerances.",
-                "items": {
-                  "$ref": "#/$defs/ComparisonRule"
-                },
-                "maxItems": 25,
-                "title": "Comparisons",
-                "type": "array"
+              "version": {
+                "description": "Published immutable version pinned by a person's assignment.",
+                "minimum": 1,
+                "title": "Set version",
+                "type": "integer"
               }
             },
             "required": [
@@ -1111,15 +3061,6 @@
           "RequirementCondition": {
             "additionalProperties": false,
             "properties": {
-              "field": {
-                "description": "Person reference field evaluated for applicability; a missing value leaves applicability unknown.",
-                "enum": [
-                  "employment_status",
-                  "residency_permit_required"
-                ],
-                "title": "Reference field",
-                "type": "string"
-              },
               "equals": {
                 "anyOf": [
                   {
@@ -1131,6 +3072,15 @@
                 ],
                 "description": "Exact reference value that makes the requirement applicable.",
                 "title": "Expected value"
+              },
+              "field": {
+                "description": "Person reference field evaluated for applicability; a missing value leaves applicability unknown.",
+                "enum": [
+                  "employment_status",
+                  "residency_permit_required"
+                ],
+                "title": "Reference field",
+                "type": "string"
               }
             },
             "required": [
@@ -1143,6 +3093,11 @@
         },
         "additionalProperties": false,
         "properties": {
+          "has_more": {
+            "description": "Whether more matching records follow this page.",
+            "title": "Has More",
+            "type": "boolean"
+          },
           "items": {
             "description": "Items in this bounded page.",
             "items": {
@@ -1150,11 +3105,6 @@
             },
             "title": "Items",
             "type": "array"
-          },
-          "total_items": {
-            "description": "Total records matching the same access and search filters.",
-            "title": "Total Items",
-            "type": "integer"
           },
           "limit": {
             "description": "Maximum records requested for this page.",
@@ -1166,10 +3116,10 @@
             "title": "Offset",
             "type": "integer"
           },
-          "has_more": {
-            "description": "Whether more matching records follow this page.",
-            "title": "Has More",
-            "type": "boolean"
+          "total_items": {
+            "description": "Total records matching the same access and search filters.",
+            "title": "Total Items",
+            "type": "integer"
           }
         },
         "required": [
@@ -1181,506 +3131,18 @@
         ],
         "title": "Page[DocumentSet]",
         "type": "object"
-      },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    "get_document_set": {
-      "inputSchema": {
-        "properties": {
-          "key": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Key",
-            "type": "string"
-          },
-          "version": {
-            "minimum": 1,
-            "title": "Version",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "key",
-          "version"
-        ],
-        "title": "get_document_setArguments",
-        "type": "object"
-      },
-      "outputSchema": {
-        "$defs": {
-          "ComparisonRule": {
-            "additionalProperties": false,
-            "properties": {
-              "key": {
-                "description": "Stable comparison rule key, unique alongside requirement keys.",
-                "maxLength": 100,
-                "minLength": 1,
-                "pattern": "^[a-z][a-z0-9_]*$",
-                "title": "Key",
-                "type": "string"
-              },
-              "description": {
-                "description": "Business explanation retained in the finding; never sent to the parser.",
-                "maxLength": 1000,
-                "minLength": 1,
-                "title": "Description",
-                "type": "string"
-              },
-              "topic": {
-                "description": "Factual concept the parser should compare, without rules or thresholds.",
-                "maxLength": 500,
-                "minLength": 1,
-                "title": "Topic",
-                "type": "string"
-              },
-              "left": {
-                "$ref": "#/$defs/ComparisonSelector",
-                "description": "Left document/field selector; the numeric relative tolerance uses this value as its baseline."
-              },
-              "right": {
-                "$ref": "#/$defs/ComparisonSelector",
-                "description": "Right document/field selector."
-              },
-              "operator": {
-                "description": "Back Office operator applied only after cited comparability has been established.",
-                "enum": [
-                  "exact",
-                  "numeric",
-                  "semantic"
-                ],
-                "title": "Operator",
-                "type": "string"
-              },
-              "mandatory": {
-                "default": true,
-                "description": "Whether an applicable unresolved or failed comparison blocks requirement completion.",
-                "title": "Mandatory",
-                "type": "boolean"
-              },
-              "when_both_present": {
-                "default": false,
-                "description": "When true, absent document types make this rule inapplicable; missing fields in present documents still block it.",
-                "title": "When Both Present",
-                "type": "boolean"
-              },
-              "absolute_tolerance": {
-                "anyOf": [
-                  {
-                    "minimum": 0.0,
-                    "type": "number"
-                  },
-                  {
-                    "type": "string"
-                  }
-                ],
-                "default": "0",
-                "description": "Nonnegative allowed absolute difference, in the compared unit; numeric rules only.",
-                "title": "Absolute Tolerance"
-              },
-              "relative_tolerance_basis_points": {
-                "default": 0,
-                "description": "Allowed relative difference in basis points of the absolute left value; numeric rules only. Zero baseline uses absolute tolerance only.",
-                "maximum": 10000,
-                "minimum": 0,
-                "title": "Relative Tolerance Basis Points",
-                "type": "integer"
-              }
-            },
-            "required": [
-              "key",
-              "description",
-              "topic",
-              "left",
-              "right",
-              "operator"
-            ],
-            "title": "ComparisonRule",
-            "type": "object"
-          },
-          "ComparisonSelector": {
-            "additionalProperties": false,
-            "properties": {
-              "document_type": {
-                "description": "Document type selected from this assignment only.",
-                "enum": [
-                  "national_identity_card",
-                  "passport",
-                  "residence_permit",
-                  "utility_bill",
-                  "bank_statement",
-                  "employment_contract",
-                  "payslip",
-                  "tax_return",
-                  "source_of_funds_evidence",
-                  "kyc_questionnaire",
-                  "loan_contract",
-                  "employer_confirmation",
-                  "tax_clearance_certificate"
-                ],
-                "title": "Document Type",
-                "type": "string"
-              },
-              "schema_version": {
-                "default": 1,
-                "description": "Exact canonical schema version.",
-                "minimum": 1,
-                "title": "Schema Version",
-                "type": "integer"
-              },
-              "field": {
-                "description": "Canonical object field path to compare, such as net_pay.amount.",
-                "maxLength": 240,
-                "minLength": 1,
-                "title": "Field",
-                "type": "string"
-              },
-              "unit_field": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Field identifying the currency or unit; both sides must agree exactly.",
-                "title": "Unit Field"
-              },
-              "context_fields": {
-                "description": "Additional cited fields needed to interpret period, basis or entity; missing context leaves comparison unresolved.",
-                "items": {
-                  "type": "string"
-                },
-                "maxItems": 8,
-                "title": "Context Fields",
-                "type": "array"
-              }
-            },
-            "required": [
-              "document_type",
-              "field"
-            ],
-            "title": "ComparisonSelector",
-            "type": "object"
-          },
-          "DocumentOption": {
-            "additionalProperties": false,
-            "properties": {
-              "document_type": {
-                "description": "One supported type of evidence that may satisfy the requirement.",
-                "enum": [
-                  "national_identity_card",
-                  "passport",
-                  "residence_permit",
-                  "utility_bill",
-                  "bank_statement",
-                  "employment_contract",
-                  "payslip",
-                  "tax_return",
-                  "source_of_funds_evidence",
-                  "kyc_questionnaire",
-                  "loan_contract",
-                  "employer_confirmation",
-                  "tax_clearance_certificate"
-                ],
-                "title": "Document type",
-                "type": "string"
-              },
-              "schema_version": {
-                "default": 1,
-                "description": "Exact document schema version accepted by this option.",
-                "minimum": 1,
-                "title": "Schema version",
-                "type": "integer"
-              },
-              "required_fields": {
-                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
-                "items": {
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "type": "string"
-                },
-                "title": "Additional required fields",
-                "type": "array"
-              },
-              "require_unexpired": {
-                "default": false,
-                "description": "Whether the evaluator must establish document validity on the evaluation date.",
-                "title": "Require current validity",
-                "type": "boolean"
-              },
-              "max_age_days": {
-                "anyOf": [
-                  {
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
-                "title": "Maximum age"
-              },
-              "freshness_field": {
-                "anyOf": [
-                  {
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
-                "title": "Freshness date field"
-              },
-              "max_age_months": {
-                "anyOf": [
-                  {
-                    "maximum": 1200,
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
-                "title": "Maximum age in calendar months"
-              },
-              "renewal_interval_months": {
-                "anyOf": [
-                  {
-                    "maximum": 1200,
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
-                "title": "Renewal interval in calendar months"
-              },
-              "renewal_basis": {
-                "default": "reviewed_at",
-                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
-                "enum": [
-                  "reviewed_at",
-                  "submitted_at"
-                ],
-                "title": "Renewal measured from",
-                "type": "string"
-              }
-            },
-            "required": [
-              "document_type"
-            ],
-            "title": "DocumentOption",
-            "type": "object"
-          },
-          "DocumentRequirement": {
-            "additionalProperties": false,
-            "properties": {
-              "key": {
-                "description": "Stable requirement identifier within the document-set version.",
-                "minLength": 1,
-                "pattern": "\\S",
-                "title": "Requirement key",
-                "type": "string"
-              },
-              "description": {
-                "description": "English explanation of the evidence needed and why it is required.",
-                "minLength": 1,
-                "pattern": "\\S",
-                "title": "Requirement description",
-                "type": "string"
-              },
-              "options": {
-                "description": "Evidence alternatives; qualifying documents from these alternatives satisfy this requirement.",
-                "items": {
-                  "$ref": "#/$defs/DocumentOption"
-                },
-                "minItems": 1,
-                "title": "Accepted alternatives",
-                "type": "array"
-              },
-              "mandatory": {
-                "default": true,
-                "description": "Whether this requirement must be satisfied when applicable.",
-                "title": "Mandatory",
-                "type": "boolean"
-              },
-              "min_count": {
-                "default": 1,
-                "description": "Minimum number of distinct qualifying documents; duplicate uploads never increase the count.",
-                "minimum": 1,
-                "title": "Minimum document count",
-                "type": "integer"
-              },
-              "distinct_period_field": {
-                "anyOf": [
-                  {
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Period field used to require distinct reporting periods; null means no period grouping.",
-                "title": "Distinct reporting period"
-              },
-              "condition": {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/RequirementCondition"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Condition on the person profile; null means the requirement always applies.",
-                "title": "Applicability condition"
-              }
-            },
-            "required": [
-              "key",
-              "description",
-              "options"
-            ],
-            "title": "DocumentRequirement",
-            "type": "object"
-          },
-          "RequirementCondition": {
-            "additionalProperties": false,
-            "properties": {
-              "field": {
-                "description": "Person reference field evaluated for applicability; a missing value leaves applicability unknown.",
-                "enum": [
-                  "employment_status",
-                  "residency_permit_required"
-                ],
-                "title": "Reference field",
-                "type": "string"
-              },
-              "equals": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "boolean"
-                  }
-                ],
-                "description": "Exact reference value that makes the requirement applicable.",
-                "title": "Expected value"
-              }
-            },
-            "required": [
-              "field",
-              "equals"
-            ],
-            "title": "RequirementCondition",
-            "type": "object"
-          }
-        },
-        "additionalProperties": false,
-        "properties": {
-          "key": {
-            "description": "Stable reusable document-set identifier, such as new_account_requirements.",
-            "minLength": 1,
-            "pattern": "\\S",
-            "title": "Set key",
-            "type": "string"
-          },
-          "version": {
-            "description": "Published immutable version pinned by a person's assignment.",
-            "minimum": 1,
-            "title": "Set version",
-            "type": "integer"
-          },
-          "name": {
-            "description": "Readable English name for this document set.",
-            "minLength": 1,
-            "pattern": "\\S",
-            "title": "Name",
-            "type": "string"
-          },
-          "description": {
-            "description": "Business purpose and coverage of this version's requirements.",
-            "minLength": 1,
-            "pattern": "\\S",
-            "title": "Description",
-            "type": "string"
-          },
-          "allow_document_reuse": {
-            "default": true,
-            "description": "Whether the same qualifying document may satisfy more than one requirement; duplicates within a requirement never increase its count.",
-            "title": "Allow document reuse",
-            "type": "boolean"
-          },
-          "requirements": {
-            "description": "Named requirements that are evaluated independently for each assigned person.",
-            "items": {
-              "$ref": "#/$defs/DocumentRequirement"
-            },
-            "minItems": 1,
-            "title": "Requirements",
-            "type": "array"
-          },
-          "comparisons": {
-            "description": "Versioned cross-document rules evaluated by the same Back Office engine; parser observations never carry these decisions or tolerances.",
-            "items": {
-              "$ref": "#/$defs/ComparisonRule"
-            },
-            "maxItems": 25,
-            "title": "Comparisons",
-            "type": "array"
-          }
-        },
-        "required": [
-          "key",
-          "version",
-          "name",
-          "description",
-          "requirements"
-        ],
-        "title": "DocumentSet",
-        "type": "object"
-      },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
       }
     },
     "list_person_assignments": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
       "inputSchema": {
         "properties": {
-          "person_uid": {
-            "format": "uuid",
-            "title": "Person Uid",
-            "type": "string"
-          },
           "limit": {
             "default": 50,
             "description": "Maximum items, from 1 to 100.",
@@ -1695,6 +3157,11 @@
             "minimum": 0,
             "title": "Offset",
             "type": "integer"
+          },
+          "person_uid": {
+            "format": "uuid",
+            "title": "Person Uid",
+            "type": "string"
           }
         },
         "required": [
@@ -1708,10 +3175,10 @@
           "AssignmentSummary": {
             "additionalProperties": false,
             "properties": {
-              "uid": {
-                "description": "Stable assignment identifier.",
-                "format": "uuid",
-                "title": "Uid",
+              "created_at": {
+                "description": "UTC creation timestamp.",
+                "format": "date-time",
+                "title": "Created At",
                 "type": "string"
               },
               "person_uid": {
@@ -1719,6 +3186,11 @@
                 "format": "uuid",
                 "title": "Person Uid",
                 "type": "string"
+              },
+              "revision": {
+                "description": "Current assignment revision.",
+                "title": "Revision",
+                "type": "integer"
               },
               "set_key": {
                 "description": "Stable key of the pinned requirement policy.",
@@ -1730,15 +3202,10 @@
                 "title": "Set Version",
                 "type": "integer"
               },
-              "revision": {
-                "description": "Current assignment revision.",
-                "title": "Revision",
-                "type": "integer"
-              },
-              "created_at": {
-                "description": "UTC creation timestamp.",
-                "format": "date-time",
-                "title": "Created At",
+              "uid": {
+                "description": "Stable assignment identifier.",
+                "format": "uuid",
+                "title": "Uid",
                 "type": "string"
               },
               "updated_at": {
@@ -1763,6 +3230,11 @@
         },
         "additionalProperties": false,
         "properties": {
+          "has_more": {
+            "description": "Whether more matching records follow this page.",
+            "title": "Has More",
+            "type": "boolean"
+          },
           "items": {
             "description": "Items in this bounded page.",
             "items": {
@@ -1770,11 +3242,6 @@
             },
             "title": "Items",
             "type": "array"
-          },
-          "total_items": {
-            "description": "Total records matching the same access and search filters.",
-            "title": "Total Items",
-            "type": "integer"
           },
           "limit": {
             "description": "Maximum records requested for this page.",
@@ -1786,10 +3253,10 @@
             "title": "Offset",
             "type": "integer"
           },
-          "has_more": {
-            "description": "Whether more matching records follow this page.",
-            "title": "Has More",
-            "type": "boolean"
+          "total_items": {
+            "description": "Total records matching the same access and search filters.",
+            "title": "Total Items",
+            "type": "integer"
           }
         },
         "required": [
@@ -1801,181 +3268,405 @@
         ],
         "title": "Page[AssignmentSummary]",
         "type": "object"
-      },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
       }
     },
-    "get_assignment": {
+    "list_person_cases": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
       "inputSchema": {
         "properties": {
-          "assignment_uid": {
-            "format": "uuid",
-            "title": "Assignment Uid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "assignment_uid"
-        ],
-        "title": "get_assignmentArguments",
-        "type": "object"
-      },
-      "outputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "uid": {
-            "description": "Stable assignment identifier.",
-            "format": "uuid",
-            "title": "Uid",
-            "type": "string"
+          "limit": {
+            "default": 50,
+            "description": "Maximum items, from 1 to 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Zero-based page offset; pages are not snapshots.",
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
           },
           "person_uid": {
-            "description": "Business person whose case owns this record.",
             "format": "uuid",
             "title": "Person Uid",
             "type": "string"
-          },
-          "set_key": {
-            "description": "Stable key of the pinned requirement policy.",
-            "title": "Set Key",
-            "type": "string"
-          },
-          "set_version": {
-            "description": "Exact immutable policy version; never implicitly upgraded.",
-            "title": "Set Version",
-            "type": "integer"
-          },
-          "revision": {
-            "description": "Current assignment revision.",
-            "title": "Revision",
-            "type": "integer"
-          },
-          "created_at": {
-            "description": "UTC creation timestamp.",
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "updated_at": {
-            "description": "UTC timestamp of the latest assignment change.",
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
-          },
-          "document_uids": {
-            "description": "Document identifiers explicitly selected for this assignment.",
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "title": "Document Uids",
-            "type": "array"
           }
         },
         "required": [
-          "uid",
-          "person_uid",
-          "set_key",
-          "set_version",
-          "revision",
-          "created_at",
-          "updated_at",
-          "document_uids"
+          "person_uid"
         ],
-        "title": "AssignmentDetail",
+        "title": "list_person_casesArguments",
         "type": "object"
       },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_person_casesDictOutput",
+        "type": "object"
       }
     },
-    "get_document_set_status": {
+    "list_person_documents": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
       "inputSchema": {
         "properties": {
-          "assignment_uid": {
+          "limit": {
+            "default": 50,
+            "description": "Maximum items, from 1 to 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Zero-based page offset; pages are not snapshots.",
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "person_uid": {
             "format": "uuid",
-            "title": "Assignment Uid",
+            "title": "Person Uid",
             "type": "string"
           }
         },
         "required": [
-          "assignment_uid"
+          "person_uid"
         ],
-        "title": "get_document_set_statusArguments",
+        "title": "list_person_documentsArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_person_documentsDictOutput",
+        "type": "object"
+      }
+    },
+    "list_person_sources": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 50,
+            "description": "Maximum items, from 1 to 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Zero-based page offset; pages are not snapshots.",
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "person_uid": {
+            "format": "uuid",
+            "title": "Person Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_uid"
+        ],
+        "title": "list_person_sourcesArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "list_person_sourcesDictOutput",
+        "type": "object"
+      }
+    },
+    "process_source_document": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "Command": {
+            "additionalProperties": false,
+            "properties": {
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key"
+            ],
+            "title": "Command",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/Command"
+          },
+          "source_uid": {
+            "format": "uuid",
+            "title": "Source Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_uid",
+          "command"
+        ],
+        "title": "process_source_documentArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "process_source_documentDictOutput",
+        "type": "object"
+      }
+    },
+    "resolve_document_allocation": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "ResolveAllocation": {
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "minimum": 1,
+                "title": "Expected Revision",
+                "type": "integer"
+              },
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              },
+              "subject_uid": {
+                "format": "uuid",
+                "title": "Subject Uid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key",
+              "subject_uid",
+              "expected_revision"
+            ],
+            "title": "ResolveAllocation",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "allocation_uid": {
+            "format": "uuid",
+            "title": "Allocation Uid",
+            "type": "string"
+          },
+          "command": {
+            "$ref": "#/$defs/ResolveAllocation"
+          }
+        },
+        "required": [
+          "allocation_uid",
+          "command"
+        ],
+        "title": "resolve_document_allocationArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "resolve_document_allocationDictOutput",
+        "type": "object"
+      }
+    },
+    "retry_document_allocation": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "Command": {
+            "additionalProperties": false,
+            "properties": {
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key"
+            ],
+            "title": "Command",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "allocation_uid": {
+            "format": "uuid",
+            "title": "Allocation Uid",
+            "type": "string"
+          },
+          "command": {
+            "$ref": "#/$defs/Command"
+          }
+        },
+        "required": [
+          "allocation_uid",
+          "command"
+        ],
+        "title": "retry_document_allocationArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "retry_document_allocationDictOutput",
+        "type": "object"
+      }
+    },
+    "retry_processing_run": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "Command": {
+            "additionalProperties": false,
+            "properties": {
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key"
+            ],
+            "title": "Command",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/Command"
+          },
+          "run_uid": {
+            "format": "uuid",
+            "title": "Run Uid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_uid",
+          "command"
+        ],
+        "title": "retry_processing_runArguments",
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "retry_processing_runDictOutput",
+        "type": "object"
+      }
+    },
+    "search_persons": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+        "title": null
+      },
+      "inputSchema": {
+        "properties": {
+          "limit": {
+            "default": 50,
+            "description": "Maximum items, from 1 to 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Zero-based page offset; pages are not snapshots.",
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "search": {
+            "default": "",
+            "description": "Literal case-insensitive search text.",
+            "maxLength": 100,
+            "title": "Search",
+            "type": "string"
+          }
+        },
+        "title": "search_personsArguments",
         "type": "object"
       },
       "outputSchema": {
         "$defs": {
-          "DocumentOption": {
+          "Person": {
             "additionalProperties": false,
             "properties": {
-              "document_type": {
-                "description": "One supported type of evidence that may satisfy the requirement.",
-                "enum": [
-                  "national_identity_card",
-                  "passport",
-                  "residence_permit",
-                  "utility_bill",
-                  "bank_statement",
-                  "employment_contract",
-                  "payslip",
-                  "tax_return",
-                  "source_of_funds_evidence",
-                  "kyc_questionnaire",
-                  "loan_contract",
-                  "employer_confirmation",
-                  "tax_clearance_certificate"
-                ],
-                "title": "Document type",
-                "type": "string"
-              },
-              "schema_version": {
-                "default": 1,
-                "description": "Exact document schema version accepted by this option.",
-                "minimum": 1,
-                "title": "Schema version",
-                "type": "integer"
-              },
-              "required_fields": {
-                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
-                "items": {
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "type": "string"
-                },
-                "title": "Additional required fields",
-                "type": "array"
-              },
-              "require_unexpired": {
-                "default": false,
-                "description": "Whether the evaluator must establish document validity on the evaluation date.",
-                "title": "Require current validity",
-                "type": "boolean"
-              },
-              "max_age_days": {
+              "date_of_birth": {
                 "anyOf": [
                   {
-                    "minimum": 0,
-                    "type": "integer"
+                    "format": "date",
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
                 "default": null,
-                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
-                "title": "Maximum age"
+                "description": "Verified reference date of birth; null when unknown.",
+                "title": "Date of birth"
               },
-              "freshness_field": {
+              "employment_status": {
                 "anyOf": [
                   {
                     "minLength": 1,
@@ -1987,356 +3678,10 @@
                   }
                 ],
                 "default": null,
-                "description": "Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
-                "title": "Freshness date field"
+                "description": "Reference employment category, such as employed or self_employed; null when unknown.",
+                "title": "Employment status"
               },
-              "max_age_months": {
-                "anyOf": [
-                  {
-                    "maximum": 1200,
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
-                "title": "Maximum age in calendar months"
-              },
-              "renewal_interval_months": {
-                "anyOf": [
-                  {
-                    "maximum": 1200,
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
-                "title": "Renewal interval in calendar months"
-              },
-              "renewal_basis": {
-                "default": "reviewed_at",
-                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
-                "enum": [
-                  "reviewed_at",
-                  "submitted_at"
-                ],
-                "title": "Renewal measured from",
-                "type": "string"
-              }
-            },
-            "required": [
-              "document_type"
-            ],
-            "title": "DocumentOption",
-            "type": "object"
-          },
-          "RequirementFinding": {
-            "additionalProperties": false,
-            "properties": {
-              "requirement_key": {
-                "description": "Stable requirement key within the pinned policy.",
-                "title": "Requirement Key",
-                "type": "string"
-              },
-              "status": {
-                "description": "Deterministic state; pending review and missing evidence remain distinct.",
-                "enum": [
-                  "satisfied",
-                  "missing",
-                  "failed",
-                  "pending_review",
-                  "needs_information",
-                  "not_applicable"
-                ],
-                "title": "Status",
-                "type": "string"
-              },
-              "reason_code": {
-                "description": "Evaluator reason for the primary requirement finding.",
-                "title": "Reason Code",
-                "type": "string"
-              },
-              "explanation": {
-                "description": "Policy description and explanation of the primary finding.",
-                "title": "Explanation",
-                "type": "string"
-              },
-              "field_paths": {
-                "description": "Document or reference-profile paths implicated by the finding.",
-                "items": {
-                  "type": "string"
-                },
-                "title": "Field Paths",
-                "type": "array"
-              },
-              "document_references": {
-                "description": "Exact document/revision/review references and relevant policy dates.",
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "title": "Document References",
-                "type": "array"
-              },
-              "mandatory": {
-                "description": "Whether this applicable requirement affects completion.",
-                "title": "Mandatory",
-                "type": "boolean"
-              },
-              "applicable": {
-                "anyOf": [
-                  {
-                    "type": "boolean"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Resolved applicability; null means the profile lacks necessary information.",
-                "title": "Applicable"
-              },
-              "alternatives": {
-                "description": "Accepted evidence choices and their field/date constraints.",
-                "items": {
-                  "$ref": "#/$defs/DocumentOption"
-                },
-                "title": "Alternatives",
-                "type": "array"
-              },
-              "required_count": {
-                "description": "Minimum distinct qualifying documents required by the policy.",
-                "title": "Required Count",
-                "type": "integer"
-              },
-              "qualifying_count": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Distinct qualifying evidence count; null when applicability is unknown or false.",
-                "title": "Qualifying Count"
-              },
-              "shortfall": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Additional qualifying evidence needed; null when applicability is unknown or false.",
-                "title": "Shortfall"
-              },
-              "next_action": {
-                "description": "Suggested action grounded in the primary evaluator reason.",
-                "title": "Next Action",
-                "type": "string"
-              }
-            },
-            "required": [
-              "requirement_key",
-              "status",
-              "reason_code",
-              "explanation",
-              "field_paths",
-              "document_references",
-              "mandatory",
-              "applicable",
-              "alternatives",
-              "required_count",
-              "qualifying_count",
-              "shortfall",
-              "next_action"
-            ],
-            "title": "RequirementFinding",
-            "type": "object"
-          }
-        },
-        "additionalProperties": false,
-        "properties": {
-          "person_uid": {
-            "description": "Business person whose case owns this record.",
-            "format": "uuid",
-            "title": "Person Uid",
-            "type": "string"
-          },
-          "person_revision": {
-            "description": "Reference-profile revision used in this assessment.",
-            "title": "Person Revision",
-            "type": "integer"
-          },
-          "assignment_uid": {
-            "description": "Assignment assessed by this response.",
-            "format": "uuid",
-            "title": "Assignment Uid",
-            "type": "string"
-          },
-          "assignment_revision": {
-            "description": "Selected-evidence assignment revision used in this assessment.",
-            "title": "Assignment Revision",
-            "type": "integer"
-          },
-          "set_key": {
-            "description": "Stable key of the pinned requirement policy.",
-            "title": "Set Key",
-            "type": "string"
-          },
-          "set_version": {
-            "description": "Exact immutable policy version; never implicitly upgraded.",
-            "title": "Set Version",
-            "type": "integer"
-          },
-          "evaluator_version": {
-            "description": "Version of deterministic evaluation logic used.",
-            "title": "Evaluator Version",
-            "type": "string"
-          },
-          "assessed_at": {
-            "description": "UTC timestamp when the input consistency check completed.",
-            "format": "date-time",
-            "title": "Assessed At",
-            "type": "string"
-          },
-          "summary": {
-            "additionalProperties": true,
-            "description": "Completion counts, evaluation date, policy notice and next action date.",
-            "title": "Summary",
-            "type": "object"
-          },
-          "findings": {
-            "description": "Requirement findings within the explicitly stated scope.",
-            "items": {
-              "$ref": "#/$defs/RequirementFinding"
-            },
-            "title": "Findings",
-            "type": "array"
-          },
-          "scope": {
-            "description": "Only explicitly selected assignment documents are assessed.",
-            "title": "Scope",
-            "type": "string"
-          },
-          "diagnostics_complete": {
-            "default": false,
-            "description": "False: findings expose the primary blocker per requirement.",
-            "title": "Diagnostics Complete",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "person_uid",
-          "person_revision",
-          "assignment_uid",
-          "assignment_revision",
-          "set_key",
-          "set_version",
-          "evaluator_version",
-          "assessed_at",
-          "summary",
-          "findings",
-          "scope"
-        ],
-        "title": "AssignmentStatus",
-        "type": "object"
-      },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
-      }
-    },
-    "get_missing_requirements": {
-      "inputSchema": {
-        "properties": {
-          "assignment_uid": {
-            "format": "uuid",
-            "title": "Assignment Uid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "assignment_uid"
-        ],
-        "title": "get_missing_requirementsArguments",
-        "type": "object"
-      },
-      "outputSchema": {
-        "$defs": {
-          "DocumentOption": {
-            "additionalProperties": false,
-            "properties": {
-              "document_type": {
-                "description": "One supported type of evidence that may satisfy the requirement.",
-                "enum": [
-                  "national_identity_card",
-                  "passport",
-                  "residence_permit",
-                  "utility_bill",
-                  "bank_statement",
-                  "employment_contract",
-                  "payslip",
-                  "tax_return",
-                  "source_of_funds_evidence",
-                  "kyc_questionnaire",
-                  "loan_contract",
-                  "employer_confirmation",
-                  "tax_clearance_certificate"
-                ],
-                "title": "Document type",
-                "type": "string"
-              },
-              "schema_version": {
-                "default": 1,
-                "description": "Exact document schema version accepted by this option.",
-                "minimum": 1,
-                "title": "Schema version",
-                "type": "integer"
-              },
-              "required_fields": {
-                "description": "Additional non-null field paths required by this workflow, for example mrz_lines or holder_address.city.",
-                "items": {
-                  "minLength": 1,
-                  "pattern": "\\S",
-                  "type": "string"
-                },
-                "title": "Additional required fields",
-                "type": "array"
-              },
-              "require_unexpired": {
-                "default": false,
-                "description": "Whether the evaluator must establish document validity on the evaluation date.",
-                "title": "Require current validity",
-                "type": "boolean"
-              },
-              "max_age_days": {
-                "anyOf": [
-                  {
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "description": "Maximum age in whole calendar days from the freshness field; null means no age limit.",
-                "title": "Maximum age"
-              },
-              "freshness_field": {
+              "external_reference": {
                 "anyOf": [
                   {
                     "minLength": 1,
@@ -2348,110 +3693,73 @@
                   }
                 ],
                 "default": null,
-                "description": "Document date or timezone-aware datetime path used to measure age, such as issue_date or completed_at; datetime values use their UTC calendar date.",
-                "title": "Freshness date field"
+                "description": "Optional customer identifier in the originating business system.",
+                "title": "External reference"
               },
-              "max_age_months": {
+              "full_name": {
                 "anyOf": [
                   {
-                    "maximum": 1200,
-                    "minimum": 1,
-                    "type": "integer"
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
                 "default": null,
-                "description": "Maximum evidence age in calendar months from the freshness field; month ends clamp to the last day. Mutually exclusive with max_age_days.",
-                "title": "Maximum age in calendar months"
+                "description": "Verified reference name; null while the person's profile is incomplete.",
+                "title": "Full name"
               },
-              "renewal_interval_months": {
+              "given_names": {
                 "anyOf": [
                   {
-                    "maximum": 1200,
-                    "minimum": 1,
-                    "type": "integer"
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
                   },
                   {
                     "type": "null"
                   }
                 ],
                 "default": null,
-                "description": "Recurring renewal interval; evidence stops qualifying on the anniversary of the selected renewal basis. Null disables periodic renewal.",
-                "title": "Renewal interval in calendar months"
+                "description": "Reference given names when separately known; null otherwise.",
+                "title": "Given names"
               },
-              "renewal_basis": {
-                "default": "reviewed_at",
-                "description": "Use reviewed_at for a repeat review of the accepted revision, or submitted_at for a new submitted revision. Upload time never resets evidence age.",
-                "enum": [
-                  "reviewed_at",
-                  "submitted_at"
+              "last_name": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "title": "Renewal measured from",
-                "type": "string"
-              }
-            },
-            "required": [
-              "document_type"
-            ],
-            "title": "DocumentOption",
-            "type": "object"
-          },
-          "RequirementFinding": {
-            "additionalProperties": false,
-            "properties": {
-              "requirement_key": {
-                "description": "Stable requirement key within the pinned policy.",
-                "title": "Requirement Key",
-                "type": "string"
+                "default": null,
+                "description": "Reference surname or family name when applicable; null otherwise.",
+                "title": "Last name"
               },
-              "status": {
-                "description": "Deterministic state; pending review and missing evidence remain distinct.",
-                "enum": [
-                  "satisfied",
-                  "missing",
-                  "failed",
-                  "pending_review",
-                  "needs_information",
-                  "not_applicable"
+              "nationalities": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "minLength": 1,
+                      "pattern": "\\S",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ],
-                "title": "Status",
-                "type": "string"
+                "default": null,
+                "description": "Declared or verified nationalities; null when not yet recorded.",
+                "title": "Nationalities"
               },
-              "reason_code": {
-                "description": "Evaluator reason for the primary requirement finding.",
-                "title": "Reason Code",
-                "type": "string"
-              },
-              "explanation": {
-                "description": "Policy description and explanation of the primary finding.",
-                "title": "Explanation",
-                "type": "string"
-              },
-              "field_paths": {
-                "description": "Document or reference-profile paths implicated by the finding.",
-                "items": {
-                  "type": "string"
-                },
-                "title": "Field Paths",
-                "type": "array"
-              },
-              "document_references": {
-                "description": "Exact document/revision/review references and relevant policy dates.",
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "title": "Document References",
-                "type": "array"
-              },
-              "mandatory": {
-                "description": "Whether this applicable requirement affects completion.",
-                "title": "Mandatory",
-                "type": "boolean"
-              },
-              "applicable": {
+              "residency_permit_required": {
                 "anyOf": [
                   {
                     "type": "boolean"
@@ -2460,178 +3768,242 @@
                     "type": "null"
                   }
                 ],
-                "description": "Resolved applicability; null means the profile lacks necessary information.",
-                "title": "Applicable"
+                "default": null,
+                "description": "Case-specific determination of whether residence-permit evidence is required; null until determined.",
+                "title": "Residence permit required"
               },
-              "alternatives": {
-                "description": "Accepted evidence choices and their field/date constraints.",
-                "items": {
-                  "$ref": "#/$defs/DocumentOption"
-                },
-                "title": "Alternatives",
-                "type": "array"
+              "residential_address": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/PostalAddress"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Reference residential address used for comparison; null when unknown.",
+                "title": "Residential address"
               },
-              "required_count": {
-                "description": "Minimum distinct qualifying documents required by the policy.",
-                "title": "Required Count",
+              "revision": {
+                "default": 1,
+                "description": "Positive revision of the person's reference profile.",
+                "minimum": 1,
+                "title": "Profile revision",
                 "type": "integer"
               },
-              "qualifying_count": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Distinct qualifying evidence count; null when applicability is unknown or false.",
-                "title": "Qualifying Count"
-              },
-              "shortfall": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Additional qualifying evidence needed; null when applicability is unknown or false.",
-                "title": "Shortfall"
-              },
-              "next_action": {
-                "description": "Suggested action grounded in the primary evaluator reason.",
-                "title": "Next Action",
+              "uid": {
+                "description": "Stable business-person UID; this is not a Main Sequence authentication identity.",
+                "format": "uuid",
+                "title": "Person UID",
                 "type": "string"
               }
             },
             "required": [
-              "requirement_key",
-              "status",
-              "reason_code",
-              "explanation",
-              "field_paths",
-              "document_references",
-              "mandatory",
-              "applicable",
-              "alternatives",
-              "required_count",
-              "qualifying_count",
-              "shortfall",
-              "next_action"
+              "uid"
             ],
-            "title": "RequirementFinding",
+            "title": "Person",
+            "type": "object"
+          },
+          "PostalAddress": {
+            "additionalProperties": false,
+            "description": "An address as printed; policy decides which local components are necessary.",
+            "properties": {
+              "address_line_1": {
+                "description": "Primary street, building, or locality line exactly as stated by the source.",
+                "minLength": 1,
+                "pattern": "\\S",
+                "title": "Address line 1",
+                "type": "string"
+              },
+              "address_line_2": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Additional unit, floor, building, or locality information; null when absent.",
+                "title": "Address line 2"
+              },
+              "city": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "City or locality named in the address; null when absent.",
+                "title": "City"
+              },
+              "country_code": {
+                "anyOf": [
+                  {
+                    "pattern": "^[A-Z]{2}$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+                "title": "Country code"
+              },
+              "postal_code": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
+                "title": "Postal code"
+              },
+              "region": {
+                "anyOf": [
+                  {
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "State, province, or administrative region named in the address; null when absent.",
+                "title": "Region"
+              }
+            },
+            "required": [
+              "address_line_1"
+            ],
+            "title": "PostalAddress",
             "type": "object"
           }
         },
         "additionalProperties": false,
         "properties": {
-          "person_uid": {
-            "description": "Business person whose case owns this record.",
-            "format": "uuid",
-            "title": "Person Uid",
-            "type": "string"
-          },
-          "person_revision": {
-            "description": "Reference-profile revision used in this assessment.",
-            "title": "Person Revision",
-            "type": "integer"
-          },
-          "assignment_uid": {
-            "description": "Assignment assessed by this response.",
-            "format": "uuid",
-            "title": "Assignment Uid",
-            "type": "string"
-          },
-          "assignment_revision": {
-            "description": "Selected-evidence assignment revision used in this assessment.",
-            "title": "Assignment Revision",
-            "type": "integer"
-          },
-          "set_key": {
-            "description": "Stable key of the pinned requirement policy.",
-            "title": "Set Key",
-            "type": "string"
-          },
-          "set_version": {
-            "description": "Exact immutable policy version; never implicitly upgraded.",
-            "title": "Set Version",
-            "type": "integer"
-          },
-          "evaluator_version": {
-            "description": "Version of deterministic evaluation logic used.",
-            "title": "Evaluator Version",
-            "type": "string"
-          },
-          "assessed_at": {
-            "description": "UTC timestamp when the input consistency check completed.",
-            "format": "date-time",
-            "title": "Assessed At",
-            "type": "string"
-          },
-          "summary": {
-            "additionalProperties": true,
-            "description": "Completion counts, evaluation date, policy notice and next action date.",
-            "title": "Summary",
-            "type": "object"
-          },
-          "findings": {
-            "description": "Requirement findings within the explicitly stated scope.",
-            "items": {
-              "$ref": "#/$defs/RequirementFinding"
-            },
-            "title": "Findings",
-            "type": "array"
-          },
-          "scope": {
-            "description": "Only explicitly selected assignment documents are assessed.",
-            "title": "Scope",
-            "type": "string"
-          },
-          "diagnostics_complete": {
-            "default": false,
-            "description": "False: findings expose the primary blocker per requirement.",
-            "title": "Diagnostics Complete",
+          "has_more": {
+            "description": "Whether more matching records follow this page.",
+            "title": "Has More",
             "type": "boolean"
           },
-          "total_requirements": {
-            "description": "Total requirements in the pinned policy, including satisfied and optional ones.",
-            "title": "Total Requirements",
+          "items": {
+            "description": "Items in this bounded page.",
+            "items": {
+              "$ref": "#/$defs/Person"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "description": "Maximum records requested for this page.",
+            "title": "Limit",
             "type": "integer"
           },
-          "outstanding_requirements": {
-            "description": "Number of returned unresolved requirements, including optional ones.",
-            "title": "Outstanding Requirements",
+          "offset": {
+            "description": "Zero-based start of this page.",
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total_items": {
+            "description": "Total records matching the same access and search filters.",
+            "title": "Total Items",
             "type": "integer"
           }
         },
         "required": [
-          "person_uid",
-          "person_revision",
-          "assignment_uid",
-          "assignment_revision",
-          "set_key",
-          "set_version",
-          "evaluator_version",
-          "assessed_at",
-          "summary",
-          "findings",
-          "scope",
-          "total_requirements",
-          "outstanding_requirements"
+          "items",
+          "total_items",
+          "limit",
+          "offset",
+          "has_more"
         ],
-        "title": "MissingRequirements",
+        "title": "Page[Person]",
+        "type": "object"
+      }
+    },
+    "set_my_case_membership": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": false,
+        "title": null
+      },
+      "inputSchema": {
+        "$defs": {
+          "SetMyCaseResponsibility": {
+            "additionalProperties": false,
+            "properties": {
+              "assigned": {
+                "description": "Take or leave responsibility as the verified staff caller; does not grant permissions.",
+                "title": "Assigned",
+                "type": "boolean"
+              },
+              "case_uid": {
+                "description": "Case to take or leave as the verified staff caller.",
+                "format": "uuid",
+                "title": "Case Uid",
+                "type": "string"
+              },
+              "expected_revision": {
+                "description": "Loaded staff membership revision, or zero when never assigned.",
+                "minimum": 0,
+                "title": "Expected Revision",
+                "type": "integer"
+              },
+              "operation_key": {
+                "description": "Client-generated idempotency UUID. Reuse it with the identical request after an uncertain response.",
+                "format": "uuid",
+                "title": "Operation Key",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_key",
+              "expected_revision",
+              "assigned",
+              "case_uid"
+            ],
+            "title": "SetMyCaseResponsibility",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "command": {
+            "$ref": "#/$defs/SetMyCaseResponsibility"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "set_my_case_membershipArguments",
         "type": "object"
       },
-      "annotations": {
-        "title": null,
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "set_my_case_membershipDictOutput",
+        "type": "object"
       }
     }
   },
-  "sha256": "7f7a07ae81b2a8f0e16fcd9d89195c73eabbb51169b0dd5e1a02e609afc20dfc"
+  "version": 5
 }

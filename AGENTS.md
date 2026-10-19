@@ -7,9 +7,11 @@ line. Preserve configured author/committer identities and other co-author traile
 ## CodeRepository-Specific Instructions
 
 This repository owns the Back Office API and its separately deployed Tau helper.
-The deployed helper answers read-only person, assignment, document-set and missing
-requirement questions through the Back Office MCP application. Its workflow is
-documented in `.agents/skills/backoffice-helper/SKILL.md` and `.tau/SYSTEM.md`.
+The deployed helper analyzes and builds cases through approved Back Office MCP
+operations. Loans and account opening use one engine; business subjects remain
+separate from verified requesters and staff reviewers. Its workflows are documented
+in `.agents/skills/backoffice-helper/SKILL.md`,
+`.tau/skills/backoffice-casework/SKILL.md` and `.tau/SYSTEM.md`.
 These deployed-agent restrictions do not prohibit coding agents from implementing
 and testing repository changes authorized by the user.
 
@@ -17,8 +19,13 @@ Keep business authorization and reconciliation in the shared API services. Do no
 add direct database, HTTP, bucket or classifier access to the helper. Preserve the
 two Tau exclusion flags, the business allowlist and verified-requester requirement.
 Resolve ambiguous cases with the user; surface unavailable data or access rather
-than invent findings. Uploads, document mutations and reviews are outside this
-agent release. The SDK retains ownership of session and task controls.
+than invent findings. Approved mutations create subjects/cases, process existing
+ready subject-owned sources, append case evidence, change only the requester's own
+reviewer membership, run/retry evaluations, and automatically allocate persisted
+intakes or sources to all eligible cases with user resolution of uncertain subjects.
+Original bytes enter through the Drop files screen/API; direct chat uploads, manual
+document edits/reviews, arbitrary staff assignment and case approval/closure remain
+outside this agent release. The SDK retains ownership of session and task controls.
 
 Validate agent changes with `python -m scripts.check_agent_contract` and
 `pytest tests/agent tests/api/test_mcp_queries.py -q` in the locked environment.

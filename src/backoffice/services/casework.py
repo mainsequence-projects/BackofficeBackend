@@ -26,6 +26,8 @@ def reviewers(app, uid):
 
 
 def set_my_membership(app, uid, command):
+    if hasattr(command, "case_uid") and str(command.case_uid) != str(uid):
+        fail(422, "case_command_target_mismatch")
     if not app.reviewer:
         fail(403, "reviewer_role_required")
     assignment = app.assignment(uid, reading=False)

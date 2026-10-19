@@ -37,7 +37,7 @@ def test_only_shipped_guidance_is_allowed_even_before_business_discovery(relativ
             catalog_verified=discovered,
             project_root=ROOT,
         )
-    for name in ("create_case", "evaluate_case", "assign_reviewer"):
+    for name in ("review_document", "approve_case", "assign_reviewer"):
         assert call_denial(
             "backoffice_api__call_tool",
             {"tool": name},
@@ -133,7 +133,7 @@ def test_installed_tau_discovers_skill_and_sdk_read_runs_through_project_hooks(t
                 ".agents/skills/ms_tau_sdk/tau_project_customization/SKILL.md",
             ):
                 result = await tool.execute("blocked-read", {"path": relative})
-                assert "Only the Back Office MCP query tools" in result.content[0].text
+                assert "Only the Back Office MCP tools" in result.content[0].text
         finally:
             await session.aclose()
 

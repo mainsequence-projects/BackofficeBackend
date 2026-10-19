@@ -1,7 +1,7 @@
 {
   "name": "Back Office Helper",
-  "description": "Analyzes accessible cases and prepares case-building plans through read-only Back Office MCP queries, using one engine for loans and account opening.",
-  "version": "0.2.0",
+  "description": "Analyzes and builds accessible cases through approved Back Office MCP tools, using one engine for loans and account opening with subjects separate from reviewers.",
+  "version": "0.3.0",
   "capabilities": {
     "extensions": [
       {
@@ -35,8 +35,8 @@
     },
     {
       "id": "backoffice-casework",
-      "name": "Case analysis and building plans",
-      "description": "Analyze a pinned case or prepare its creation and evidence-completion handoff, keeping business subjects separate from staff reviewers. Does not mutate business records.",
+      "name": "Case analysis and building",
+      "description": "Resolve subjects, create typed cases pinned to permitted Document Set versions, process existing sources, link evidence and run shared evaluations through approved MCP tools. Keep staff responsibility separate from subjects.",
       "tags": [
         "backoffice",
         "cases",
@@ -45,7 +45,7 @@
       ],
       "examples": [
         "Analyze the outstanding findings for this loan case.",
-        "Prepare an account-opening case for this subject with the right Document Set version."
+        "Build an account-opening case for this subject using the permitted Document Set and existing evidence."
       ],
       "path": ".tau/skills/backoffice-casework/SKILL.md"
     }

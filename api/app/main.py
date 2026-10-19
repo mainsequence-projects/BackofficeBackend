@@ -28,6 +28,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from starlette.requests import ClientDisconnect
 
+from api.app.allocation_routes import router_for
 from api.app.assistant import AssistantContext, resolve_assistant_context
 from src.backoffice.models.document_set import DocumentSet
 from src.backoffice.policies import document_set_catalog
@@ -43,13 +44,10 @@ from src.backoffice.schemas.registry import DOCUMENT_MODELS, DocumentType, get_d
 from src.backoffice.services.application import (
     AUDIT,
     DR,
-    EV,
-    RAW,
     RV,
     SCHEMA,
     SETS,
     Application,
-    D,
     P,
 )
 from src.backoffice.services.contracts import (
@@ -161,7 +159,8 @@ async def request_controls(request: Request, call_next):
     body = bytearray()
     limit = (
         16 * 1024 * 1024
-        if request.url.path in {"/document-processing", "/source-documents/bucket-uploads"}
+        if request.url.path
+        in {"/document-processing", "/source-documents/bucket-uploads", "/document-intakes"}
         else 1024 * 1024
     )
     try:
@@ -440,12 +439,7 @@ def documents(
     offset: int = Query(0, ge=0),
     service: Application = Service,
 ):
-    service.case(uid)
-    page = service.db.page(
-        D, D.c.person_uid == uid, limit=limit, offset=offset, order=D.c.created_at.desc()
-    )
-    page["items"] = [service.document(row["uid"]) for row in page["items"]]
-    return page
+    return service.list_documents(uid, limit, offset)
 
 
 @router.post("/persons/{uid}/documents", status_code=201)
@@ -622,10 +616,7 @@ def sources(
     offset: int = Query(0, ge=0),
     service: Application = Service,
 ):
-    service.case(uid)
-    return service.db.page(
-        RAW, RAW.c.person_uid == uid, limit=limit, offset=offset, order=RAW.c.created_at.desc()
-    )
+    return service.list_sources(uid, limit, offset)
 
 
 @router.get("/source-documents/{uid}")
@@ -703,10 +694,7 @@ def evaluations(
     offset: int = Query(0, ge=0),
     service: Application = Service,
 ):
-    service.assignment(uid)
-    return service.db.page(
-        EV, EV.c.assignment_uid == uid, limit=limit, offset=offset, order=EV.c.created_at.desc()
-    )
+    return service.list_evaluations(uid, limit, offset)
 
 
 @router.get("/evaluations/{uid}")
@@ -744,14 +732,19 @@ def resume_operation(uid: UUID, service: Application = Service):
     return service.resume(uid)
 
 
-def create_app():
+# Keep adapters on the same router so REST test applications use identical services.
+
+router.include_router(router_for(application, processing_bucket, processing_dispatcher))
+
+
+def create_app(*, dispatcher_factory=None):
     """Each application owns a fresh MCP transport and its single-use lifespan."""
     from api.app.mcp.server import mount_mcp
 
     application_app = FastAPI(
         title="Back Office document reconciliation",
         version="0.3.0",
-        description="Authenticated business REST API and read-only Back Office MCP queries.",
+        description="Authenticated Back Office API and scoped case and document-allocation MCP tools.",
     )
     install_request_identity(application_app)
     application_app.include_router(router)
@@ -761,7 +754,9 @@ def create_app():
     application_app.add_exception_handler(ProcessingError, processing_error)
     application_app.add_exception_handler(DataSourceResolutionError, unavailable_source)
     application_app.middleware("http")(request_controls)
-    mount_mcp(application_app, application)
+    if dispatcher_factory is not None:
+        application_app.dependency_overrides[processing_dispatcher] = dispatcher_factory
+    mount_mcp(application_app, application, dispatcher_factory or processing_dispatcher)
     return application_app
 
 

@@ -322,9 +322,117 @@ class Worker:
         ):
             raise ProcessingError("processing_lease_lost")
 
+    def parse_source(self, row, result, source, content):
+        """Parse a verified original before or after subject binding, retaining checkpoints."""
+        count = inspect_source(content, source["media_type"])
+        suffix = {"application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg"}[
+            source["media_type"]
+        ]
+        filename = f"source-{source['uid']}.{suffix}"
+        file = ParserFile(filename=filename, content_base64=base64.b64encode(content).decode())
+        schemas = row["input_snapshot"]["schemas"]
+        version = row["input_snapshot"].get("parser_contract_version", 1)
+        if version not in (1, 2):
+            raise ProcessingError("unsupported_parser_contract_version")
+        classify_request = ClassifyRequestV2 if version == 2 else ClassifyRequest
+        extract_request = ExtractRequestV2 if version == 2 else ExtractRequest
+        classify_response = ClassificationResponseV2 if version == 2 else ClassificationResponse
+        extract_response = ExtractionResponseV2 if version == 2 else ExtractionResponse
+        version_args = {"contract_version": 2} if version == 2 else {}
+        if "classification" not in result:
+            result["stage"] = "classifying"
+            row = self.save(row, result)
+            response = self.parser.classify(
+                classify_request(
+                    **version_args,
+                    files=[file],
+                    document_types=[
+                        Candidate(
+                            document_type=k,
+                            description=v["canonical_schema"].get("description")
+                            or v["canonical_schema"]["title"],
+                        )
+                        for k, v in schemas.items()
+                    ],
+                )
+            )
+            response = classify_response.model_validate(response)
+            expected = validate_pages(response.pages, source, filename, count)
+            classified = document_classification(
+                [p.model_dump() for p in response.pages], expected_pages=expected
+            )
+            result.update(
+                classification=response.model_dump(mode="json"),
+                classification_summary=classified.model_dump(mode="json"),
+                stage="classified",
+            )
+            row = self.save(row, result)
+        # Checkpoint recovery revalidates retained responses before using their observations.
+        retained_classification = classify_response.model_validate(result["classification"])
+        if version == 2 and (
+            sum(p.boundary == "starts_document" for p in retained_classification.pages) > 1
+            or len({p.group_hint for p in retained_classification.pages if p.group_hint}) > 1
+        ):
+            result["error_code"] = "multiple_documents_require_grouping"
+            return self.save(row, result, "needs_input"), result
+        classification = result["classification_summary"]
+        kind = classification["document_type"]
+        if kind is None or kind not in schemas:
+            result["error_code"] = classification["reason_code"]
+            return self.save(row, result, "needs_input"), result
+        schema = schemas[kind]
+        if "extraction" not in result:
+            result["stage"] = "extracting"
+            row = self.save(row, result)
+            response = self.parser.extract(
+                extract_request(
+                    **(
+                        {
+                            **version_args,
+                            "reader_mode": row["input_snapshot"].get("reader_mode", "single"),
+                        }
+                        if version == 2
+                        else {}
+                    ),
+                    files=[file],
+                    document_type=kind,
+                    schema_version=schema["version"],
+                    schema_hash=schema["content_sha256"],
+                    canonical_schema=schema["canonical_schema"],
+                    output_schema=schema["draft_schema"],
+                )
+            )
+            response = extract_response.model_validate(response)
+            validate_pages(response.pages, source, filename, count)
+            if (response.document_type, response.schema_version, response.schema_hash) != (
+                kind,
+                schema["version"],
+                schema["content_sha256"],
+            ):
+                raise ProcessingError("parser_schema_identity_mismatch")
+            if {p.page: p.page_sha256 for p in response.pages} != {
+                p["page"]: p["page_sha256"] for p in result["classification"]["pages"]
+            }:
+                raise ProcessingError("parser_page_content_mismatch")
+            if response.attributes.get("document_type", kind) != kind:
+                raise ProcessingError("parser_attribute_type_mismatch")
+            get_draft_model(kind, schema["version"]).model_validate(
+                {**response.attributes, "document_type": kind}
+            )
+            validate_reader_strategy(response, row["input_snapshot"])
+            result.update(extraction=response.model_dump(mode="json"), stage="extracted")
+            row = self.save(row, result)
+        retained_extraction = extract_response.model_validate(result["extraction"])
+        validate_reader_strategy(retained_extraction, row["input_snapshot"])
+        return row, result
+
     def run(self, uid):
         app = self.app
         row = app.required(RUN, uid=uid)
+        if row["kind"] == "document.allocate":
+            from .allocation import run
+
+            return run(self, uid)
         if row["kind"] not in {KIND, "document.compare"}:
             fail(404, "processing_run_not_found")
         app.case(row["input_snapshot"]["person_uid"], reading=False, processing=True)
@@ -380,102 +488,13 @@ class Worker:
                 result.update(source_object=reference, stage="uploaded")
                 row = self.save(row, result)
             content = self.bucket.read(result["source_object"], source)
-            count = inspect_source(content, source["media_type"])
-            suffix = {"application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg"}[
-                source["media_type"]
-            ]
-            filename = f"source-{source['uid']}.{suffix}"
-            file = ParserFile(filename=filename, content_base64=base64.b64encode(content).decode())
-            schemas = row["input_snapshot"]["schemas"]
-            version = row["input_snapshot"].get("parser_contract_version", 1)
-            if version not in (1, 2):
-                raise ProcessingError("unsupported_parser_contract_version")
-            classify_request = ClassifyRequestV2 if version == 2 else ClassifyRequest
-            extract_request = ExtractRequestV2 if version == 2 else ExtractRequest
-            classify_response = ClassificationResponseV2 if version == 2 else ClassificationResponse
-            extract_response = ExtractionResponseV2 if version == 2 else ExtractionResponse
-            version_args = {"contract_version": 2} if version == 2 else {}
-            if "classification" not in result:
-                response = self.parser.classify(
-                    classify_request(
-                        **version_args,
-                        files=[file],
-                        document_types=[
-                            Candidate(
-                                document_type=k,
-                                description=v["canonical_schema"].get("description")
-                                or v["canonical_schema"]["title"],
-                            )
-                            for k, v in schemas.items()
-                        ],
-                    )
-                )
-                response = classify_response.model_validate(response)
-                expected = validate_pages(response.pages, source, filename, count)
-                classified = document_classification(
-                    [p.model_dump() for p in response.pages], expected_pages=expected
-                )
-                result.update(
-                    classification=response.model_dump(mode="json"),
-                    classification_summary=classified.model_dump(mode="json"),
-                    stage="classified",
-                )
-                row = self.save(row, result)
-            # Checkpoint recovery revalidates retained responses before using their observations.
-            retained_classification = classify_response.model_validate(result["classification"])
-            if version == 2 and (
-                sum(p.boundary == "starts_document" for p in retained_classification.pages) > 1
-                or len({p.group_hint for p in retained_classification.pages if p.group_hint}) > 1
-            ):
-                result["error_code"] = "multiple_documents_require_grouping"
-                return view(self.save(row, result, "needs_input"))
+            row, result = self.parse_source(row, result, source, content)
+            if row["status"] == "needs_input":
+                return view(row)
             classification = result["classification_summary"]
             kind = classification["document_type"]
-            if kind is None or kind not in schemas:
-                result["error_code"] = classification["reason_code"]
-                return view(self.save(row, result, "needs_input"))
-            schema = schemas[kind]
-            if "extraction" not in result:
-                response = self.parser.extract(
-                    extract_request(
-                        **(
-                            {
-                                **version_args,
-                                "reader_mode": row["input_snapshot"].get("reader_mode", "single"),
-                            }
-                            if version == 2
-                            else {}
-                        ),
-                        files=[file],
-                        document_type=kind,
-                        schema_version=schema["version"],
-                        schema_hash=schema["content_sha256"],
-                        canonical_schema=schema["canonical_schema"],
-                        output_schema=schema["draft_schema"],
-                    )
-                )
-                response = extract_response.model_validate(response)
-                validate_pages(response.pages, source, filename, count)
-                if (response.document_type, response.schema_version, response.schema_hash) != (
-                    kind,
-                    schema["version"],
-                    schema["content_sha256"],
-                ):
-                    raise ProcessingError("parser_schema_identity_mismatch")
-                if {p.page: p.page_sha256 for p in response.pages} != {
-                    p["page"]: p["page_sha256"] for p in result["classification"]["pages"]
-                }:
-                    raise ProcessingError("parser_page_content_mismatch")
-                if response.attributes.get("document_type", kind) != kind:
-                    raise ProcessingError("parser_attribute_type_mismatch")
-                get_draft_model(kind, schema["version"]).model_validate(
-                    {**response.attributes, "document_type": kind}
-                )
-                validate_reader_strategy(response, row["input_snapshot"])
-                result.update(extraction=response.model_dump(mode="json"), stage="extracted")
-                row = self.save(row, result)
-            retained_extraction = extract_response.model_validate(result["extraction"])
-            validate_reader_strategy(retained_extraction, row["input_snapshot"])
+            schema = row["input_snapshot"]["schemas"][kind]
+            version = row["input_snapshot"].get("parser_contract_version", 1)
             if "document" not in result:
                 self.assert_claim(uid)
                 result["document"] = app.create_document(

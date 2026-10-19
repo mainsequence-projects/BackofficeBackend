@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+from contextlib import asynccontextmanager, suppress
 
 from mainsequence.client import User
 from mainsequence.client.utils import get_authorization_headers
@@ -137,7 +138,26 @@ def create_app():
     source_uid = require_local_runtime(get_runtime_status())
     if source_uid != os.environ["BACKOFFICE_LOCAL_SOURCE_UID"]:
         raise RuntimeError("Local MetaTables source changed since startup preparation.")
-    from api.app.main import app
+    from api.app.main import create_app as application_factory
+    from scripts.local_processing import LocalProcessing
+
+    processing = LocalProcessing(source_uid)
+    app = application_factory(dispatcher_factory=lambda: processing)
+    original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def lifespan(application):
+        async with original_lifespan(application):
+            supervisor = asyncio.create_task(processing.supervise())
+            try:
+                yield
+            finally:
+                supervisor.cancel()
+                with suppress(asyncio.CancelledError):
+                    await supervisor
+                await asyncio.to_thread(processing.close)
+
+    app.router.lifespan_context = lifespan
 
     return LocalDeveloperGateway(
         app,
