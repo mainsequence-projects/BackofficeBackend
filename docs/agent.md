@@ -40,9 +40,19 @@ event. The agent receives reader access to the API resource, no MetaTables branc
 grant, and declares `acts_for_requester: true`. Platform authorization must permit
 that declaration; the application does not grant itself delegation authority.
 
-Provider/model defaults are `openai-codex`, `gpt-5.5`, `medium`, following the existing
-SDK tutorial setup. Availability for this Environment and its session principals
-has not been verified. Credentials are supplied by the platform, never committed.
+Provider/model defaults are `openai-codex`, `gpt-5.6-luna`, `medium`, matching the
+local launcher. Existing sessions retain their selected model; changing a default
+does not update them. Use the SDK's session-model selection to change an existing
+local conversation while preserving its history. Availability for the hosted
+Environment and its session principals must be verified separately. Credentials
+are supplied by the platform, never committed.
+
+With SDK 2.0.18 and Tau 0.4.2, replayed conversation history can override the
+bootstrap's selected model in the inference engine. `src/backoffice_agent/runtime.py`
+uses the SDK's services factory and Tau's public model setter to align the idle
+engine with the model authorized by the SDK bootstrap before a turn. It retains
+conversation history and the SDK's authentication, provider control and persistence.
+Recheck this compatibility guard when upgrading the SDK.
 
 The contract Job is an **offline candidate check**, not a live deployed MCP check.
 The platform's deployment readiness and the per-session MCP discovery check cover

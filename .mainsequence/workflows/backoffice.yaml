@@ -41,10 +41,9 @@ resources:
           value: "true"
         - name: TAU_EXCLUDE_MAINSEQUENCE_MCP
           value: "true"
-      # Defaults follow the existing tutorial's platform-managed provider setup.
       # The session principal must have access to this provider/model combination.
       llm_provider: openai-codex
-      llm_model: gpt-5.5
+      llm_model: gpt-5.6-luna
       llm_thinking: medium
       min_scale: 0
       max_scale: 5
