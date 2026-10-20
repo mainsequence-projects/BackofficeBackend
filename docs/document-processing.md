@@ -184,12 +184,13 @@ v2 support before starting new Back Office runs; this change does not deploy eit
 service.
 
 V2 adds printed pagination, source-local grouping observations, physical page
-citations, reader candidates, normalization identity and usage. The worker defaults to a single reader. Server configuration
-`BACKOFFICE_EXTRACTION_READER_MODE=independent_readers` enables two reads; the mode is
-pinned in each new run so retries cannot change strategy. ParsingMotor can also perform two independent vision
-reads on distinct configured models; this is not a Textract/vision comparison.
-No OCR confidence or precise bounding box is fabricated. Coordinates, when supplied
-by future readers, refer to the rendered page after its recorded rotation.
+citations, reader candidates, normalization identity and usage. The worker defaults to two independent readers: ParsingMotor pairs a vision reader with
+Textract (`ocr_textract`), which reports its own confidence and bounding box per candidate.
+`BACKOFFICE_EXTRACTION_READER_MODE=single` is the development fallback; the mode is
+pinned in each new run so retries cannot change strategy. No OCR confidence or precise
+bounding box is fabricated. Coordinates refer to the rendered page after its recorded rotation.
+The classifier receives `processing/classification_hints.py` descriptions (with the Czech
+titles of each document) instead of the canonical schema descriptions; schemas are unchanged.
 
 Migration `backoffice_0006` adds a nullable evidence snapshot on the existing
 `document_revision` table and expands field paths to 500 characters. No product
