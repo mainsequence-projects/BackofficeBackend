@@ -5,6 +5,10 @@ from ..models.document_set import DocumentOption, DocumentRequirement, DocumentS
 
 def loan_requirements(version: int = 1) -> DocumentSet:
     """Fresh immutable-version definition; no separate loan review or evaluator."""
+    if version == 6:
+        from .comparison_versions import with_loan_consistency
+
+        return with_loan_consistency(loan_requirements(5))
     if version in (3, 4, 5):
         from .current_documents import with_current_documents
 

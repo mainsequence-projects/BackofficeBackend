@@ -146,8 +146,8 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
         expected.pop("assessed_at", None)
         assert without_assessment_clock(actual) == without_assessment_clock(expected), name
     sets = tool(client, "list_document_sets", {"limit": 1})["structuredContent"]
-    assert sets["has_more"] and sets["total_items"] == 11
-    assert (sets["items"][0]["key"], sets["items"][0]["version"]) == ("loan_requirements", 5)
+    assert sets["has_more"] and sets["total_items"] == 12
+    assert (sets["items"][0]["key"], sets["items"][0]["version"]) == ("loan_requirements", 6)
     accounts = tool(client, "list_document_sets", {"search": "new_account_requirements"})[
         "structuredContent"
     ]
