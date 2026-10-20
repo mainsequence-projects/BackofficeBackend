@@ -11,6 +11,8 @@ def test_v6_adds_consistency_rules_without_changing_v5():
     assert keys[0] == "monthly_net_income_consistency"            # v5's rule, basis stated
     assert "same monthly net basis" in v6.comparisons[0].topic
     assert "same monthly net basis" not in v5.comparisons[0].topic   # v5 itself untouched
+    advisory = {c.key for c in v6.comparisons if not c.mandatory}
+    assert advisory == {"income_payslip_vs_employer"}
     assert {"income_contract_vs_payslip", "income_payslip_vs_employer", "employer_payslip_vs_confirmation",
             "birth_number_contract_vs_tax",
             "address_contract_vs_proof"} <= set(keys)

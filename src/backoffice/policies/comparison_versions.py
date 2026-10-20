@@ -103,6 +103,9 @@ def with_loan_consistency(policy: DocumentSet) -> DocumentSet:
             left=s("payslip", "net_pay.amount", "net_pay.currency", ["employee_name"]),
             right=s("employer_confirmation", "monthly_net_income.amount", "monthly_net_income.currency", ["employee_name"]),
             operator="numeric",
+            # One month's pay vs a monthly average: the parser stays "uncertain" even on
+            # matching values, so this pair informs the reviewer without blocking completion.
+            mandatory=False,
         ),
         ComparisonRule(
             key="employer_payslip_vs_confirmation",

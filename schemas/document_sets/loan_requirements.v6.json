@@ -260,7 +260,7 @@
         ]
       },
       "operator": "numeric",
-      "mandatory": true,
+      "mandatory": false,
       "when_both_present": false,
       "absolute_tolerance": "0",
       "relative_tolerance_basis_points": 0
