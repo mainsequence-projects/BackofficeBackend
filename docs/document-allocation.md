@@ -98,6 +98,12 @@ recovers pending or expired work and preserves the normal worker leases. Local
 records must never be dispatched to a hosted Job. The production API still uses
 the configured Main Sequence Job dispatcher. Keep the local stack running for
 background processing; closing its browser tab does not stop its workers.
+The recovery loop caches its verified developer identity after the first lookup,
+so idle scans do not poll the platform's `users/me` endpoint. Each actual worker
+execution refreshes that identity and rejects inactive or blocked users. Recovery
+or worker failures invalidate the cache, and the next attempt must verify identity
+again. Every scan still checks the pinned local SQLite source; request authorization
+and the original requester's business permissions retain their existing checks.
 
 The worker saves `classifying` and `extracting` before the respective provider
 calls. Drop files shows queued versus running work, a stage tracker, last update,

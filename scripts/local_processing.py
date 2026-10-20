@@ -24,24 +24,39 @@ class LocalProcessing:
         self.source_uid = source_uid
         self.executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="document-worker")
         self.lock = Lock()
+        self.identity_lock = Lock()
+        self.identity_uid = None
         self.futures = {}
         self.closed = False
 
-    def application(self):
+    def invalidate_identity(self):
+        with self.identity_lock:
+            self.identity_uid = None
+
+    def application(self, *, refresh_identity=False):
         if require_local_runtime(get_runtime_status()) != self.source_uid:
             raise ProcessingError("local_processing_source_changed")
-        user = User.get_authenticated_user_details()
-        if user.is_active is not True or user.blocked_access is True:
-            raise ProcessingError("allocation_requester_unavailable")
+        with self.identity_lock:
+            if refresh_identity or self.identity_uid is None:
+                # A failed refresh must never fall back to a previously allowed user.
+                self.identity_uid = None
+                user = User.get_authenticated_user_details()
+                if user.is_active is not True or user.blocked_access is True:
+                    raise ProcessingError("allocation_requester_unavailable")
+                self.identity_uid = user.uid
+            actor_uid = self.identity_uid
         # This role is confined to the verified local developer runtime. The allocation
         # worker separately refreshes the original requester's business authorization.
-        return Application(user.uid, parsing_processor=True)
+        return Application(actor_uid, parsing_processor=True)
 
     def execute(self, uid):
         try:
-            result = Worker(self.application()).run(uid)
+            result = Worker(self.application(refresh_identity=True)).run(uid)
+            if result["status"] == "failed":
+                self.invalidate_identity()
             logger.info("Local document run %s: %s", uid, result["status"])
         except Exception:
+            self.invalidate_identity()
             # No document payload, credentials or provider exception text in logs.
             logger.error(
                 "Local document run %s could not execute; retry after checking runtime", uid
@@ -62,23 +77,27 @@ class LocalProcessing:
         return None
 
     def recover(self):
-        app = self.application()
-        rows = app.db.rows(
-            RUN,
-            RUN.c.kind.in_(["document.allocate", "document.extract", "document.compare"]),
-            or_(
-                RUN.c.status == "pending",
-                and_(RUN.c.status == "running", RUN.c.lease_expires_at <= datetime.now(UTC)),
-            ),
-            limit=20,
-            order=RUN.c.created_at.asc(),
-        )
-        for row in rows:
-            if row["input_snapshot"].get("parent_allocation_uid") or row["input_snapshot"].get(
-                "parent_packet_uid"
-            ):
-                continue  # The parent's fenced worker resumes its inline extraction.
-            self.dispatch(row["uid"])
+        try:
+            app = self.application()
+            rows = app.db.rows(
+                RUN,
+                RUN.c.kind.in_(["document.allocate", "document.extract", "document.compare"]),
+                or_(
+                    RUN.c.status == "pending",
+                    and_(RUN.c.status == "running", RUN.c.lease_expires_at <= datetime.now(UTC)),
+                ),
+                limit=20,
+                order=RUN.c.created_at.asc(),
+            )
+            for row in rows:
+                if row["input_snapshot"].get("parent_allocation_uid") or row["input_snapshot"].get(
+                    "parent_packet_uid"
+                ):
+                    continue  # The parent's fenced worker resumes its inline extraction.
+                self.dispatch(row["uid"])
+        except Exception:
+            self.invalidate_identity()
+            raise
 
     async def supervise(self):
         while True:
