@@ -1,0 +1,285 @@
+{
+  "document_type": "national_identity_card",
+  "version": 3,
+  "canonical_schema": {
+    "additionalProperties": false,
+    "description": "Identity-card facts without portrait collection or biometric requirements.",
+    "properties": {
+      "document_type": {
+        "const": "national_identity_card",
+        "default": "national_identity_card",
+        "description": "Identifies this payload as national identity card.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "description": "Holder's complete name exactly as printed on the card.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Full name",
+        "type": "string"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order when identified separately.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Surname or family name when identified separately on the card.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "format": "date",
+        "title": "Date of birth",
+        "type": "string"
+      },
+      "identity_number": {
+        "description": "Identity identifier printed on the card, preserving letters and leading zeros.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Identity number",
+        "type": "string"
+      },
+      "issuing_country": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Country or issuing authority when explicitly extracted from the source; absent from the happy-case field contract and never guessed from a person's address.",
+        "title": "Issuing country"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the card was issued, if printed.",
+        "title": "Issue date"
+      },
+      "validity_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "fixed_term",
+              "permanent",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Explicit validity classification when available; null means not classified, never permanent. A printed expiry can establish validity without this metadata.",
+        "title": "Validity type"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed expiry date; required when validity is fixed-term.",
+        "title": "Expiration date"
+      }
+    },
+    "required": [
+      "full_name",
+      "date_of_birth",
+      "identity_number"
+    ],
+    "title": "NationalIdentityCardV3",
+    "type": "object"
+  },
+  "draft_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "national_identity_card",
+        "default": "national_identity_card",
+        "description": "Identifies this payload as national identity card.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's complete name exactly as printed on the card.",
+        "title": "Full name"
+      },
+      "given_names": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "All given names in their printed order when identified separately.",
+        "title": "Given names"
+      },
+      "last_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Surname or family name when identified separately on the card.",
+        "title": "Last name"
+      },
+      "date_of_birth": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Holder's printed date of birth, entered as YYYY-MM-DD.",
+        "title": "Date of birth"
+      },
+      "identity_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Identity identifier printed on the card, preserving letters and leading zeros.",
+        "title": "Identity number"
+      },
+      "issuing_country": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Country or issuing authority when explicitly extracted from the source; absent from the happy-case field contract and never guessed from a person's address.",
+        "title": "Issuing country"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date the card was issued, if printed.",
+        "title": "Issue date"
+      },
+      "validity_type": {
+        "anyOf": [
+          {
+            "enum": [
+              "fixed_term",
+              "permanent",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Explicit validity classification when available; null means not classified, never permanent. A printed expiry can establish validity without this metadata.",
+        "title": "Validity type"
+      },
+      "expiration_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Printed expiry date; required when validity is fixed-term.",
+        "title": "Expiration date"
+      }
+    },
+    "title": "NationalIdentityCardV3Draft",
+    "type": "object"
+  },
+  "content_sha256": "12e02560f419566dbc9d9887ff95206e1ffa9b5e6e31f1e1edf46c21e3fbc25d"
+}

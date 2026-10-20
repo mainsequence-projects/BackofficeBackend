@@ -19,6 +19,22 @@ document set. Every result must identify the applicable requirement, the submitt
 document revisions, and any missing information or inconsistency. All identifiers,
 models, field descriptions, interfaces, and documentation use English.
 
+## Product V1 scope and V2 follow-up
+
+V1 reconciles document attributes and the preserved source evidence. Portrait
+references, portrait bounding boxes, photo-presence requirements, facial matching
+and biometric identity verification are outside V1. No document or case requires
+these fields or checks to be complete. The original document may contain a photo;
+its original bytes remain available without collecting separate portrait metadata.
+
+V2 scope: define and implement portrait localization and face comparison as a
+separate, explicitly specified capability, including its evidence and review
+workflow. This is planned work, not an active V1 requirement.
+
+Document schema version numbers are independent of these product releases.
+Published schemas remain immutable for historical revisions; current schemas and
+all document forms omit portrait fields, including forms for older revisions.
+
 ## Platform architecture
 
 | Concern | Main Sequence implementation | Owning project |
@@ -61,7 +77,7 @@ Main Sequence Command Center
 | Document payloads | The ten concrete document models in the field catalog. |
 | `DocumentInstance` | A person's logical document and its current revision. |
 | `DocumentRevision` | Immutable source references, schema version, and submitted attributes. Drafts can be edited before submission. |
-| `DocumentReview` | An explicit acceptance or rejection of one revision, with actor, time, and reason. |
+| `DocumentReview` | An explicit acceptance or rejection of one revision, with actor, time, and optional comments. |
 | `DocumentSet` | A reusable, versioned collection of requirements and alternatives. |
 | `DocumentRequirement` | Applicability, required document alternatives, minimum counts, freshness, and additional required fields. |
 | `Person` | Reference information against which documents are reconciled. |

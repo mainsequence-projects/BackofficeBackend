@@ -21,7 +21,7 @@ from .base import Base, Created, Identified, info
 class ParsingPolicyRecord(Identified, Created, Base):
     __tablename__ = schema_table_name("backoffice", "parsing_policy")
     __metatable_identifier__ = "backoffice.parsing_policy"
-    __metatable_description__ = "One immutable classification confidence policy revision per document type. Organization administrators configure percentage thresholds for automatic acceptance of complete documents; prior policies remain available for decision provenance."
+    __metatable_description__ = "One immutable classification confidence policy revision per document type. Automatic document acceptance thresholds come from administrator overrides or the built-in On/80% default, retaining prior policies for decision provenance."
     __metatable_labels__ = ("document-processing", "configuration", "history")
     __table_args__ = (
         UniqueConstraint("settings_key", "revision"),
@@ -69,14 +69,14 @@ class ParsingPolicyRecord(Identified, Created, Base):
         Integer,
         info=info(
             "Acceptance threshold",
-            "Minimum classification confidence in basis points from 0 to 10000; 9500 means 95 percent, and null means unconfigured.",
+            "Inclusive classification confidence cutoff in basis points from 0 to 10000; 8000 means 80 percent, and null means automatic acceptance is disabled.",
         ),
     )
     changed_by: Mapped[UUID] = mapped_column(
         Uuid,
         info=info(
             "Changed by",
-            "Verified Main Sequence organization administrator User UID that saved this policy revision.",
+            "Verified Main Sequence User UID of the administrator publishing an override or the trusted processor initializing the built-in default.",
         ),
     )
     operation_key: Mapped[UUID] = mapped_column(

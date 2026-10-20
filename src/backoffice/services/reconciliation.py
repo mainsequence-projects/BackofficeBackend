@@ -5,25 +5,27 @@ from datetime import date
 
 from ..models.document_set import DocumentSet
 from .document_dates import calendar_date, document_dates, field
+from .review_reasons import attribute_issues, empty, review_reason
 
 
 def normalized(value):
     return " ".join(unicodedata.normalize("NFKC", str(value)).casefold().split())
 
 
-def assess(document, option, person, today):
-    if document["status"] != "submitted":
-        return "needs_information", "DRAFT_NOT_SUBMITTED", ["payload"]
-    if document["review_status"] == "rejected":
-        return "failed", "DOCUMENT_REJECTED", []
-    if not document["accepted"]:
-        return "pending_review", "REVIEW_REQUIRED", []
+def assess(document, option, person, today, period_field=None):
     payload = document["payload"]
-    missing = [
-        path for path in option.required_fields if field(payload, path) in (None, "", [], {})
-    ]
+    missing = [path for path in option.required_fields if empty(field(payload, path))]
     if missing:
         return "needs_information", "REQUIRED_FIELD_MISSING", missing
+    attributes = attribute_issues(document)
+    if attributes:
+        return attributes
+    if period_field and any(
+        empty(field(payload, f"{period_field}.{p}")) for p in ("start_date", "end_date")
+    ):
+        return "needs_information", "REPORTING_PERIOD_MISSING", [period_field]
+    if document["status"] != "submitted":
+        return "needs_information", "DRAFT_NOT_SUBMITTED", ["payload"]
     if option.require_unexpired:
         expiration = payload.get("expiration_date")
         if payload.get("validity_type") == "permanent":
@@ -42,7 +44,9 @@ def assess(document, option, person, today):
             dates["fresh_until"]
         ):
             return "failed", "DOCUMENT_OUTSIDE_FRESHNESS_WINDOW", [option.freshness_field]
-    if option.renewal_interval_months is not None:
+    if option.renewal_interval_months is not None and (
+        document["accepted"] or option.renewal_basis == "submitted_at"
+    ):
         if dates["renewal_from"] is None:
             return "needs_information", "RENEWAL_DATE_MISSING", [option.renewal_basis]
         if calendar_date(dates["renewal_from"]) > today:
@@ -82,6 +86,13 @@ def assess(document, option, person, today):
         and normalized(payload["employment_status"]) != normalized(person["employment_status"])
     ):
         return "failed", "EMPLOYMENT_STATUS_MISMATCH", ["employment_status"]
+    if document["review_status"] == "rejected":
+        return "failed", "DOCUMENT_REJECTED", []
+    if not document["accepted"]:
+        if not document.get("source_hashes") and not document.get("raw_document_refs"):
+            return "needs_information", "SOURCE_EVIDENCE_REQUIRED", []
+        reason = review_reason(document)
+        return reason["status"], reason["reason_code"], []
     return "satisfied", "QUALIFYING_DOCUMENT", []
 
 
@@ -111,7 +122,8 @@ def reconcile(snapshot, *, diagnostics=False):
             )
         else:
             eligible, failures, seen_hashes, seen_periods = [], [], set(), set()
-            for document in snapshot["documents"]:
+            pending = []
+            for document in sorted(snapshot["documents"], key=lambda d: not d["accepted"]):
                 option = next(
                     (
                         o
@@ -123,14 +135,16 @@ def reconcile(snapshot, *, diagnostics=False):
                 )
                 if option is None or (not policy.allow_document_reuse and document["uid"] in used):
                     continue
-                result = assess(document, option, person, today)
+                result = assess(document, option, person, today, requirement.distinct_period_field)
                 ref = {
                     "document_uid": document["uid"],
                     "revision": document["revision"],
                     "review_uid": (document["latest_review"] or {}).get("uid"),
                     "dates": document_dates(document, option, today),
                 }
-                if result[0] != "satisfied":
+                if not document["accepted"] and result[1] == review_reason(document)["reason_code"]:
+                    ref["review_reason"] = review_reason(document)
+                if result[0] not in {"satisfied", "pending_review"}:
                     failures.append((*result, ref))
                     continue
                 hashes = set(document["source_hashes"])
@@ -160,7 +174,11 @@ def reconcile(snapshot, *, diagnostics=False):
                 seen_hashes |= hashes
                 if period_key:
                     seen_periods.add(period_key)
-                eligible.append(ref)
+                if result[0] == "pending_review":
+                    pending.append(ref)
+                    failures.append((*result, ref))
+                else:
+                    eligible.append(ref)
             refs = eligible
             if len(eligible) >= requirement.min_count:
                 status, code = "satisfied", "REQUIREMENT_SATISFIED"
@@ -169,12 +187,35 @@ def reconcile(snapshot, *, diagnostics=False):
                 priority = {"failed": 0, "needs_information": 1, "pending_review": 2}
                 status, code, paths, failed_ref = min(failures, key=lambda x: priority[x[0]])
                 refs = [*eligible, failed_ref]
+                if (
+                    status == "pending_review"
+                    and len(eligible) + len(pending) < requirement.min_count
+                ):
+                    status, code, paths = "missing", "INSUFFICIENT_DISTINCT_DOCUMENTS", []
+                    refs = [*eligible, *pending]
             elif eligible:
                 code = "INSUFFICIENT_DISTINCT_DOCUMENTS"
         if requirement.mandatory and applies is not False:
             mandatory_total += 1
             satisfied_total += status == "satisfied"
-        explanation = f"{requirement.description} {code.replace('_', ' ').capitalize()}."
+        review = next(
+            (
+                r["review_reason"]
+                for r in refs
+                if r.get("review_reason", {}).get("reason_code") == code
+            ),
+            None,
+        )
+        detail = review["explanation"] if review else f"{code.replace('_', ' ').capitalize()}."
+        if code == "INSUFFICIENT_DISTINCT_DOCUMENTS":
+            detail = f"Only {len(eligible) + len(pending)} complete distinct documents are present; {requirement.min_count} are required."
+        if paths:
+            detail += (
+                " Fields: "
+                + ", ".join(p.replace("_", " ").replace(".", " › ") for p in paths)
+                + "."
+            )
+        explanation = f"{requirement.description} {detail}"
         findings.append(
             {
                 "requirement_key": requirement.key,
@@ -195,7 +236,7 @@ def reconcile(snapshot, *, diagnostics=False):
                 shortfall=max(0, requirement.min_count - len(eligible))
                 if applies is True
                 else None,
-                next_action=next_action(status, code),
+                next_action=review["next_action"] if review else next_action(status, code),
             )
     if policy.comparisons:
         from .comparisons import findings as comparison_findings

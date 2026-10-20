@@ -1,0 +1,17 @@
+[
+  {
+    "fixture": "01_happy_all7_A.json",
+    "source": "ParsingMotorBackend/samples/01_happy_all7_A/ground_truth.json",
+    "sha256": "721fea8f24aeb14c48b9484ed0f42e4e0b1e34962bbec4f0621067747c52cbf3"
+  },
+  {
+    "fixture": "02_happy_all7_B.json",
+    "source": "ParsingMotorBackend/samples/02_happy_all7_B/ground_truth.json",
+    "sha256": "83471dd968f855df75a55df83209abe775c8c9cfd459644f69cacc5420fb6495"
+  },
+  {
+    "fixture": "12_happy_5types_B.json",
+    "source": "ParsingMotorBackend/samples/12_happy_5types_B/ground_truth.json",
+    "sha256": "c323c831b2f49a02ee8d198e27cad975c8b9e4eefa6cea8e0d5f5c890a2d0f6c"
+  }
+]

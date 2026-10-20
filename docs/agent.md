@@ -124,9 +124,10 @@ and all 27 focused tests again. The upgraded local frontend rendered a real
 GPT-5.6 Luna reply through the SDK proxy. File-input failures are recorded above.
 
 The policy tests use fake requester identities and native Tau hook types; they make
-no model calls and do not seed cases. Local Tau mode has no hosted requester binding,
-so this business policy deliberately refuses workload fallback there. Test actual
-delegated conversations through the hosted runtime, with approved fixture access.
+no model calls and do not seed cases. Local Tau mode has no hosted requester binding.
+The explicitly enabled developer connection below verifies the developer instead;
+it does not fabricate a requester or change hosted delegation. Test actual hosted
+delegation through the hosted runtime, with approved fixture access.
 
 `src/backoffice_agent/mcp_contract.json` is release-owned. A deliberate API contract
 change requires reviewing the corresponding tool behavior and updating that snapshot
@@ -173,3 +174,29 @@ tests cover requester/discovery requirements and the reviewed capability contrac
 These tests use no model inference and do not establish hosted readiness. Keep the
 runtime references aligned with [the ontology](cases.md) and the MCP catalog as they
 evolve together.
+
+
+## Authenticated local developer MCP
+
+The local stack explicitly enables `BACKOFFICE_LOCAL_MCP_ENABLED=true` and passes
+`BACKOFFICE_API_ORIGIN` and `BACKOFFICE_LOCAL_SOURCE_UID` from its verified API
+preparation. It retains both Tau tool-exclusion flags and binds the helper to
+loopback. Manual launches must provide those same settings.
+
+The project extension registers only `backoffice_api__list_tools` and
+`backoffice_api__call_tool` in this mode. It uses the installed SDK's MCP client,
+protocol handling, timeout metadata and result projection. Before every call it
+verifies the saved Main Sequence developer login, matches `/me` against that UID,
+and verifies `/healthz` is the exact pinned local SQLite source. A login/source
+change, unavailable identity, catalog drift or remote API origin blocks business
+calls. Each connection closes after its operation; uncertain mutations are never
+automatically replayed. No token, arbitrary HTTP tool or database access is exposed
+to the model. The existing loopback API gateway owns credential renewal and request
+identity verification.
+
+This is an explicit single-developer local authority path authorized for development,
+not SDK requester delegation. Hosted markers or assertion mode reject the local
+adapter. Hosted sessions continue to require `current_requester()` and the platform's
+application declaration and access checks. Never enable the local adapter in a
+hosted deployment. SDK health's `mcp_connected` describes the excluded central MCP;
+local business wrappers appear in `project_tool_count` after a session loads.

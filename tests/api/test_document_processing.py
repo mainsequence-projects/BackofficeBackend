@@ -194,11 +194,12 @@ def test_entire_workflow_uses_canonical_schemas_and_per_type_policy(flow, score,
     assert source["storage_kind"] == "bucket" and source["chunk_count"] == 0
     assert client.get(f"/source-documents/{source['uid']}/content").content == png()
     request = parser.extractions[0]
-    schema = store.one(workflow.SCHEMA, document_type="passport", version=1)
+    schema = store.one(workflow.SCHEMA, document_type="passport", version=2)
     assert request.canonical_schema == schema["canonical_schema"]
     assert request.output_schema == schema["draft_schema"]
     assert request.schema_hash == schema["content_sha256"]
-    assert "$defs" in request.canonical_schema
+    assert "passport_number" in request.canonical_schema["properties"]
+    assert "portrait_reference" not in request.canonical_schema["properties"]
     assert {candidate.document_type for candidate in parser.classifications[0].document_types} == {
         kind for kind, _ in workflow.DOCUMENT_MODELS
     }
@@ -351,7 +352,7 @@ def test_expired_worker_cannot_save_late_provider_response(flow, monkeypatch):
     with pytest.raises(ProcessingError, match="lease_lost"):
         instance.run(uid)
     saved = store.one(RUN, uid=uid)
-    assert saved["result"]["stage"] == "uploaded"
+    assert saved["result"]["stage"] == "classifying"
     assert "classification" not in saved["result"]
     assert parser.extractions == [] and store.count(D) == 0
 

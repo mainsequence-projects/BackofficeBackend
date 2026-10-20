@@ -1,0 +1,221 @@
+{
+  "allow_document_reuse": true,
+  "comparisons": [
+    {
+      "absolute_tolerance": "0",
+      "description": "When both passport and national identity card are supplied, their holder names must refer to the same person; uncertainty requires review.",
+      "key": "identity_name_consistency",
+      "left": {
+        "context_fields": [
+          "date_of_birth"
+        ],
+        "document_type": "passport",
+        "field": "full_name",
+        "schema_version": 1,
+        "unit_field": null
+      },
+      "mandatory": true,
+      "operator": "semantic",
+      "relative_tolerance_basis_points": 0,
+      "right": {
+        "context_fields": [
+          "date_of_birth"
+        ],
+        "document_type": "national_identity_card",
+        "field": "full_name",
+        "schema_version": 1,
+        "unit_field": null
+      },
+      "topic": "Identity document holder's full name and birth date",
+      "when_both_present": true
+    }
+  ],
+  "description": "Illustrative evidence policy with cited cross-document comparisons. Completion means only that the versioned evidence checks passed, never account-opening or credit approval. Thresholds and coverage require business approval before production use.",
+  "key": "new_account_requirements",
+  "name": "New account requirements",
+  "requirements": [
+    {
+      "condition": null,
+      "description": "One currently valid accepted identity document, reviewed again every six calendar months.",
+      "distinct_period_field": null,
+      "key": "identity",
+      "mandatory": true,
+      "min_count": 1,
+      "options": [
+        {
+          "document_type": "national_identity_card",
+          "freshness_field": null,
+          "max_age_days": null,
+          "max_age_months": null,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": 6,
+          "require_unexpired": true,
+          "required_fields": [],
+          "schema_version": 1
+        },
+        {
+          "document_type": "passport",
+          "freshness_field": null,
+          "max_age_days": null,
+          "max_age_months": null,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": 6,
+          "require_unexpired": true,
+          "required_fields": [
+            "mrz_lines"
+          ],
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "condition": null,
+      "description": "One accepted source with a matching address dated within six calendar months of evaluation.",
+      "distinct_period_field": null,
+      "key": "address",
+      "mandatory": true,
+      "min_count": 1,
+      "options": [
+        {
+          "document_type": "utility_bill",
+          "freshness_field": "issue_date",
+          "max_age_days": null,
+          "max_age_months": 6,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": null,
+          "require_unexpired": false,
+          "required_fields": [],
+          "schema_version": 2
+        },
+        {
+          "document_type": "bank_statement",
+          "freshness_field": "statement_period.end_date",
+          "max_age_days": null,
+          "max_age_months": 6,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": null,
+          "require_unexpired": false,
+          "required_fields": [
+            "holder_address"
+          ],
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "condition": {
+        "equals": "employed",
+        "field": "employment_status"
+      },
+      "description": "For employed applicants, three accepted payslips covering distinct reporting periods.",
+      "distinct_period_field": "pay_period",
+      "key": "employment_income",
+      "mandatory": true,
+      "min_count": 3,
+      "options": [
+        {
+          "document_type": "payslip",
+          "freshness_field": null,
+          "max_age_days": null,
+          "max_age_months": null,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": null,
+          "require_unexpired": false,
+          "required_fields": [],
+          "schema_version": 2
+        }
+      ]
+    },
+    {
+      "condition": {
+        "equals": "employed",
+        "field": "employment_status"
+      },
+      "description": "For employed applicants, an accepted contract supporting employer and employment status.",
+      "distinct_period_field": null,
+      "key": "employment_contract",
+      "mandatory": true,
+      "min_count": 1,
+      "options": [
+        {
+          "document_type": "employment_contract",
+          "freshness_field": null,
+          "max_age_days": null,
+          "max_age_months": null,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": null,
+          "require_unexpired": false,
+          "required_fields": [],
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "condition": {
+        "equals": true,
+        "field": "residency_permit_required"
+      },
+      "description": "An accepted current permit when the person's reference profile says a permit is required.",
+      "distinct_period_field": null,
+      "key": "residency",
+      "mandatory": true,
+      "min_count": 1,
+      "options": [
+        {
+          "document_type": "residence_permit",
+          "freshness_field": null,
+          "max_age_days": null,
+          "max_age_months": null,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": null,
+          "require_unexpired": true,
+          "required_fields": [],
+          "schema_version": 2
+        }
+      ]
+    },
+    {
+      "condition": null,
+      "description": "Accepted evidence explaining the origin of the funds.",
+      "distinct_period_field": null,
+      "key": "source_of_funds",
+      "mandatory": true,
+      "min_count": 1,
+      "options": [
+        {
+          "document_type": "source_of_funds_evidence",
+          "freshness_field": null,
+          "max_age_days": null,
+          "max_age_months": null,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": null,
+          "require_unexpired": false,
+          "required_fields": [],
+          "schema_version": 1
+        }
+      ]
+    },
+    {
+      "condition": null,
+      "description": "One complete accepted questionnaire completed within six calendar months of evaluation.",
+      "distinct_period_field": null,
+      "key": "customer_questionnaire",
+      "mandatory": true,
+      "min_count": 1,
+      "options": [
+        {
+          "document_type": "kyc_questionnaire",
+          "freshness_field": "completed_at",
+          "max_age_days": null,
+          "max_age_months": 6,
+          "renewal_basis": "reviewed_at",
+          "renewal_interval_months": null,
+          "require_unexpired": false,
+          "required_fields": [],
+          "schema_version": 2
+        }
+      ]
+    }
+  ],
+  "version": 4
+}

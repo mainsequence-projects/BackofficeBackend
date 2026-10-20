@@ -57,14 +57,17 @@ def set_my_membership(app, uid, command):
 
 
 def lane(status):
-    findings = status["findings"]
+    if status["summary"]["complete"]:
+        return "checks_satisfied"
+    findings = [f for f in status["findings"] if f.get("mandatory", True)]
     if any(f["status"] == "failed" for f in findings):
         return "discrepancy"
     if any(f["status"] in {"missing", "needs_information"} for f in findings):
         return "missing_evidence"
     if any(f["status"] == "pending_review" for f in findings):
         return "review_required"
-    return "checks_satisfied" if status["summary"]["complete"] else "review_required"
+    # An inconsistent assessment is not evidence that a human decision is needed.
+    return "updating"
 
 
 def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0, case_type_key=""):
@@ -145,7 +148,20 @@ def queue(app, search="", responsibility="all", set_key="", limit=10, offset=0, 
                     "finding_counts": counts,
                     "workflow_state": lane(status),
                     "summary": status["summary"],
-                    "top_finding": outstanding[0] if outstanding else None,
+                    "top_finding": min(
+                        outstanding,
+                        key=lambda f: (
+                            not f.get("mandatory", True),
+                            {
+                                "failed": 0,
+                                "missing": 1,
+                                "needs_information": 1,
+                                "pending_review": 2,
+                            }.get(f["status"], 3),
+                        ),
+                    )
+                    if outstanding
+                    else None,
                     "latest_evaluated_at": latest[0]["created_at"] if latest else None,
                     "assessed_at": status["assessed_at"],
                 }

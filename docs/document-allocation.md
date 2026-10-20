@@ -88,8 +88,21 @@ Deploy the API, worker, reviewed 35-tool helper contract and static site togethe
 The processing workload must read current requester directory facts and the managed
 bucket and must have the existing MetaTables access. Its parser must support the v2
 classification and typed-extraction envelopes plus the comparison endpoint used by
-pinned policies. The last recorded live parser check rejected v2; local tests here
-use controlled parser/bucket adapters and do not establish a newer parser deployment.
+pinned policies. The deployed parser at commit `6fd21155a633` passed real v2
+classification and typed extraction on 2026-10-19. Hosted Job execution and live
+comparison policies remain separate release checks.
+
+The explicit local developer API uses `scripts.local_processing.LocalProcessing`
+for both REST and MCP. It runs two local workers against the pinned SQLite source,
+recovers pending or expired work and preserves the normal worker leases. Local
+records must never be dispatched to a hosted Job. The production API still uses
+the configured Main Sequence Job dispatcher. Keep the local stack running for
+background processing; closing its browser tab does not stop its workers.
+
+The worker saves `classifying` and `extracting` before the respective provider
+calls. Drop files shows queued versus running work, a stage tracker, last update,
+classification confidence and review reasons. Dispatch failures persist across
+refreshes and offer retry. A completed allocation is distinct from accepted evidence.
 
 Verification: `tests/api/test_document_allocation.py`,
 `tests/api/test_mcp_allocations.py`, and frontend `node tests/drop-files.mjs`.
@@ -97,3 +110,20 @@ Verification: `tests/api/test_document_allocation.py`,
 checks the installed MetaTables client/API with synthetic private fixtures and a
 live directory lookup. Supply `--run-uid` in a fresh process to verify retained
 results. The script refuses an unexpected or non-local SQLite runtime.
+
+For a real bucket/parser run use `python -m scripts.verify_live_allocation` with
+`--expected-source-uid`, `--subject-uid`, repeated `--case-uid` arguments and
+`--file` pointing to a synthetic example. It uploads through the actual local API,
+polls the real background worker, verifies all case links/current evaluations and
+checks downloaded source bytes against the input. `--run-uid` verifies retained
+results without another upload. No parser or bucket fixture is substituted.
+
+
+### Continuation-page grouping
+
+Free-text grouping hints can identify an issuer on one page and an account on
+another. Differing hints no longer split a document when every subsequent physical
+page explicitly continues it and available printed page numbers/counts agree.
+Additional starts, unknown continuation, page-number resets/gaps or conflicting
+printed totals still require grouping. The grouping decision uses retained classification observations when a worker
+resumes. Existing `needs_input` runs retain the normal resolution/re-upload boundary.

@@ -236,17 +236,15 @@ def test_stale_revision_and_duplicate_results_cannot_accept_a_different_revision
     assert client.get(f"/documents/{uid}").json()["accepted"] is False
 
 
-def test_missing_policy_is_review_only_and_lost_admin_cannot_resume_settings(
-    business, document_fixture
-):
+def test_default_policy_accepts_and_lost_admin_cannot_resume_settings(business, document_fixture):
     client, current, store = business
     admin(current)
     person = make_person(client)
     uid = draft(client, person, document_fixture("national_identity_card"), source(client, person))
-    assert complete(client, uid, "100").json()["decision"] == "needs_review"
+    assert complete(client, uid, "100").json()["decision"] == "accepted"
     payload = command(
         document_type="national_identity_card",
-        expected_revision=0,
+        expected_revision=1,
         automatic_acceptance_enabled=True,
         acceptance_threshold_percent="95",
     )
@@ -313,11 +311,12 @@ def test_other_type_and_legacy_global_policies_never_authorize_acceptance(
     )
     person = make_person(client)
     uid = draft(client, person, document_fixture("national_identity_card"), source(client, person))
-    response = complete(client, uid, "100")
+    response = complete(client, uid, "79.99")
     assert response.json()["decision"] == "needs_review"
-    assert response.json()["reason_code"] == "parsing_policy_missing"
+    assert response.json()["reason_code"] == "parsing_score_below_threshold"
     settings = client.get("/admin/parsing-settings?document_type=national_identity_card").json()
-    assert settings["revision"] == 0 and settings["automatic_acceptance_enabled"] is False
+    assert settings["revision"] == 1 and settings["automatic_acceptance_enabled"] is True
+    assert settings["acceptance_threshold_percent"] == "80.00"
 
 
 @pytest.mark.parametrize(

@@ -24,5 +24,6 @@ HINTS = {
 }
 
 
-def classifier_description(kind: str, canonical_schema: dict) -> str:
-    return HINTS.get(kind) or canonical_schema.get("description") or canonical_schema["title"]
+def local_titles(kind: str) -> str:
+    """Appended to the classifier description built from the schema."""
+    return f" Recognise it by: {HINTS[kind]}" if kind in HINTS else ""

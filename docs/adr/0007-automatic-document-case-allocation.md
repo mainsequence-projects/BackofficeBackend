@@ -337,3 +337,40 @@ deployed extraction or a saved proposal with an implemented feature.
   One extracted fixture was linked to two cases and evaluated. A fresh client process
   verified the retained links and current evaluations. Bucket/parser adapters were
   controlled fixtures; no hosted deployment or live extraction success is claimed.
+
+### Follow-up live verification and local dispatch correction
+
+On the same date, the local browser exposed a pending intake: the developer API
+was dispatching local SQLite run IDs to a hosted Job. The local API now installs
+a bounded local worker queue for REST and MCP, verifies the pinned source before
+execution and recovers durable pending/expired work. Hosted API dispatch is unchanged.
+Provider calls persist visible classification/extraction stages before starting;
+dispatch errors and review reasons remain visible after refresh.
+
+A real API upload of `data/examples/01_happy_all7_A/id_card.pdf` completed using
+the managed `backoffice-documents` bucket and deployed parser `6fd21155a633` with
+v2 contracts. Run `e22fc980-cfc3-5017-ae88-ebcf612361ca` identified the example Person,
+linked one document to both local test cases and completed both evaluations on
+SQLite source `b3416a7c-8f80-5cc4-bd25-b07ff8f96018`. The document correctly remained
+`needs_review/invalid_document_attributes`; processing completion did not bypass
+canonical validation or claim case approval. The browser displayed the completed
+case links and the original unresolved upload's explicit person-selection state.
+This verifies real external bucket/parser calls with local orchestration, not a
+hosted Back Office deployment.
+
+Repeat upload `bf1a2921-556d-5c72-9395-9efbb4ddf5ce` reused that same document,
+verified both current evaluations and matched downloaded bucket bytes to the PDF.
+The poller observed `uploaded`, `classifying`, `extracting`, `evaluating` and
+`completed`. The full regression suite passed 360 tests before concurrent canonical
+v2 updates; the final focused worker/API/MCP regressions passed 37 tests afterwards.
+
+The original upload's checksum matched the intentionally stale tax-certificate
+example. Discovery descriptions now include the canonical discriminator's meaning
+and explicitly recognize tax-authority administrative confirmations across layouts
+and languages. Live run `89ec0529-ab1b-5e48-895e-9d77bfcacb0f` correctly classified
+that example as `tax_clearance_certificate` at 95%, extracted its fields and paused
+for person selection because no confident subject match existed. Historical
+misclassification attempts remain retained rather than being rewritten. Browser
+inspection confirmed the stage and resolution messages; automated Chrome file
+selection was blocked by the extension's file-URL permission, so live uploads used
+the actual multipart API.

@@ -442,7 +442,7 @@ Primary key: `uid`.
 
 ## `backoffice.parsing_policy`
 
-One immutable classification confidence policy revision per document type. Organization administrators configure percentage thresholds for automatic acceptance of complete documents; prior policies remain available for decision provenance.
+One immutable classification confidence policy revision per document type. Automatic document acceptance thresholds come from administrator overrides or the built-in On/80% default, retaining prior policies for decision provenance.
 
 Namespace: `backoffice`. Physical name: `backoffice__parsing_policy`.
 
@@ -452,8 +452,8 @@ Namespace: `backoffice`. Physical name: `backoffice__parsing_policy`.
 | `settings_key` | `VARCHAR(80)` | No | Settings key | Stable policy scope, document_parsing followed by a colon and canonical type; the legacy document_parsing key is historical only. |
 | `revision` | `INTEGER` | No | Policy revision | Increasing policy revision within one document type; each saved version is immutable. |
 | `automatic_acceptance_enabled` | `BOOLEAN` | No | Automatic acceptance | Whether qualifying complete document revisions may be accepted automatically. |
-| `threshold_basis_points` | `INTEGER` | Yes | Acceptance threshold | Minimum classification confidence in basis points from 0 to 10000; 9500 means 95 percent, and null means unconfigured. |
-| `changed_by` | `CHAR(32)` | No | Changed by | Verified Main Sequence organization administrator User UID that saved this policy revision. |
+| `threshold_basis_points` | `INTEGER` | Yes | Acceptance threshold | Inclusive classification confidence cutoff in basis points from 0 to 10000; 8000 means 80 percent, and null means automatic acceptance is disabled. |
+| `changed_by` | `CHAR(32)` | No | Changed by | Verified Main Sequence User UID of the administrator publishing an override or the trusted processor initializing the built-in default. |
 | `operation_key` | `CHAR(32)` | No | Operation key | Stable request UUID retained to resume the same settings change without creating another revision. |
 | `uid` | `CHAR(32)` | No | UID | Stable application-generated UUID identifying this record. |
 | `created_at` | `DATETIME` | No | Created at | UTC instant when the service first recorded this record. |

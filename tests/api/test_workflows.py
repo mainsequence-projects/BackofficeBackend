@@ -231,7 +231,9 @@ def test_incomplete_draft_requires_source_and_canonical_data(business):
     )
     assert client.get(f"/documents/{draft['uid']}").json()["status"] == "draft"
     assert client.get("/document-types/passport/schema?version=99").status_code == 422
-    assert len(client.get("/document-types").json()["items"]) == 13
+    catalog = client.get("/document-types").json()["items"]
+    assert len({item["document_type"] for item in catalog}) == 13
+    assert len(catalog) == 24
     assert client.get("/person-schema").json()["properties"]["full_name"]["description"]
 
 
@@ -353,10 +355,9 @@ def test_pending_expired_mismatch_and_unknown_applicability(business, document_f
     )
     report = post(client, f"/assignments/{assignment['uid']}/evaluations", expected_revision=2)
     findings = client.get(f"/evaluations/{report['uid']}").json()["findings"]
-    assert (
-        next(x for x in findings if x["requirement_key"] == "identity")["status"]
-        == "pending_review"
-    )
+    identity = next(x for x in findings if x["requirement_key"] == "identity")
+    assert identity["status"] == "failed"
+    assert identity["reason_code"] == "DOCUMENT_EXPIRED"
     assert (
         next(x for x in findings if x["requirement_key"] == "residency")["reason_code"]
         == "APPLICABILITY_UNKNOWN"
@@ -649,7 +650,7 @@ def test_versioned_catalog_dates_and_live_renewal(business, document_fixture):
     assert [
         s["version"]
         for s in client.get("/document-sets?search=new_account_requirements").json()["items"]
-    ] == [3, 2, 1]
+    ] == [6, 5, 4, 3, 2, 1]
     person = make_person(client)
     assignment = post(
         client,

@@ -1,17 +1,20 @@
 """Admin policy and trusted parsing completion; no classifier calls or helper tools."""
 
 from decimal import Decimal
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from pydantic import ValidationError
 
 from ..schemas.registry import get_document_model
+from ..tables.evidence import FieldEvidenceRecord
 from ..tables.parsing import ParsingPolicyRecord, ParsingResultRecord
 from .application import DR, RUN, RV, D, fail, stable
+from .contracts import Command, CompleteParsing
 
 POLICY = ParsingPolicyRecord.__table__
 RESULT = ParsingResultRecord.__table__
 SETTINGS_SCOPE = str(uuid5(NAMESPACE_URL, "backoffice:document-parsing-settings"))
+DEFAULT_ACCEPTANCE_THRESHOLD = Decimal("80.00")
 
 
 def percent(points):
@@ -23,8 +26,10 @@ def policy_view(row, document_type):
         "document_type": document_type,
         "score_kind": "classification_confidence",
         "revision": row["revision"] if row else 0,
-        "automatic_acceptance_enabled": bool(row["automatic_acceptance_enabled"]) if row else False,
-        "acceptance_threshold_percent": percent(row["threshold_basis_points"]) if row else None,
+        "automatic_acceptance_enabled": bool(row["automatic_acceptance_enabled"]) if row else True,
+        "acceptance_threshold_percent": percent(row["threshold_basis_points"])
+        if row
+        else str(DEFAULT_ACCEPTANCE_THRESHOLD),
         "changed_by": row["changed_by"] if row else None,
         "changed_at": row["created_at"] if row else None,
     }
@@ -48,6 +53,46 @@ def settings(app, document_type):
     if not app.organization_admin:
         fail(403, "organization_admin_required")
     return policy_view(current_policy(app, document_type), document_type)
+
+
+def ensure_default_policy(app, document_type, operation_key):
+    """Persist the default before use, under the same lock as administrator edits.
+
+    Retry identity comes from the parsing command. Explicit per-type settings win;
+    defaults never replace them. Results always retain an actual policy revision.
+    """
+    command = Command(operation_key=stable(operation_key, f"default-policy:{document_type}"))
+    scope = settings_scope(document_type)
+    lock = app.db.one(RUN, uid=stable(scope, "case-lock"))
+    resuming = lock and lock["input_snapshot"].get("operation") == str(command.operation_key)
+    if not resuming and current_policy(app, document_type) is not None:
+        return
+
+    def build(op, now):
+        previous = current_policy(app, document_type, reading=False)
+        if previous is not None:
+            return [], {"policy_uid": previous["uid"]}
+        row = {
+            "uid": stable(op, "parsing-policy"),
+            "settings_key": f"document_parsing:{document_type}",
+            "document_type": document_type,
+            "revision": 1,
+            "automatic_acceptance_enabled": True,
+            "threshold_basis_points": int(DEFAULT_ACCEPTANCE_THRESHOLD * 100),
+            "changed_by": app.actor,
+            "created_at": now,
+            "operation_key": op,
+        }
+        return [app.ensure_step(POLICY, row)], {"policy_uid": row["uid"]}
+
+    app.mutate(
+        scope,
+        command,
+        "settings.parsing_default_initialized",
+        build,
+        create=True,
+        resource_type="settings",
+    )
 
 
 def update_settings(app, command):
@@ -108,10 +153,102 @@ def result_view(app, document_uid, revision):
     }
 
 
+def reapply_policy(app, uid, command):
+    """Recheck retained scores without changing facts, reviews or case policies."""
+    if not app.organization_admin:
+        fail(403, "organization_admin_required")
+    document = app.document(uid, reading=False)
+
+    def build(op, now):
+        current = app.document(uid, reading=False)
+        if current["revision"] != command.expected_revision:
+            fail(409, "stale_document_revision")
+        result = {"document_uid": str(uid), "revision": current["revision"]}
+        if current["latest_review"]:
+            return [], {**result, "outcome": "skipped_reviewed"}
+        parsed = app.db.one(RESULT, document_uid=uid, revision=current["revision"])
+        if parsed is None or parsed["score_basis_points"] is None:
+            return [], {**result, "outcome": "skipped_score_missing"}
+        policy = current_policy(app, current["document_type"])
+        if policy and parsed["policy_uid"] == policy["uid"]:
+            return [], {**result, "outcome": "skipped_current_policy"}
+        original = app.required(DR, document_uid=uid, revision=current["revision"])
+        revision = current["revision"] + 1
+        revision_uid = stable(op, "policy-recheck-revision")
+        steps = [
+            app.ensure_step(
+                DR,
+                {
+                    **original,
+                    "uid": revision_uid,
+                    "revision": revision,
+                    "created_by": app.actor,
+                    "created_at": now,
+                },
+            )
+        ]
+        # Carry the original observations and schema hashes; no new extraction is claimed.
+        fields = FieldEvidenceRecord.__table__
+        observations = app.db.rows(
+            fields, fields.c.revision_uid == UUID(original["uid"]), limit=501
+        )
+        if len(observations) > 500:
+            fail(409, "parsing_policy_recheck_evidence_limit_exceeded")
+        for field in observations:
+            steps.append(
+                app.ensure_step(
+                    fields,
+                    {
+                        **field,
+                        "uid": stable(op, f"field:{field['uid']}"),
+                        "revision_uid": revision_uid,
+                    },
+                )
+            )
+        steps.append(
+            app.step(
+                D,
+                {
+                    "updated_at": now,
+                    "current_revision": revision
+                    if current["status"] == "submitted"
+                    else current["current_revision"],
+                },
+                keys={"uid": str(uid)},
+                expected={"updated_at": current["updated_at"]},
+            )
+        )
+        return steps, {
+            "document_uid": str(uid),
+            "revision": revision,
+            "from_revision": current["revision"],
+            "outcome": "rechecked",
+            "parsing_score_percent": percent(parsed["score_basis_points"]),
+            "extractor": parsed["extractor"],
+        }
+
+    result = app.mutate(document["person_uid"], command, "admin.parsing_policy_reapplied", build)
+    if result["outcome"] != "rechecked":
+        return result
+    # Independent durable intent makes a lost response between these steps resumable.
+    parsing = complete(
+        app,
+        uid,
+        CompleteParsing(
+            operation_key=stable(command.operation_key, "complete-policy-recheck"),
+            expected_revision=result["revision"],
+            parsing_score_percent=result["parsing_score_percent"],
+            extractor=result["extractor"],
+        ),
+    )
+    return {**result, "parsing_result": parsing}
+
+
 def complete(app, uid, command):
     if not (app.organization_admin or app.parsing_processor):
         fail(403, "parsing_processor_required")
     document = app.document(uid, reading=False, processing=True)
+    ensure_default_policy(app, document["document_type"], command.operation_key)
 
     def build(op, now):
         current = app.document(uid, reading=False, processing=True)

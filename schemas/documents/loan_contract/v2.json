@@ -1,0 +1,529 @@
+{
+  "document_type": "loan_contract",
+  "version": 2,
+  "canonical_schema": {
+    "$defs": {
+      "Money": {
+        "additionalProperties": false,
+        "description": "Exact monetary value; JSON serializes the amount as a decimal string.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ],
+        "title": "Money",
+        "type": "object"
+      },
+      "PostalAddress": {
+        "additionalProperties": false,
+        "description": "An address as printed; policy decides which local components are necessary.",
+        "properties": {
+          "address_line_1": {
+            "description": "Primary street, building, or locality line exactly as stated by the source.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Address line 1",
+            "type": "string"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Additional unit, floor, building, or locality information; null when absent.",
+            "title": "Address line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "City or locality named in the address; null when absent.",
+            "title": "City"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "State, province, or administrative region named in the address; null when absent.",
+            "title": "Region"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
+            "title": "Postal code"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+            "title": "Country code"
+          }
+        },
+        "required": [
+          "address_line_1"
+        ],
+        "title": "PostalAddress",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "description": "Loan terms that need not carry a separate contract reference.",
+    "properties": {
+      "document_type": {
+        "const": "loan_contract",
+        "default": "loan_contract",
+        "description": "Identifies this payload as a loan contract, not an employment contract.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "description": "Borrower's complete name exactly as printed in the contract.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Borrower name",
+        "type": "string"
+      },
+      "borrower_identifier": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Borrower identifier as printed, preserving leading zeros and formatting; no validity claim.",
+        "title": "Borrower identifier"
+      },
+      "contract_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Contract reference exactly as printed, if present, preserving leading zeros; never generated from the upload or document UID.",
+        "title": "Contract number"
+      },
+      "issue_date": {
+        "description": "Date stated for the contract, as YYYY-MM-DD; not the upload date.",
+        "format": "date",
+        "title": "Contract date",
+        "type": "string"
+      },
+      "lender_name": {
+        "description": "Name of the lender explicitly identified in the contract.",
+        "minLength": 1,
+        "pattern": "\\S",
+        "title": "Lender name",
+        "type": "string"
+      },
+      "loan_amount": {
+        "$ref": "#/$defs/Money",
+        "description": "Principal amount and currency stated in the contract; not declared income.",
+        "title": "Loan amount"
+      },
+      "declared_monthly_net_income": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/Money"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Monthly income after deductions explicitly declared in the contract; null if only gross or unspecified income is given.",
+        "title": "Declared monthly net income"
+      },
+      "borrower_address": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/PostalAddress"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Borrower address as stated in the contract; null when absent.",
+        "title": "Borrower address"
+      },
+      "required_documents_as_printed": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Document requirements transcribed from the contract as source text; never an executable policy or authority to waive assigned requirements.",
+        "title": "Document list as printed"
+      }
+    },
+    "required": [
+      "full_name",
+      "issue_date",
+      "lender_name",
+      "loan_amount"
+    ],
+    "title": "LoanContractV2",
+    "type": "object"
+  },
+  "draft_schema": {
+    "$defs": {
+      "MoneyDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Monetary amount in the associated currency, preserving source precision and sign.",
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO three-letter currency code for the monetary amount.",
+            "title": "Currency"
+          }
+        },
+        "title": "MoneyDraft",
+        "type": "object"
+      },
+      "PostalAddressDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "address_line_1": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Primary street, building, or locality line exactly as stated by the source.",
+            "title": "Address line 1"
+          },
+          "address_line_2": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Additional unit, floor, building, or locality information; null when absent.",
+            "title": "Address line 2"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "City or locality named in the address; null when absent.",
+            "title": "City"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "State, province, or administrative region named in the address; null when absent.",
+            "title": "Region"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Postal code as printed, preserving letters, spaces, and leading zeros; null when absent.",
+            "title": "Postal code"
+          },
+          "country_code": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "ISO two-letter country code established by the source or verified reference; null when unknown.",
+            "title": "Country code"
+          }
+        },
+        "title": "PostalAddressDraft",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "document_type": {
+        "const": "loan_contract",
+        "default": "loan_contract",
+        "description": "Identifies this payload as a loan contract, not an employment contract.",
+        "title": "Document type",
+        "type": "string"
+      },
+      "full_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Borrower's complete name exactly as printed in the contract.",
+        "title": "Borrower name"
+      },
+      "borrower_identifier": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Borrower identifier as printed, preserving leading zeros and formatting; no validity claim.",
+        "title": "Borrower identifier"
+      },
+      "contract_number": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Contract reference exactly as printed, if present, preserving leading zeros; never generated from the upload or document UID.",
+        "title": "Contract number"
+      },
+      "issue_date": {
+        "anyOf": [
+          {
+            "format": "date",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Date stated for the contract, as YYYY-MM-DD; not the upload date.",
+        "title": "Contract date"
+      },
+      "lender_name": {
+        "anyOf": [
+          {
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Name of the lender explicitly identified in the contract.",
+        "title": "Lender name"
+      },
+      "loan_amount": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/MoneyDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Principal amount and currency stated in the contract; not declared income.",
+        "title": "Loan amount"
+      },
+      "declared_monthly_net_income": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/MoneyDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Monthly income after deductions explicitly declared in the contract; null if only gross or unspecified income is given.",
+        "title": "Declared monthly net income"
+      },
+      "borrower_address": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/PostalAddressDraft"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Borrower address as stated in the contract; null when absent.",
+        "title": "Borrower address"
+      },
+      "required_documents_as_printed": {
+        "anyOf": [
+          {
+            "items": {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Document requirements transcribed from the contract as source text; never an executable policy or authority to waive assigned requirements.",
+        "title": "Document list as printed"
+      }
+    },
+    "title": "LoanContractV2Draft",
+    "type": "object"
+  },
+  "content_sha256": "08d3ff6ac20e23784e380f6e80a93c5b7e6d68a3c8b6e6ac4c891c132e9dee61"
+}

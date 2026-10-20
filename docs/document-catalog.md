@@ -2,6 +2,110 @@
 
 This is the accepted business field catalog and intended reconciliation behavior.
 
+V1 reconciles document facts. Portrait references, photo-presence checks and face
+comparison are deferred to [product V2 scope](project-plan.md#product-v1-scope-and-v2-follow-up).
+Current identity-card schema 3 and passport schema 2 contain no portrait field.
+All document forms also omit that section for historical schemas. Original source
+files and retained historical revisions remain unchanged.
+
+## Required-field audit (2026-10-19)
+
+The minimum below is for a completed canonical payload, not a decision that a
+case is complete. Optional source facts remain null when absent; a document-set
+policy can require them for a particular use. Names, identifiers, primary amounts
+and reporting periods remain required where they identify the subject and the
+evidence being supplied. Nested amounts still need currency; supplied periods
+still need both endpoints.
+
+Happy cases are authoritative for obligatory fields, as confirmed by the project
+owner. A field absent from the authoritative happy-case extraction must not be
+mandatory just because the previous model required it. Presence in an example
+does not by itself make an already optional field mandatory.
+
+All 13 types were reviewed against their canonical fixtures. The Parsing Motor
+`01_happy_all7_A`, `02_happy_all7_B` and `12_happy_5types_B` examples and their
+source generator supply additional examples for the seven loan-related types.
+The source generator matters: its payslips print gross pay although the
+ground-truth comparison field list omits it. That list is not the complete source.
+Its identity cards do not print issue dates; the current ID model already permits
+both omission and null. Its address layout A does not state a utility category,
+so the model must not force extraction to guess one from the issuer.
+
+The second pass explicitly anchors the remaining seven types in independent
+happy-case inputs:
+
+- National ID, bank statement and tax certificate use the packages' `expected_fields`
+  as the authoritative extraction facts. Source PDFs can contain additional
+  information, such as bank names and verbatim tax wording; extracting those
+  details remains useful but is not a completion requirement. IDs need no separate
+  issuing-country or validity-classification value; statements need no bank name
+  or separate account currency; certificates need no duplicate verbatim statement.
+- Passport, employment contract, tax return and source-of-funds evidence use the
+  existing `tests/fixtures/documents/*.json` examples, explicitly confirmed by the
+  project owner. Each example supplies its existing required fields, including
+  conditional salary information where applicable. Those four schemas therefore
+  need no further relaxation; this is now tested against the complete examples,
+  rather than relying on the models to justify themselves.
+
+Self-contained copies of the package ground truth, with source paths and SHA-256
+hashes, are in `tests/fixtures/happy_cases/`. `tests/happy_cases.py` maps their
+original names to canonical fields without adding guessed data. All twelve mapped
+examples across the seven types must pass canonical validation and real API
+submission. This guards against reintroducing unsupported obligatory fields.
+
+| Document type | Current schema | Required source facts | Optional details / decision |
+| --- | --- | --- | --- |
+| National identity card | 3 | Full name, birth date, identity number | Issue date already optional. Issuing country and validity type are now optional. A printed expiry is usable without a separate validity classification; explicit fixed-term validity still requires expiry and permanent validity forbids it. No expiry and no permanent-validity evidence remains unknown to the policy. |
+| Passport | 2 | Full name, birth date, passport number, nationality, issuing country, expiry | Issue date, separate name parts and MRZ remain optional; policies can require MRZ. |
+| Residence permit | 2 | Full name, permit number, issuing country, validity type | Printed permit category is now optional; absence does not imply any entitlement. Conditional expiry remains enforced. |
+| Utility bill | 2 | Account-holder name, service address, provider, issue date | Service category is now optional. Amount, account number and billing period remain optional for address evidence. Issue date remains the freshness anchor. |
+| Bank statement | 2 | Account holders, account identifier, statement period | Bank name and separate account-level currency are now optional. Every supplied monetary amount still needs its own currency; balances must agree with the account currency when it is supplied. Separate issue date, address, balances and transactions remain optional. |
+| Employment contract | 1 | Employee, employer, employment type, start date | Job title, signature date and salary already optional. Fixed-term end date and supplied salary's frequency/basis remain conditional requirements so terms are interpretable. |
+| Payslip | 2 | Employee, employer, pay period, net pay with currency | Gross pay is now optional for net-income evidence; deductions remain optional. Currency agreement is checked for every supplied amount. |
+| Tax return | 1 | Taxpayer, jurisdiction, fiscal period, declared income with currency | Tax identifier, taxable income, activity and filing details already optional. Filing evidence can still be requested separately. |
+| Source-of-funds evidence | 1 | Owner, origin category, amount with currency, explanation | Event date, originating party and supporting links already optional; a policy may require substantiation. |
+| KYC questionnaire | 2 | Full name, employment status, account purpose, expected monthly inflow with currency, sources of funds | Outflow estimate, completion instant and questionnaire version are now optional for external forms. Unknown outflow is not zero. An undated form cannot satisfy a policy requiring completion-date freshness. |
+| Loan contract | 2 | Borrower, contract date, lender, principal with currency | Contract reference is now optional; income, address and printed evidence list already optional at schema level. The loan policy still requires declared net income. |
+| Employer confirmation | 2 | Employee, employer, issue date, monthly net income with currency | Income basis is now nullable/optional; absence never implies single-month income. Employment dates, position and income period remain optional. This type remains an employment-and-income confirmation. |
+| Tax clearance certificate | 2 | Taxpayer, issuing authority, issue date, arrears statement | Duplicate verbatim statement text is now optional. Identifier, certificate number, separate as-of date and arrears amount remain optional. Missing text or amount never implies tax clearance or zero debt. |
+
+Version 1 schemas and historical policies remain unchanged. The nine relaxed
+contracts are registered as version 2. New account policy 6 and loan policy 5 pin
+the current schemas, including comparison selectors, while retaining validity,
+freshness, income and review requirements. Existing cases keep their assigned
+policy; adopting the new contracts requires an explicit policy upgrade. The explicit admin upgrade `POST /admin/persons/{uid}/happy-case-requirements`
+accepts an idempotency `operation_key` and upgrades existing subject documents
+and cases. It appends current-schema revisions with the same document facts and sources,
+retains existing accepted/rejected decisions with provenance, and preserves all
+original revisions. Obsolete portrait metadata is omitted from the new revisions;
+original source attachments and historical portrait metadata remain retained.
+The original parser observations retain their original schema hash and values. Unreviewed parser results are rechecked using their saved
+classification score and the current acceptance policy. Manual drafts are not
+automatically accepted. Cases adopt account policy 6 or loan policy 5; evaluations
+must be rerun against the new versions. Repeating the operation is safe.
+Missing optional attributes are advisory and do not change case completeness.
+
+Account policy 4 and loan policy 3 retain their exact previously published schema
+references. Their document pins are explicit: adding a newer document schema to
+the registry must never change an existing policy definition. The newer policy
+versions only update document-schema references; the business checks and comparison
+tolerances are unchanged. Publishing the catalog adds missing versions and rejects
+any attempted change to a published definition.
+
+The parser selects the newest published schema for each type. The frontend also
+selects the newest catalog version for manual document creation; editing an
+existing document uses its recorded version. Version-1 API calls remain supported,
+and legacy API defaults remain version 1; API clients must pass `schema_version=2`
+when creating one of the relaxed types. Deployment must publish the new catalog through the existing migration
+Job before readiness succeeds; no live catalog was modified by this code change.
+
+The detailed tables below describe the preserved version-1 contracts. For current
+version-2 field descriptions, use the generated [model reference](model-reference.md)
+and the corresponding `v2.json` schemas. Minimal payload, null, validation and
+submission regressions cover every document type in
+`tests/models/test_document_minimums.py`, `tests/models/test_happy_case_contracts.py` and
+`tests/api/test_minimal_document_workflows.py`.
+
 The shared catalog also includes `loan_contract`, `employer_confirmation`, and
 `tax_clearance_certificate` version 1. Their exact fields are in the generated
 [model reference](model-reference.md); their policy scope and extraction contracts
@@ -71,11 +175,9 @@ module `models/documents/national_identity_card.py`.
 | `issue_date` | `date` | O | Date the card was issued, if printed. |
 | `validity_type` | `Literal['fixed_term','permanent','unknown']` | R | Whether the source states a fixed expiry, permanent validity, or does not establish validity. |
 | `expiration_date` | `date` | C | Printed expiry date; required when validity is fixed-term. |
-| `portrait_reference` | `EvidenceRegion` | O | Location of the holder's portrait in the source document. |
 
-Checks: name and birth-date consistency, identifier presence, validity at evaluation
-time, and required portrait presence. Unknown validity requires review; absence of
-a portrait reference alone does not prove absence of a photograph.
+Checks: name and birth-date consistency, identifier presence and validity at
+evaluation time. Unknown validity requires review. Portrait and face checks are V2 scope.
 
 ## Passport
 
@@ -93,7 +195,6 @@ Model `Passport`; discriminator `passport`; module `models/documents/passport.py
 | `issue_date` | `date` | O | Date the passport was issued, if printed. |
 | `expiration_date` | `date` | R | Printed passport expiry date, entered as YYYY-MM-DD. |
 | `mrz_lines` | `list[str]` | O | MRZ lines in printed order, preserving every character including `<` fillers. |
-| `portrait_reference` | `EvidenceRegion` | O | Location of the holder's portrait in the passport source. |
 
 Checks: identity, nationality, expiry, supported MRZ format/check digits, and MRZ
 agreement with the visual zone. Additional issuing-document variants require an

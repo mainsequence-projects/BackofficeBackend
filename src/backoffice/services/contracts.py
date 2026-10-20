@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import Field, StrictBool, StrictInt, create_model, model_validator
+from pydantic import AliasChoices, Field, StrictBool, StrictInt, create_model, model_validator
 
 from ..models.common import ContractModel, NonEmptyStr
 from ..models.document import RawDocumentRef
@@ -25,7 +25,7 @@ class UpdateParsingPolicy(Command):
     )
     expected_revision: StrictInt = Field(
         ge=0,
-        description="Revision for this document type loaded by the administrator; zero means unconfigured.",
+        description="Revision for this document type loaded by the administrator; zero means the built-in On/80% default has not yet been persisted.",
     )
     automatic_acceptance_enabled: StrictBool = Field(
         description="Enable automatic acceptance for qualifying valid document revisions."
@@ -62,6 +62,13 @@ class CompleteParsing(Command):
     )
     extractor: NonEmptyStr = Field(
         max_length=120, description="Extractor identifier and version retained with the score."
+    )
+
+
+class ReapplyParsingPolicy(Command):
+    expected_revision: StrictInt = Field(
+        ge=1,
+        description="Latest document revision whose saved classification score should be checked against the current acceptance policy. Reviewed revisions are preserved.",
     )
 
 
@@ -140,8 +147,12 @@ class ReviewDocument(SubmitDocument):
     decision: Literal["accepted", "rejected"] = Field(
         description="Explicit decision for the submitted revision."
     )
-    reason: NonEmptyStr = Field(
-        max_length=4000, description="Reviewer explanation retained with the decision."
+    reason: str = Field(
+        default="",
+        max_length=4000,
+        validation_alias=AliasChoices("comments", "reason"),
+        title="Review comments",
+        description="Optional reviewer comments retained with the decision. Omit or leave blank when no comment is needed.",
     )
 
 
