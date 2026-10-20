@@ -1,0 +1,365 @@
+{
+  "key": "loan_requirements",
+  "version": 6,
+  "name": "Loan document requirements",
+  "description": "Illustrative salaried-loan evidence policy with cited cross-document consistency: income across contract, payslip and employer confirmation; employer; birth number on the employer confirmation and tax certificate; address. Completion is never credit approval; thresholds require business approval before production use.",
+  "allow_document_reuse": true,
+  "requirements": [
+    {
+      "key": "loan_contract",
+      "description": "One accepted loan contract stating the principal and declared monthly net income.",
+      "options": [
+        {
+          "document_type": "loan_contract",
+          "schema_version": 2,
+          "required_fields": [
+            "declared_monthly_net_income"
+          ],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "identity",
+      "description": "One accepted identity document with established current validity.",
+      "options": [
+        {
+          "document_type": "national_identity_card",
+          "schema_version": 3,
+          "required_fields": [],
+          "require_unexpired": true,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        },
+        {
+          "document_type": "passport",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": true,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "bank_statement",
+      "description": "One accepted bank statement with a reporting period ending within 90 days.",
+      "options": [
+        {
+          "document_type": "bank_statement",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "statement_period.end_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "employment_income",
+      "description": "One accepted payslip covering a reporting period ending within 90 days.",
+      "options": [
+        {
+          "document_type": "payslip",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "pay_period.end_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": "pay_period",
+      "condition": null
+    },
+    {
+      "key": "address",
+      "description": "Accepted address evidence dated within 90 days and matching the reference profile.",
+      "options": [
+        {
+          "document_type": "utility_bill",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "issue_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        },
+        {
+          "document_type": "bank_statement",
+          "schema_version": 2,
+          "required_fields": [
+            "holder_address"
+          ],
+          "require_unexpired": false,
+          "max_age_days": 90,
+          "freshness_field": "statement_period.end_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "employer_confirmation",
+      "description": "One accepted employer confirmation issued within 30 days; income comparison is a separate check.",
+      "options": [
+        {
+          "document_type": "employer_confirmation",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 30,
+          "freshness_field": "issue_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "tax_certificate",
+      "description": "One accepted tax-authority certificate issued within 30 days; presence does not establish absence of arrears.",
+      "options": [
+        {
+          "document_type": "tax_clearance_certificate",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": 30,
+          "freshness_field": "issue_date",
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    }
+  ],
+  "comparisons": [
+    {
+      "key": "monthly_net_income_consistency",
+      "description": "Declared and employer-confirmed monthly net income must describe the same basis and match exactly; zero tolerance is illustrative and not credit approval.",
+      "topic": "Monthly net income of the same employee, period and income basis",
+      "left": {
+        "document_type": "loan_contract",
+        "schema_version": 2,
+        "field": "declared_monthly_net_income.amount",
+        "unit_field": "declared_monthly_net_income.currency",
+        "context_fields": [
+          "full_name"
+        ]
+      },
+      "right": {
+        "document_type": "employer_confirmation",
+        "schema_version": 2,
+        "field": "monthly_net_income.amount",
+        "unit_field": "monthly_net_income.currency",
+        "context_fields": [
+          "employee_name",
+          "income_basis"
+        ]
+      },
+      "operator": "numeric",
+      "mandatory": true,
+      "when_both_present": false,
+      "absolute_tolerance": "0",
+      "relative_tolerance_basis_points": 0
+    },
+    {
+      "key": "income_contract_vs_payslip",
+      "description": "Declared monthly net income must match the payslip's net pay; not credit approval.",
+      "topic": "Monthly net income of the same employee for the same period",
+      "left": {
+        "document_type": "loan_contract",
+        "schema_version": 2,
+        "field": "declared_monthly_net_income.amount",
+        "unit_field": "declared_monthly_net_income.currency",
+        "context_fields": [
+          "full_name"
+        ]
+      },
+      "right": {
+        "document_type": "payslip",
+        "schema_version": 2,
+        "field": "net_pay.amount",
+        "unit_field": "net_pay.currency",
+        "context_fields": [
+          "employee_name"
+        ]
+      },
+      "operator": "numeric",
+      "mandatory": true,
+      "when_both_present": false,
+      "absolute_tolerance": "0",
+      "relative_tolerance_basis_points": 0
+    },
+    {
+      "key": "income_payslip_vs_employer",
+      "description": "The payslip's net pay must match the employer-confirmed monthly net income.",
+      "topic": "Monthly net income of the same employee for the same period",
+      "left": {
+        "document_type": "payslip",
+        "schema_version": 2,
+        "field": "net_pay.amount",
+        "unit_field": "net_pay.currency",
+        "context_fields": [
+          "employee_name"
+        ]
+      },
+      "right": {
+        "document_type": "employer_confirmation",
+        "schema_version": 2,
+        "field": "monthly_net_income.amount",
+        "unit_field": "monthly_net_income.currency",
+        "context_fields": [
+          "employee_name"
+        ]
+      },
+      "operator": "numeric",
+      "mandatory": true,
+      "when_both_present": false,
+      "absolute_tolerance": "0",
+      "relative_tolerance_basis_points": 0
+    },
+    {
+      "key": "employer_payslip_vs_confirmation",
+      "description": "The employer on the payslip and on the employer confirmation must be the same company.",
+      "topic": "Legal name of the employer",
+      "left": {
+        "document_type": "payslip",
+        "schema_version": 2,
+        "field": "employer.name",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "right": {
+        "document_type": "employer_confirmation",
+        "schema_version": 2,
+        "field": "employer.name",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "operator": "semantic",
+      "mandatory": true,
+      "when_both_present": false,
+      "absolute_tolerance": "0",
+      "relative_tolerance_basis_points": 0
+    },
+    {
+      "key": "birth_number_contract_vs_employer",
+      "description": "The borrower's birth number must be the same on the contract and the employer confirmation.",
+      "topic": "Czech birth number (rodn\u00e9 \u010d\u00edslo) of the same person; a slash or spaces are only formatting",
+      "left": {
+        "document_type": "loan_contract",
+        "schema_version": 2,
+        "field": "borrower_identifier",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "right": {
+        "document_type": "employer_confirmation",
+        "schema_version": 2,
+        "field": "employee_identifier",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "operator": "semantic",
+      "mandatory": true,
+      "when_both_present": false,
+      "absolute_tolerance": "0",
+      "relative_tolerance_basis_points": 0
+    },
+    {
+      "key": "birth_number_contract_vs_tax",
+      "description": "The tax certificate must belong to the borrower: same birth number as the contract.",
+      "topic": "Czech birth number (rodn\u00e9 \u010d\u00edslo) of the same person; a CZ prefix, slash or spaces are only formatting",
+      "left": {
+        "document_type": "loan_contract",
+        "schema_version": 2,
+        "field": "borrower_identifier",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "right": {
+        "document_type": "tax_clearance_certificate",
+        "schema_version": 2,
+        "field": "tax_identifier",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "operator": "semantic",
+      "mandatory": true,
+      "when_both_present": false,
+      "absolute_tolerance": "0",
+      "relative_tolerance_basis_points": 0
+    },
+    {
+      "key": "address_contract_vs_proof",
+      "description": "The borrower's address in the contract must match the proof of address.",
+      "topic": "Street and house number of the borrower's residential address",
+      "left": {
+        "document_type": "loan_contract",
+        "schema_version": 2,
+        "field": "borrower_address.address_line_1",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "right": {
+        "document_type": "utility_bill",
+        "schema_version": 2,
+        "field": "service_address.address_line_1",
+        "unit_field": null,
+        "context_fields": []
+      },
+      "operator": "semantic",
+      "mandatory": true,
+      "when_both_present": true,
+      "absolute_tolerance": "0",
+      "relative_tolerance_basis_points": 0
+    }
+  ]
+}

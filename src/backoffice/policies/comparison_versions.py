@@ -53,3 +53,87 @@ def with_comparisons(policy: DocumentSet) -> DocumentSet:
         "Thresholds and coverage require business approval before production use."
     )
     return DocumentSet.model_validate(definition)
+
+
+def _side(policy, document_type, field, unit=None, context=()):
+    version = next(
+        o.schema_version
+        for r in policy.requirements
+        for o in r.options
+        if o.document_type == document_type
+    )
+    return ComparisonSelector(
+        document_type=document_type,
+        schema_version=version,
+        field=field,
+        unit_field=unit,
+        context_fields=list(context),
+    )
+
+
+def with_loan_consistency(policy: DocumentSet) -> DocumentSet:
+    """Next loan version: the same requirements plus cross-document consistency, using only
+    the existing exact/numeric/semantic operators (decided by Back Office, never the parser)."""
+    definition = policy.model_dump()
+    definition["version"] += 1
+    s = lambda *args, **kw: _side(policy, *args, **kw)  # noqa: E731
+    income = "Monthly net income of the same employee for the same period"
+    rules = [
+        ComparisonRule(
+            key="income_contract_vs_payslip",
+            description="Declared monthly net income must match the payslip's net pay; not credit approval.",
+            topic=income,
+            left=s("loan_contract", "declared_monthly_net_income.amount", "declared_monthly_net_income.currency", ["full_name"]),
+            right=s("payslip", "net_pay.amount", "net_pay.currency", ["employee_name"]),
+            operator="numeric",
+        ),
+        ComparisonRule(
+            key="income_payslip_vs_employer",
+            description="The payslip's net pay must match the employer-confirmed monthly net income.",
+            topic=income,
+            left=s("payslip", "net_pay.amount", "net_pay.currency", ["employee_name"]),
+            right=s("employer_confirmation", "monthly_net_income.amount", "monthly_net_income.currency", ["employee_name"]),
+            operator="numeric",
+        ),
+        ComparisonRule(
+            key="employer_payslip_vs_confirmation",
+            description="The employer on the payslip and on the employer confirmation must be the same company.",
+            topic="Legal name of the employer",
+            left=s("payslip", "employer.name"),
+            right=s("employer_confirmation", "employer.name"),
+            operator="semantic",
+        ),
+        ComparisonRule(
+            key="birth_number_contract_vs_employer",
+            description="The borrower's birth number must be the same on the contract and the employer confirmation.",
+            topic="Czech birth number (rodné číslo) of the same person; a slash or spaces are only formatting",
+            left=s("loan_contract", "borrower_identifier"),
+            right=s("employer_confirmation", "employee_identifier"),
+            operator="semantic",
+        ),
+        ComparisonRule(
+            key="birth_number_contract_vs_tax",
+            description="The tax certificate must belong to the borrower: same birth number as the contract.",
+            topic="Czech birth number (rodné číslo) of the same person; a CZ prefix, slash or spaces are only formatting",
+            left=s("loan_contract", "borrower_identifier"),
+            right=s("tax_clearance_certificate", "tax_identifier"),
+            operator="semantic",
+        ),
+        ComparisonRule(
+            key="address_contract_vs_proof",
+            description="The borrower's address in the contract must match the proof of address.",
+            topic="Street and house number of the borrower's residential address",
+            left=s("loan_contract", "borrower_address.address_line_1"),
+            right=s("utility_bill", "service_address.address_line_1"),
+            operator="semantic",
+            when_both_present=True,
+        ),
+    ]
+    definition["comparisons"] = definition["comparisons"] + [r.model_dump() for r in rules]
+    definition["description"] = (
+        "Illustrative salaried-loan evidence policy with cited cross-document consistency: "
+        "income across contract, payslip and employer confirmation; employer; birth number on "
+        "the employer confirmation and tax certificate; address. Completion is never credit "
+        "approval; thresholds require business approval before production use."
+    )
+    return DocumentSet.model_validate(definition)
