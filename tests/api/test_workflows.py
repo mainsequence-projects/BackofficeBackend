@@ -650,7 +650,7 @@ def test_versioned_catalog_dates_and_live_renewal(business, document_fixture):
     assert [
         s["version"]
         for s in client.get("/document-sets?search=new_account_requirements").json()["items"]
-    ] == [6, 5, 4, 3, 2, 1]
+    ] == [7, 6, 5, 4, 3, 2, 1]
     person = make_person(client)
     assignment = post(
         client,

@@ -22,6 +22,16 @@ Discover the approved catalog first; its schemas are authoritative.
    purpose; ask when several plausible choices remain. Never infer a binding from
    a policy name or assume the newest version is appropriate. No permitted policy
    means a policy-owner handoff, not invented requirements.
+   For the owner's current six-document account-opening checklist, select
+   `new_account_requirements` **v7** after verifying its published binding. It
+   requires one each of `id_card`, `bank_statement`, `payslip`, `proof_of_address`,
+   `employer_confirmation` and `tax_or_debt_certificate`. In the canonical catalog
+   these map respectively to `national_identity_card`, `bank_statement`, `payslip`,
+   `utility_bill`, `employer_confirmation` and `tax_clearance_certificate`. Do not
+   ask for extra payslip periods or requirements from earlier illustrative versions.
+   An existing case on v1–6 retains its actual rules: explain the pin and hand off
+   an explicitly requested policy upgrade to the admin UI/API; the helper cannot
+   change the policy binding itself.
 4. Create with `create_case(command={operation_key, subject_uid, case_type_key,
    document_set_key, document_set_version})`. Read the returned case to confirm its
    identity and pin. An empty case is valid; creation does not establish completeness.

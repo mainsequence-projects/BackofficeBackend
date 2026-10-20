@@ -81,9 +81,17 @@ original revisions. Obsolete portrait metadata is omitted from the new revisions
 original source attachments and historical portrait metadata remain retained.
 The original parser observations retain their original schema hash and values. Unreviewed parser results are rechecked using their saved
 classification score and the current acceptance policy. Manual drafts are not
-automatically accepted. Cases adopt account policy 6 or loan policy 5; evaluations
+automatically accepted. Cases adopt account policy 7 or loan policy 5; evaluations
 must be rerun against the new versions. Repeating the operation is safe.
 Missing optional attributes are advisory and do not change case completeness.
+
+Account policy **7** supersedes the illustrative onboarding checklist for new
+account work: one ID card, bank statement, payslip, proof of address, employer
+confirmation and tax or debt certificate. Its exact canonical mappings and pins
+are listed in [the account-opening document set](project-plan.md#account-opening-document-set).
+It does not carry forward the extra requirements or three-payslip rule from v6.
+Publishing v7 preserves older policy definitions and existing case bindings;
+the explicit subject upgrade above is required to change an existing case's pin.
 
 Account policy 4 and loan policy 3 retain their exact previously published schema
 references. Their document pins are explicit: adding a newer document schema to

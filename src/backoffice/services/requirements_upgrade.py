@@ -24,7 +24,7 @@ DOCUMENT_TARGETS = dict.fromkeys(
     ),
     2,
 ) | {"national_identity_card": 3, "passport": 2}
-POLICY_TARGETS = {"new_account_requirements": 6, "loan_requirements": 5}
+POLICY_TARGETS = {"new_account_requirements": 7, "loan_requirements": 5}
 FIELDS = FieldEvidenceRecord.__table__
 
 

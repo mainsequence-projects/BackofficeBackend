@@ -106,26 +106,34 @@ models so descriptions and types remain consistent. Validate the completed paylo
 and applicable policy before acceptance. Store unreadable or invalid extraction as
 evidence/findings; do not fabricate field values.
 
-## Initial document set
+## Account-opening document set
 
 `NewAccountRequirements` is an instance of `DocumentSet`, with key
-`new_account_requirements` and an immutable published version. These initial rules
-are configurable product policy, not universal account-opening requirements.
+`new_account_requirements` and an immutable published version. Version **7** is
+the owner's current six-document checklist. Each item requires **one** accepted
+document; one payslip is enough. It has no employment/residency conditions or
+cross-document comparison requirements.
 
-| Requirement key | Alternatives | Initial behavior |
+| Requirement key / business name | Canonical document type | Schema version |
 | --- | --- | --- |
-| `identity` | Passport or National Identity Card | One accepted, currently valid identity document. |
-| `address` | Utility Bill or Bank Statement | One accepted source with a matching address and configured maximum age. A bank statement without an address cannot satisfy this requirement. |
-| `employment_income` | Payslips | The example requires three distinct reporting periods when employment status is employed; duplicate files do not increase the count. Monthly continuity is a future reconciliation rule. |
-| `employment_contract` | Employment Contract | The example requires contract support for employed applicants. |
-| `residency` | Residence Permit | Required when the configured residency condition applies. |
-| `source_of_funds` | Source-of-Funds Evidence with linked supporting records | Required when the policy requests substantiation of declared funds. |
-| `customer_questionnaire` | KYC Questionnaire | One complete, accepted submission. |
+| `id_card` | `national_identity_card` | 3 |
+| `bank_statement` | `bank_statement` | 2 |
+| `payslip` | `payslip` | 2 |
+| `proof_of_address` | `utility_bill` | 2 |
+| `employer_confirmation` | `employer_confirmation` | 2 |
+| `tax_or_debt_certificate` | `tax_clearance_certificate` | 2 |
 
-Unknown applicability produces a finding requiring information. A new policy
-version affects new assignments; existing assignments stay pinned until an explicit
-migration is recorded. One document may satisfy multiple requirements only where
-the policy permits reuse.
+The business names reuse existing canonical models; they do not introduce new
+parser document types. A bank statement cannot replace the separate proof of
+address. Employment contracts, residence permits, source-of-funds evidence,
+KYC questionnaires and extra payslip periods are not requirements of version 7.
+Source provenance, canonical attributes, per-type acceptance and subject consistency
+still apply through the shared engine.
+
+Versions 1–6 retain their historical illustrative rules. Existing cases stay pinned
+until the explicit audited admin upgrade is requested; catalog publication does
+not rewrite them. New account cases using the current checklist must select v7.
+The admin subject requirements upgrade now targets account v7 and loan v5.
 
 ## MetaTable layout
 

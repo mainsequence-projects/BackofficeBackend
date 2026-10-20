@@ -146,12 +146,12 @@ def test_discovery_and_parity_without_query_writes(mcp_client):
         expected.pop("assessed_at", None)
         assert without_assessment_clock(actual) == without_assessment_clock(expected), name
     sets = tool(client, "list_document_sets", {"limit": 1})["structuredContent"]
-    assert sets["has_more"] and sets["total_items"] == 12
+    assert sets["has_more"] and sets["total_items"] == 13
     assert (sets["items"][0]["key"], sets["items"][0]["version"]) == ("loan_requirements", 6)
     accounts = tool(client, "list_document_sets", {"search": "new_account_requirements"})[
         "structuredContent"
     ]
-    assert [item["version"] for item in accounts["items"]] == [6, 5, 4, 3, 2, 1]
+    assert [item["version"] for item in accounts["items"]] == [7, 6, 5, 4, 3, 2, 1]
     assert tool(client, "list_document_sets", {"search": "%"})["structuredContent"]["items"] == []
 
 
@@ -188,6 +188,87 @@ def test_identity_isolation_denial_and_validation(mcp_client):
         rpc(client, "tools/list", headers={**HEADERS, "X-User-Uid": str(uuid4())}).status_code
         == 401
     )
+
+
+def test_account_opening_six_documents_satisfy_policy_and_each_is_required(
+    mcp_client, document_fixture
+):
+    from src.backoffice.services.contracts import CompleteParsing
+    from tests.api.test_workflows import command, source
+
+    client, store, owner = mcp_client
+    person = make_person(client, employment_status="employed", residency_permit_required=True)
+    policy = tool(client, "get_document_set", {"key": "new_account_requirements", "version": 7})[
+        "structuredContent"
+    ]
+    # Read the actual published contract through MCP, not a separately maintained checklist.
+    assert "requirements" in policy
+    requirements = policy["requirements"]
+    assert len(requirements) == 6
+    processor = Application(owner, parsing_processor=True, store=store)
+    documents = {}
+    for requirement in requirements:
+        option = requirement["options"][0]
+        kind = option["document_type"]
+        uid = post(
+            client,
+            f"/persons/{person}/documents",
+            document_type=kind,
+            schema_version=option["schema_version"],
+            payload=document_fixture(kind),
+            raw_document_refs=[{"raw_document_uid": source(client, person, kind.encode())}],
+        )["uid"]
+        processor.complete_parsing(
+            uid,
+            CompleteParsing(
+                operation_key=uuid4(),
+                expected_revision=1,
+                parsing_score_percent="98",
+                extractor="test-fixture",
+            ),
+        )
+        assert client.get(f"/documents/{uid}").json()["accepted"] is True
+        documents[requirement["key"]] = uid
+
+    # A single payslip suffices. Changing the profile does not add legacy conditions.
+    # Removing each one of the six documents yields precisely that missing item.
+    for omitted in (None, *documents):
+        created = tool(
+            client,
+            "create_case",
+            {
+                "command": command(
+                    subject_uid=person,
+                    case_type_key="account_opening",
+                    document_set_key="new_account_requirements",
+                    document_set_version=7,
+                )
+            },
+        )
+        assert not created.get("isError"), created
+        case_uid = created["structuredContent"]["uid"]
+        linked = tool(
+            client,
+            "link_case_documents",
+            {
+                "command": command(
+                    case_uid=case_uid,
+                    expected_revision=1,
+                    document_uids=[uid for key, uid in documents.items() if key != omitted],
+                )
+            },
+        )
+        assert not linked.get("isError"), linked
+        result = tool(client, "get_missing_requirements", {"assignment_uid": case_uid})
+        assert not result.get("isError"), result
+        missing = result["structuredContent"]
+        assert missing["set_version"] == 7
+        assert missing["total_requirements"] == 6
+        assert missing["summary"]["complete"] is (omitted is None)
+        assert {f["requirement_key"] for f in missing["findings"]} == (
+            {omitted} if omitted else set()
+        )
+        assert all(f["shortfall"] == 1 for f in missing["findings"])
 
 
 def test_live_missing_contract_and_concurrent_revision(mcp_client, monkeypatch):

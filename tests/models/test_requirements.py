@@ -11,6 +11,23 @@ from src.backoffice.models.document_set import (
 from src.backoffice.policies import new_account_requirements
 
 
+def test_current_account_opening_requires_exactly_six_documents_one_each():
+    policy = new_account_requirements(7)
+    assert {
+        r.key: [(o.document_type, o.schema_version) for o in r.options] for r in policy.requirements
+    } == {
+        "id_card": [("national_identity_card", 3)],
+        "bank_statement": [("bank_statement", 2)],
+        "payslip": [("payslip", 2)],
+        "proof_of_address": [("utility_bill", 2)],
+        "employer_confirmation": [("employer_confirmation", 2)],
+        "tax_or_debt_certificate": [("tax_clearance_certificate", 2)],
+    }
+    assert all(r.mandatory and r.min_count == 1 for r in policy.requirements)
+    assert all(r.condition is None and r.distinct_period_field is None for r in policy.requirements)
+    assert policy.comparisons == []
+
+
 def test_example_has_alternatives_conditionality_and_pinned_versions():
     policy = new_account_requirements()
     identity = next(item for item in policy.requirements if item.key == "identity")

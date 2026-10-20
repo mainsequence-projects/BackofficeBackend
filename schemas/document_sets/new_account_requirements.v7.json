@@ -1,0 +1,135 @@
+{
+  "key": "new_account_requirements",
+  "version": 7,
+  "name": "New account requirements",
+  "description": "Account opening requires one accepted document of each of these six types: ID card, bank statement, payslip, proof of address, employer confirmation, and tax or debt certificate. Completion establishes evidence coverage, not account-opening approval.",
+  "allow_document_reuse": true,
+  "requirements": [
+    {
+      "key": "id_card",
+      "description": "One accepted id card.",
+      "options": [
+        {
+          "document_type": "national_identity_card",
+          "schema_version": 3,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "bank_statement",
+      "description": "One accepted bank statement.",
+      "options": [
+        {
+          "document_type": "bank_statement",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "payslip",
+      "description": "One accepted payslip.",
+      "options": [
+        {
+          "document_type": "payslip",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "proof_of_address",
+      "description": "One accepted proof of address.",
+      "options": [
+        {
+          "document_type": "utility_bill",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "employer_confirmation",
+      "description": "One accepted employer confirmation.",
+      "options": [
+        {
+          "document_type": "employer_confirmation",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    },
+    {
+      "key": "tax_or_debt_certificate",
+      "description": "One accepted tax or debt certificate.",
+      "options": [
+        {
+          "document_type": "tax_clearance_certificate",
+          "schema_version": 2,
+          "required_fields": [],
+          "require_unexpired": false,
+          "max_age_days": null,
+          "freshness_field": null,
+          "max_age_months": null,
+          "renewal_interval_months": null,
+          "renewal_basis": "reviewed_at"
+        }
+      ],
+      "mandatory": true,
+      "min_count": 1,
+      "distinct_period_field": null,
+      "condition": null
+    }
+  ]
+}

@@ -17,6 +17,7 @@ SNAPSHOTS = Path(__file__).resolve().parents[1] / "fixtures/published_policies"
         loan_requirements(3),
         new_account_requirements(5),
         loan_requirements(4),
+        new_account_requirements(6),
     ],
 )
 def test_published_schema_pins_match_preserved_definitions(policy):

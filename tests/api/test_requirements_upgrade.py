@@ -20,6 +20,37 @@ def upgrade(client, person, body=None):
     return response.json()
 
 
+def test_existing_account_case_explicitly_upgrades_to_six_document_policy(business):
+    client, current, _ = business
+    current[0].organization_admin = True
+    person = make_person(client)
+    case = post(
+        client,
+        "/cases",
+        subject_uid=person,
+        case_type_key="account_opening",
+        document_set_key="new_account_requirements",
+        document_set_version=6,
+    )
+    body = command()
+    upgraded = upgrade(client, person, body)
+    assert upgrade(client, person, body) == upgraded
+    assert upgraded["cases"] == [
+        {"uid": case["uid"], "from_version": 6, "version": 7, "revision": 2}
+    ]
+    assert client.get(f"/cases/{case['uid']}").json()["document_set_version"] == 7
+    missing = client.get(f"/assignments/{case['uid']}/missing-requirements").json()
+    assert {f["requirement_key"] for f in missing["findings"]} == {
+        "id_card",
+        "bank_statement",
+        "payslip",
+        "proof_of_address",
+        "employer_confirmation",
+        "tax_or_debt_certificate",
+    }
+    assert upgrade(client, person)["cases"] == []
+
+
 @pytest.mark.parametrize("decision", ["accepted", "rejected"])
 def test_upgrade_preserves_evidence_reviews_and_history(business, document_fixture, decision):
     client, current, store = business

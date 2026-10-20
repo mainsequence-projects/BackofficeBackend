@@ -1,4 +1,4 @@
-"""Illustrative onboarding policy, requiring business approval before publication."""
+"""Versioned account-opening policies; v7 contains the owner's six-document checklist."""
 
 from ..models.document_set import (
     DocumentOption,
@@ -10,6 +10,37 @@ from ..models.document_set import (
 
 def new_account_requirements(version: int = 1) -> DocumentSet:
     """Return a fresh policy instance, never a shared mutable singleton."""
+    if version == 7:
+        # Dataset/business names map to the existing canonical document models.
+        # Keep this checklist independent of the historical illustrative rules.
+        documents = (
+            ("id_card", "national_identity_card", 3, "ID card"),
+            ("bank_statement", "bank_statement", 2, "Bank statement"),
+            ("payslip", "payslip", 2, "Payslip"),
+            ("proof_of_address", "utility_bill", 2, "Proof of address"),
+            ("employer_confirmation", "employer_confirmation", 2, "Employer confirmation"),
+            ("tax_or_debt_certificate", "tax_clearance_certificate", 2, "Tax or debt certificate"),
+        )
+        return DocumentSet(
+            key="new_account_requirements",
+            version=7,
+            name="New account requirements",
+            description=(
+                "Account opening requires one accepted document of each of these six types: "
+                "ID card, bank statement, payslip, proof of address, employer confirmation, "
+                "and tax or debt certificate. Completion establishes evidence coverage, "
+                "not account-opening approval."
+            ),
+            allow_document_reuse=True,
+            requirements=[
+                DocumentRequirement(
+                    key=key,
+                    description=f"One accepted {label.lower()}.",
+                    options=[DocumentOption(document_type=kind, schema_version=schema)],
+                )
+                for key, kind, schema, label in documents
+            ],
+        )
     if version in (4, 5, 6):
         from .current_documents import with_current_documents
 
