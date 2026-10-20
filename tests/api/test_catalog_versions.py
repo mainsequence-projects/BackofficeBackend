@@ -61,3 +61,20 @@ def test_publisher_still_rejects_changes_to_existing_policy(monkeypatch):
         assert store.one(SETS, set_key="new_account_requirements", version=4) == existing
     finally:
         store.engine.dispose()
+
+
+def test_unchanged_catalog_publication_reads_each_table_once(monkeypatch):
+    store = SQLStorage()
+    operations = []
+    execute = store.execute
+
+    def track(statement, operation="select"):
+        operations.append(operation)
+        return execute(statement, operation)
+
+    monkeypatch.setattr(store, "execute", track)
+    try:
+        publish_catalog(store)
+        assert operations == ["select"] * 4
+    finally:
+        store.engine.dispose()

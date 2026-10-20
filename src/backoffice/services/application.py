@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid5
 
 from fastapi import HTTPException
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, or_, select
 
 from ..models.person import Person
 from ..policies import document_set_catalog, policy_definition
@@ -487,15 +487,6 @@ class Application:
                     },
                 )
             )
-        # Existing immutable catalog definitions retain their original timestamps.
-        for step in steps:
-            table = TABLES[step["table"]]
-            keys = {col.name: step["values"][col.name] for col in table.primary_key}
-            existing = self.db.one(table, **keys)
-            if existing:
-                for field in ("created_at", "published_at"):
-                    if field in existing:
-                        step["values"][field] = existing[field]
         return steps
 
     def assign(self, uid, command):
@@ -1107,7 +1098,36 @@ class Application:
 def publish_catalog(store=None):
     """Explicit migration-Job bootstrap of immutable authored forms and policy."""
     service = Application(UUID(int=0), store=store)
+    by_table = {}
     for step in service.catalog_steps(datetime.now(UTC).isoformat()):
-        actual = service.db.ensure(TABLES[step["table"]], step["values"])
-        if any(actual.get(key) != value for key, value in step["values"].items()):
-            raise RuntimeError("Published catalog differs from the authored immutable contract")
+        by_table.setdefault(step["table"], []).append(step["values"])
+    for name, authored_rows in by_table.items():
+        table = TABLES[name]
+        keys = tuple(column.name for column in table.primary_key)
+        # Read only authored identities, once per table. Existing catalog rows are
+        # immutable, so checking each twice adds network waits without extra proof.
+        existing = {
+            tuple(row[key] for key in keys): row
+            for row in service.db.rows(
+                table,
+                or_(
+                    *(
+                        and_(*(table.c[key] == values[key] for key in keys))
+                        for values in authored_rows
+                    )
+                ),
+                limit=len(authored_rows),
+            )
+        }
+        for values in authored_rows:
+            actual = existing.get(tuple(values[key] for key in keys))
+            if actual is None:
+                # Retain atomic insert-if-absent and its read-back for new rows,
+                # including recovery after an uncertain write or a concurrent run.
+                actual = service.db.ensure(table, values)
+            else:
+                for field in ("created_at", "published_at"):
+                    if field in actual:
+                        values[field] = actual[field]
+            if any(actual.get(key) != value for key, value in values.items()):
+                raise RuntimeError("Published catalog differs from the authored immutable contract")

@@ -123,3 +123,16 @@ uv run pytest -q
 The managed namespace is `.agents/skills/metatables/`, with version recorded in
 `PINNED_FROM.txt`. Keep application-owned instructions outside that namespace;
 the supported refresh replaces only the MetaTables bundle.
+
+## Migration Job completion
+
+The migration Job finishes only after both `upgrade_application` and
+`publish_catalog` succeed. The MetaTables runner's final timing message covers
+table migration and finalization; it is not the Job's completion signal.
+
+Catalog publication reads the authored identities once per catalog table and
+checks every stored immutable definition. Existing timestamps are preserved.
+Missing records still use atomic insert-if-absent with read-back. Repeating an
+unchanged publication takes four governed reads instead of two reads for each
+of the 53 authored records. Deployment remains gated on the Job's `SUCCEEDED`
+status.
