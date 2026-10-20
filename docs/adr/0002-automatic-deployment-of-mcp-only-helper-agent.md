@@ -6,6 +6,12 @@
 - Depends on: [ADR 0001: Back Office helper and document processing](0001-back-office-helper-mcp-and-document-processing.md).
 - Refines: The agent and delivery sections of [platform contracts](../platform-contracts.md).
 
+Deployment update, 2026-10-20: the owner removed the extra hosted contract-check
+Job from the rollout. Contract validation remains a local release check, and runtime
+MCP discovery still enforces the pinned contract. Agent image preparation starts
+independently; deployment waits for the API and the image. This supersedes the
+predeployment compatibility-check step proposed below; see [the current runbook](../agent.md#deployment).
+
 ## Context
 
 The Back Office API owns person records, document sets, reconciliation and document

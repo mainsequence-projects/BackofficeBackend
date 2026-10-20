@@ -155,10 +155,11 @@ def test_release_dependency_graph_and_restricted_resource_grants():
         "TAU_EXCLUDE_MAINSEQUENCE_MCP": "true",
     }
     steps = workflow["execution"]["steps"]
-    assert steps["agent_contract"]["needs"] == ["deploy_api"]
-    assert steps["agent_image"]["needs"] == ["agent_contract"]
-    assert steps["deploy_agent"]["needs"] == ["agent_image"]
-    assert steps["agent_contract"]["image_from"] == "image"
+    assert steps["deploy_api"]["needs"] == ["migrate"]
+    assert not steps["agent_image"].get("needs")
+    assert steps["deploy_agent"]["needs"] == ["deploy_api", "agent_image"]
+    assert steps["deploy_agent"]["image_from"] == "agent_image"
+    assert resources["extract-backoffice-document"]["spec"]["automatic_redeployment"]["enabled"]
     card = json.loads((ROOT / ".agents/agent_card.json").read_text())
     assert all((ROOT / skill["path"]).is_file() for skill in card["skills"])
 

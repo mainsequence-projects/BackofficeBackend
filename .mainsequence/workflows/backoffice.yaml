@@ -91,18 +91,6 @@ resources:
         enabled: true
         tag_regex: null
       revision_retention_count: 3
-  - key: verify-backoffice-agent
-    kind: job
-    spec:
-      name: Back Office agent contract verification
-      execution_path: scripts/check_agent_contract.py
-      cpu_request: "0.25"
-      memory_request: "0.5"
-      max_runtime_seconds: 120
-      spot: false
-      automatic_redeployment:
-        enabled: true
-        tag_regex: null
   - key: migrate-backoffice
     kind: job
     spec:
@@ -127,21 +115,13 @@ execution:
       run_job: migrate-backoffice
       image_from: image
       needs: [image]
-    worker_image:
-      prepare_image: extract-backoffice-document
-      needs: [migrate]
     deploy_api:
       deploy: backoffice_api
       image_from: image
-      needs: [migrate, worker_image]
-    agent_contract:
-      run_job: verify-backoffice-agent
-      image_from: image
-      needs: [deploy_api]
+      needs: [migrate]
     agent_image:
       prepare_image: backoffice_helper
-      needs: [agent_contract]
     deploy_agent:
       deploy: backoffice_helper
       image_from: agent_image
-      needs: [agent_image]
+      needs: [deploy_api, agent_image]

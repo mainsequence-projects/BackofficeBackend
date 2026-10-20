@@ -44,9 +44,14 @@ requirements may still demand review or renewal. Acceptance is not case approval
 
 ## Deployment
 
-The existing production-scoped workflow now orders:
+The production-scoped workflow orders:
 
-`image → migrate → deploy_api → agent_contract → agent_image → deploy_agent`
+`image → migrate → deploy_api → deploy_agent`
+
+`agent_image` prepares independently from the start; `deploy_agent` waits for both
+that image and the API deployment. The extraction Job follows its existing automatic
+image deployment outside this graph, reusing a matching repository image. There is
+no worker-image prerequisite or hosted contract-verification Job in the rollout.
 
 Both the API and helper agent declare `min_scale: 1` and `max_scale: 5`.
 One warm replica of each avoids idle scale-to-zero startup delays, accepting the
@@ -54,11 +59,11 @@ ongoing compute cost of those two instances. The floor applies after a successfu
 workflow deployment; it does not bypass platform scheduling, readiness or runtime
 admission, or guarantee uninterrupted service during failures.
 
-The contract Job runs `scripts/check_agent_contract.py` against the candidate API
-catalog without querying business storage. It verifies the pinned input/output
-schemas, annotations and required artifacts. The agent image is prepared separately
-because its deployable entry point differs; the workflow supplies the same source
-event. The agent receives a viewer API-resource grant (which includes invocation),
+Run `scripts/check_agent_contract.py` during development validation against the
+candidate API catalog without querying business storage. It verifies the pinned
+input/output schemas, annotations and required artifacts. The platform requires
+the agent's own image preparation step; matching build artifacts can be reused.
+The agent receives a viewer API-resource grant (which includes invocation),
 no MetaTables branch grant, and declares `acts_for_requester: true`. Back Office
 still enforces business permissions for every operation. Platform authorization
 must permit that declaration; the application does not grant itself delegation authority.
@@ -77,7 +82,7 @@ engine with the model authorized by the SDK bootstrap before a turn. It retains
 conversation history and the SDK's authentication, provider control and persistence.
 Recheck this compatibility guard when upgrading the SDK.
 
-The contract Job is an **offline candidate check**, not a live deployed MCP check.
+The contract script is an **offline candidate check**, not a live deployed MCP check.
 The platform's deployment readiness and the per-session MCP discovery check cover
 different stages. Before treating the first hosted release as verified, validate the
 workflow with the target platform, confirm provider access and requester delegation,
@@ -176,7 +181,7 @@ The runtime skill is [.tau/skills/backoffice-casework/SKILL.md](../.tau/skills/b
 with self-contained ontology and case-building references. The source agent card
 advertises it and `.tau/SYSTEM.md` routes case requests to it. The installed Tau skill
 loader discovers it normally. The SDK retains its scoped reader; the project hook
-permits only the exact release-owned guidance files. The candidate contract Job
+permits only the exact release-owned guidance files. The local contract check
 checks those files are present.
 
 The skill uses one subject → typed case → pinned policy → selected evidence →

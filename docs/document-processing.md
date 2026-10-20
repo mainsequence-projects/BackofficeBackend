@@ -135,8 +135,10 @@ there is no fallback to an administrator or another user's credentials. Keep acc
 to this processing Job restricted: Main Sequence Job access can also expose artifacts
 produced by its runs. There are no grant changes in the migration Job.
 
-Workflow migration runs before worker image preparation and API deployment. The
-extraction Job declaration does not execute a document at deployment time. New
+Workflow migration gates API deployment. The extraction Job follows its existing
+automatic image deployment outside the API/agent dependency graph and reuses a
+matching repository image. Its declaration does not execute a document at deployment
+time. Migration revisions must remain compatible with serving extraction workers. New
 uploads require the Job and its grants to be ready; configure/re-run pending dispatch
 when readiness is restored. Existing helper resource access uses the current
 platform `viewer` policy name; its MCP allowlist, requester verification and both
