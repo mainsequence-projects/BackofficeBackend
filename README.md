@@ -1,10 +1,6 @@
 # Back-office document controls · Komerční banka (Track 6)
 
-**An AI agent that checks client document packages and sends only the exceptions to a person, with a full audit trail.**
-
-[![Watch the demo](docs/demo/demo-thumbnail.png)](docs/demo/kb-document-control-demo.mp4)
-
-▶️ [Watch the demo video](docs/demo/kb-document-control-demo.mp4)
+[![Watch the demo](docs/demo/final-demo-thumbnail.png)](docs/demo/kb-final-demo.mp4)
 
 ## How it works
 
