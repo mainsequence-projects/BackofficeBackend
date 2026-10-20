@@ -2,7 +2,7 @@
   "key": "loan_requirements",
   "version": 6,
   "name": "Loan document requirements",
-  "description": "Illustrative salaried-loan evidence policy with cited cross-document consistency: income across contract, payslip and employer confirmation; employer; birth number on the employer confirmation and tax certificate; address. Completion is never credit approval; thresholds require business approval before production use.",
+  "description": "Illustrative salaried-loan evidence policy with cited cross-document consistency: income across contract, payslip and employer confirmation (payslip vs employer is advisory); employer; birth number on the tax certificate; address. Completion is never credit approval; thresholds require business approval before production use.",
   "allow_document_reuse": true,
   "requirements": [
     {

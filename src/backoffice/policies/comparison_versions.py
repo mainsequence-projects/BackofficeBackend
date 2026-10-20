@@ -92,7 +92,12 @@ def with_loan_consistency(policy: DocumentSet) -> DocumentSet:
             key="income_contract_vs_payslip",
             description="Declared monthly net income must match the payslip's net pay; not credit approval.",
             topic=income,
-            left=s("loan_contract", "declared_monthly_net_income.amount", "declared_monthly_net_income.currency", ["full_name"]),
+            left=s(
+                "loan_contract",
+                "declared_monthly_net_income.amount",
+                "declared_monthly_net_income.currency",
+                ["full_name"],
+            ),
             right=s("payslip", "net_pay.amount", "net_pay.currency", ["employee_name"]),
             operator="numeric",
         ),
@@ -101,7 +106,12 @@ def with_loan_consistency(policy: DocumentSet) -> DocumentSet:
             description="The payslip's net pay must match the employer-confirmed monthly net income.",
             topic=income,
             left=s("payslip", "net_pay.amount", "net_pay.currency", ["employee_name"]),
-            right=s("employer_confirmation", "monthly_net_income.amount", "monthly_net_income.currency", ["employee_name"]),
+            right=s(
+                "employer_confirmation",
+                "monthly_net_income.amount",
+                "monthly_net_income.currency",
+                ["employee_name"],
+            ),
             operator="numeric",
             # One month's pay vs a monthly average: the parser stays "uncertain" even on
             # matching values, so this pair informs the reviewer without blocking completion.
@@ -136,8 +146,8 @@ def with_loan_consistency(policy: DocumentSet) -> DocumentSet:
     definition["comparisons"] = definition["comparisons"] + [r.model_dump() for r in rules]
     definition["description"] = (
         "Illustrative salaried-loan evidence policy with cited cross-document consistency: "
-        "income across contract, payslip and employer confirmation; employer; birth number on "
-        "the employer confirmation and tax certificate; address. Completion is never credit "
-        "approval; thresholds require business approval before production use."
+        "income across contract, payslip and employer confirmation (payslip vs employer is "
+        "advisory); employer; birth number on the tax certificate; address. Completion is never "
+        "credit approval; thresholds require business approval before production use."
     )
     return DocumentSet.model_validate(definition)
