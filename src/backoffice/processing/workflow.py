@@ -16,7 +16,6 @@ from ..services.application import RAW, RUN, SCHEMA, fail, stable
 from ..services.contracts import Command, CompleteParsing, CreateDocument, StartUpload
 from ..services.parsing_confidence import document_classification
 from ..services.storage import typed
-from .classification_hints import local_titles
 from .adapters import (
     MainSequenceBucket,
     MainSequenceDispatcher,
@@ -24,6 +23,7 @@ from .adapters import (
     ProcessingError,
     inspect_source,
 )
+from .classification_hints import local_titles
 from .contracts import (
     MAX_BYTES,
     Candidate,
