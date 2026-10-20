@@ -15,12 +15,14 @@ def evidence_steps(app, evidence, person_uid, command, op, now, refs):
     run = app.required(RUN, uid=evidence["run_uid"])
     source_uid = run["input_snapshot"]["source_uid"]
     source = app.required(RAW, uid=source_uid)
+    selection = run["input_snapshot"].get("page_selection")
+    expected_range = (selection[0], selection[-1]) if selection else (None, None)
     if (
         run["kind"] != "document.extract"
         or source["person_uid"] != str(person_uid)
         or run["input_snapshot"]["person_uid"] != str(person_uid)
         or [r["raw_document_uid"] for r in refs] != [source_uid]
-        or any(r.get("first_page") or r.get("last_page") for r in refs)
+        or any((r.get("first_page"), r.get("last_page")) != expected_range for r in refs)
         or extraction.attributes != command.payload
         or extraction.document_type != command.document_type
         or extraction.schema_version != command.schema_version
@@ -38,6 +40,13 @@ def evidence_steps(app, evidence, person_uid, command, op, now, refs):
         manifest(classification.pages) != manifest(extraction.pages)
         or any(p.source_sha256 != source["content_sha256"] for p in extraction.pages)
         or len({p.source_file for p in extraction.pages}) != 1
+        or (
+            selection is not None
+            and (
+                selection != list(range(selection[0], selection[-1] + 1))
+                or {p.page for p in extraction.pages} != set(selection)
+            )
+        )
     ):
         fail(422, "extraction_evidence_source_mismatch")
     snapshot = {

@@ -66,10 +66,15 @@ For an existing ready source owned by the intended subject:
 - On completion inspect returned document UID/revision, acceptance and diagnostic
   reasons. Verify subject ownership with `get_document` before linking. Source
   processing does not automatically select a document for a case.
+  A subject-owned packet can return `groups` and `documents` instead of a single
+  `document`. Inspect every group's status and acceptance; collect the resulting
+  document UIDs and verify each with `get_document`. Preserve the backend's original
+  page ranges. Do not infer that a completed parent means every child document was
+  accepted. The backend pins its OCR/vision strategy; the helper cannot change it.
 - For a failed run, follow its returned recovery reason. Use
   `retry_processing_run(run_uid, command={operation_key})` only when retry is
-  supported and within the user's task. Do not loop on `needs_input`. Mixed or
-  unsupported packets require the normal split/correct/re-upload UI workflow.
+  supported and within the user's task. Do not loop on `needs_input`. Packets whose
+  grouping remains unresolved require the normal split/correct/re-upload UI workflow.
   Changed comparison inputs require a fresh case evaluation, not retrying stale
   frozen inputs. Authorization failures never justify changing caller identity.
 

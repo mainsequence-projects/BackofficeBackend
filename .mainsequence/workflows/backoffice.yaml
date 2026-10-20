@@ -25,6 +25,10 @@ resources:
       branches:
         - repository: MetaTables
           policy: reader
+      resources:
+        # /assistant/context discovers this branch's deployed helper.
+        - key: backoffice_helper
+          policy: user
   - key: extract-backoffice-document
     kind: job
     spec:

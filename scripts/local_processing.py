@@ -74,7 +74,9 @@ class LocalProcessing:
             order=RUN.c.created_at.asc(),
         )
         for row in rows:
-            if row["input_snapshot"].get("parent_allocation_uid"):
+            if row["input_snapshot"].get("parent_allocation_uid") or row["input_snapshot"].get(
+                "parent_packet_uid"
+            ):
                 continue  # The parent's fenced worker resumes its inline extraction.
             self.dispatch(row["uid"])
 

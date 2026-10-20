@@ -140,7 +140,7 @@ def view(row):
             "evaluation": result.get("evaluation"),
         }
     confidence = result.get("classification_summary") or {}
-    return {
+    response = {
         "uid": row["uid"],
         "source_uid": row["input_snapshot"]["source_uid"],
         "status": row["status"],
@@ -152,6 +152,10 @@ def view(row):
         "document": result.get("document"),
         "completion": result.get("completion"),
     }
+    if "groups" in result:
+        response["groups"] = result["groups"]
+        response["documents"] = result.get("documents", [])
+    return response
 
 
 def dispatch(app, row, dispatcher=None):
@@ -215,6 +219,7 @@ def start(app, source_uid, command, dispatcher=None):
                 "source_sha256": source["content_sha256"],
                 "parser_contract_version": 2,
                 "reader_mode": reader_mode,
+                "allow_document_groups": True,
                 "schemas": schemas,
             },
             result={"stage": "pending"},
@@ -253,9 +258,12 @@ def retry(app, uid, command, dispatcher=None):
     return dispatch(app, row, dispatcher)
 
 
-def validate_pages(pages, source, filename, page_count):
+def validate_pages(pages, source, filename, page_count, page_selection=None):
     actual = [(p.source_file, p.page) for p in pages]
-    expected = {(filename, page) for page in range(1, page_count + 1)}
+    numbers = page_selection if page_selection is not None else range(1, page_count + 1)
+    if not numbers or any(p < 1 or p > page_count for p in numbers):
+        raise ProcessingError("parser_source_manifest_mismatch")
+    expected = {(filename, page) for page in numbers}
     if (
         len(actual) != len(set(actual))
         or set(actual) != expected
@@ -271,6 +279,16 @@ DEFAULT_READER_MODE = "independent_readers"
 
 
 def configured_reader_mode() -> str:
+    # Explicit capability switch: an unavailable/unsupported OCR deployment need
+    # not prevent the independent vision extractor from processing a document.
+    # Never downgrade an already-pinned run or silently fall back after a conflict.
+    enabled = os.environ.get("BACKOFFICE_EXTRACTION_OCR_ENABLED")
+    if enabled is not None:
+        if enabled.lower() not in {"true", "false"}:
+            return "invalid"
+        mode = "independent_readers" if enabled.lower() == "true" else "single"
+        legacy = os.environ.get("BACKOFFICE_EXTRACTION_READER_MODE")
+        return mode if legacy in (None, mode) else "invalid"
     return os.environ.get("BACKOFFICE_EXTRACTION_READER_MODE", DEFAULT_READER_MODE)
 
 
@@ -367,7 +385,19 @@ class Worker:
         suffix = {"application/pdf": "pdf", "image/png": "png", "image/jpeg": "jpg"}[
             source["media_type"]
         ]
-        filename = f"source-{source['uid']}.{suffix}"
+        parser_source = source
+        parent_uid = row["input_snapshot"].get("parent_allocation_uid")
+        if parent_uid:
+            # Binding an intake creates a subject-owned source UID, but its saved
+            # parser evidence still names the original immutable intake source.
+            parent = self.app.required(RUN, uid=parent_uid)
+            parser_source = parent["input_snapshot"]["source"]
+            if parent["kind"] != "document.allocate" or any(
+                parser_source[key] != source[key]
+                for key in ("content_sha256", "media_type", "byte_count")
+            ):
+                raise ProcessingError("parser_source_manifest_mismatch")
+        filename = f"source-{parser_source['uid']}.{suffix}"
         file = ParserFile(filename=filename, content_base64=base64.b64encode(content).decode())
         schemas = row["input_snapshot"]["schemas"]
         version = row["input_snapshot"].get("parser_contract_version", 1)
@@ -428,7 +458,16 @@ class Worker:
             row = self.save(row, result)
         # Checkpoint recovery revalidates retained responses before using their observations.
         retained_classification = classify_response.model_validate(result["classification"])
+        selection = row["input_snapshot"].get("page_selection")
+        validate_pages(retained_classification.pages, source, filename, count, selection)
         if version == 2 and requires_document_grouping(retained_classification.pages):
+            if row["input_snapshot"].get("allow_document_groups") and selection is None:
+                from .packets import document_groups
+
+                groups = document_groups(retained_classification.pages)
+                if groups and all(group["document_type"] in schemas for group in groups):
+                    result.update(groups=groups, stage="grouped")
+                    return self.save(row, result), result
             result["error_code"] = "multiple_documents_require_grouping"
             return self.save(row, result, "needs_input"), result
         classification = result["classification_summary"]
@@ -446,6 +485,7 @@ class Worker:
                         {
                             **version_args,
                             "reader_mode": row["input_snapshot"].get("reader_mode", "single"),
+                            "page_selection": selection,
                         }
                         if version == 2
                         else {}
@@ -459,7 +499,7 @@ class Worker:
                 )
             )
             response = extract_response.model_validate(response)
-            validate_pages(response.pages, source, filename, count)
+            validate_pages(response.pages, source, filename, count, selection)
             if (response.document_type, response.schema_version, response.schema_hash) != (
                 kind,
                 schema["version"],
@@ -547,6 +587,10 @@ class Worker:
             row, result = self.parse_source(row, result, source, content)
             if row["status"] == "needs_input":
                 return view(row)
+            if "groups" in result:
+                from .packets import run_packet
+
+                return run_packet(self, row, result)
             classification = result["classification_summary"]
             kind = classification["document_type"]
             schema = row["input_snapshot"]["schemas"][kind]
@@ -560,7 +604,19 @@ class Worker:
                         document_type=kind,
                         schema_version=schema["version"],
                         payload=result["extraction"]["attributes"],
-                        raw_document_refs=[{"raw_document_uid": source["uid"]}],
+                        raw_document_refs=[
+                            {
+                                "raw_document_uid": source["uid"],
+                                **(
+                                    {
+                                        "first_page": row["input_snapshot"]["page_selection"][0],
+                                        "last_page": row["input_snapshot"]["page_selection"][-1],
+                                    }
+                                    if row["input_snapshot"].get("page_selection")
+                                    else {}
+                                ),
+                            }
+                        ],
                     ),
                     processing=True,
                     extraction_evidence={

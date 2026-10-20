@@ -110,6 +110,7 @@ prevent dispatching the worker that must recover it.
 | `BACKOFFICE_PARSER_FUNCTION_URL` | Supplied Lambda Function URL; must match the session response exactly |
 | `BACKOFFICE_PARSER_REGION` | `eu-central-1` |
 | `BACKOFFICE_PARSER_AUTH` | `sigv4`; `api_key` for a trusted HTTPS deployment using that authentication |
+| `BACKOFFICE_EXTRACTION_OCR_ENABLED` | `false` explicitly selects vision-only extraction when OCR is unavailable/unsupported; `true` enables independent readers; unset preserves the default |
 | `BACKOFFICE_EXTRACTION_JOB_UID` | Optional exact Job UID; otherwise resolve `Back Office document extraction` in the current branch |
 | `BACKOFFICE_PARSING_PROCESSOR_UIDS` | Explicit trusted processor workload User UID allowlist, on API and Job |
 
@@ -186,8 +187,18 @@ service.
 V2 adds printed pagination, source-local grouping observations, physical page
 citations, reader candidates, normalization identity and usage. The worker defaults to two independent readers: ParsingMotor pairs a vision reader with
 Textract (`ocr_textract`), which reports its own confidence and bounding box per candidate.
-`BACKOFFICE_EXTRACTION_READER_MODE=single` is the development fallback; the mode is
-pinned in each new run so retries cannot change strategy. No OCR confidence or precise
+Set `BACKOFFICE_EXTRACTION_OCR_ENABLED=false` when OCR is unavailable or unsupported
+for the deployment's document languages/shapes. New runs then request the parser's
+vision-only `single` strategy. `true` requests `independent_readers`; omission retains
+the existing default. Only `true` and `false` are valid. The legacy
+`BACKOFFICE_EXTRACTION_READER_MODE=single` setting remains supported; conflicting
+settings fail before dispatch. The mode is
+pinned in each new run so retries and packet children cannot change strategy.
+An OCR error or disagreement never silently triggers a fallback. Reprocessing with
+a deliberately changed configuration creates new evidence and preserves previous
+results. Both modes require canonical validation, genuine classification confidence,
+source citations and the configured per-type threshold; neither calls manual review
+or invents a second reader. No OCR confidence or precise
 bounding box is fabricated. Coordinates refer to the rendered page after its recorded rotation.
 The classifier receives `processing/classification_hints.py` descriptions (with the Czech
 titles of each document) instead of the canonical schema descriptions; schemas are unchanged.
@@ -212,8 +223,24 @@ value where another has one. Classification confidence cannot override these hol
 Canonical validation and the existing per-type acceptance policy still apply. These
 are document-review decisions, never account-opening or loan approval.
 
-Multiple observed document boundaries or distinct group hints enter `needs_input`;
-this phase does not automatically create documents from a mixed package. Cross-document findings now run through the same Job and evaluation service; see
+For new subject-owned extraction runs, explicit document starts and continuations
+can form multiple contiguous groups. Each group must have one discovered type and
+consistent, complete printed pagination when supplied. An otherwise unknown boundary
+can form a single-page group only when its type differs from both neighbors, the
+previous document's printed pagination is complete, and the following page explicitly
+starts another document. This inference is recorded in `boundary_basis`; a type change
+alone is insufficient. The worker sends the entire
+unchanged original with `page_selection` to `/extract_typed_json`, once per group.
+Each child pins the parent's schema and reader mode, has its own classification
+score and automatic acceptance result, and records its original `first_page` /
+`last_page` range. No PDF splitting or reupload is required. Parent retries reuse
+the same child identities and saved checkpoints. The processing response includes
+`groups` and `documents` for packets, while single-document responses retain
+`document`. Consumers must collect the group's documents before linking case evidence.
+
+Unresolved boundaries, mixed types within a continuation, contradictory or incomplete
+pagination, and unbound intake packets still enter `needs_input` without creating
+documents from an uncertain grouping. Cross-document findings run through the same Job and evaluation service; see
 [cited comparisons](document-comparisons.md). Protocols and dashboard rendering remain
 subsequent work.
 

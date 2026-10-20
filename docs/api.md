@@ -133,6 +133,9 @@ Completed requests retain the same body limits and validation.
 The API resolves the helper from the Main Sequence SDK's current repository branch
 and Organization Environment, using the repository-owned Agent Card name. It checks
 both scope identifiers and requires exactly one Agent with a deployed runtime.
+The workflow gives the API workload the helper's `user` policy, the smallest
+Agent policy that permits this discovery. It does not grant access to helper logs,
+task inspection, configuration or access management.
 The response includes identifiers only; no credentials or runtime URL is returned.
 Browser-selected Environment or Agent parameters do not affect discovery.
 

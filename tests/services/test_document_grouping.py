@@ -3,6 +3,7 @@
 import pytest
 
 from src.backoffice.processing.evidence_contracts import PageObservation
+from src.backoffice.processing.packets import document_groups
 from src.backoffice.processing.workflow import requires_document_grouping
 
 
@@ -61,3 +62,62 @@ def test_explicit_continuation_does_not_require_a_printed_footer():
             page(2, hint="Account", boundary="continues_document"),
         ]
     )
+
+
+def test_packet_plan_uses_physical_pages_and_keeps_continuations_together():
+    first = page(1, hint="ID", boundary="starts_document", printed=1, count=1)
+    first.document_type = "national_identity_card"
+    pages = [
+        first,
+        page(2, hint="Bank", boundary="starts_document", printed=1, count=2),
+        page(3, hint="Account", boundary="continues_document", printed=2, count=2),
+    ]
+    assert document_groups(pages[::-1]) == [
+        {"document_type": "national_identity_card", "pages": [1]},
+        {"document_type": "bank_statement", "pages": [2, 3]},
+    ]
+
+
+@pytest.mark.parametrize(
+    "defect", ["unknown_boundary", "unknown_type", "missing_page", "mixed_continuation", "gap"]
+)
+def test_ambiguous_packet_plan_never_creates_partial_groups(defect):
+    pages = [
+        page(1, hint="A", boundary="starts_document", printed=1, count=1),
+        page(2, hint="B", boundary="starts_document", printed=1, count=2),
+        page(3, hint="B", boundary="continues_document", printed=2, count=2),
+    ]
+    if defect == "unknown_boundary":
+        pages[1].boundary = "unknown"
+    elif defect == "unknown_type":
+        pages[1].document_type = None
+    elif defect == "missing_page":
+        pages.pop()
+    elif defect == "mixed_continuation":
+        pages[2].document_type = "passport"
+    else:
+        pages[2].page = 4
+    assert document_groups(pages) is None
+
+
+def test_isolated_type_between_closed_and_started_documents_has_its_own_group():
+    pages = [
+        page(1, hint="Payslip", boundary="starts_document", printed=1, count=1),
+        page(2, hint=None, boundary="unknown"),
+        page(3, hint="Employer", boundary="starts_document", printed=1, count=1),
+    ]
+    pages[0].document_type = "payslip"
+    pages[1].document_type = "utility_bill"
+    pages[2].document_type = "employer_confirmation"
+    groups = document_groups(pages)
+    assert groups[1] == {
+        "document_type": "utility_bill",
+        "pages": [2],
+        "boundary_basis": "isolated_type_between_complete_boundaries",
+    }
+    # A different type alone is insufficient when previous pagination is incomplete.
+    pages[0].printed_page_count = 2
+    assert document_groups(pages) is None
+    pages[0].printed_page_count = 1
+    pages[2].boundary = "unknown"
+    assert document_groups(pages) is None
