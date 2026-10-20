@@ -1,6 +1,6 @@
 # Back-office document controls · Komerční banka (Track 6)
 
-[![Watch the demo](docs/demo/final-demo-thumbnail.png)](docs/demo/kb-final-demo.mp4)
+[![Watch the demo](docs/demo/kb-final-demo.gif)](docs/demo/kb-final-demo.mp4)
 
 ## How it works
 
