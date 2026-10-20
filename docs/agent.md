@@ -48,6 +48,12 @@ The existing production-scoped workflow now orders:
 
 `image → migrate → deploy_api → agent_contract → agent_image → deploy_agent`
 
+Both the API and helper agent declare `min_scale: 1` and `max_scale: 5`.
+One warm replica of each avoids idle scale-to-zero startup delays, accepting the
+ongoing compute cost of those two instances. The floor applies after a successful
+workflow deployment; it does not bypass platform scheduling, readiness or runtime
+admission, or guarantee uninterrupted service during failures.
+
 The contract Job runs `scripts/check_agent_contract.py` against the candidate API
 catalog without querying business storage. It verifies the pinned input/output
 schemas, annotations and required artifacts. The agent image is prepared separately

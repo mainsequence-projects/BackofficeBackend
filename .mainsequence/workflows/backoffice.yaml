@@ -10,7 +10,7 @@ resources:
     kind: fastapi
     spec:
       source_path: api/app/main.py
-      min_scale: 0
+      min_scale: 1
       max_scale: 5
       automatic_deployment: true
       revision_retention_count: 3
@@ -81,7 +81,7 @@ resources:
       llm_provider: openai-codex
       llm_model: gpt-5.6-luna
       llm_thinking: medium
-      min_scale: 0
+      min_scale: 1
       max_scale: 5
       cpu_request: "0.25"
       memory_request: "0.5"
