@@ -62,3 +62,12 @@ The live folder-01 run must use `/Users/jose/.local/share/metatables/metatables.
 retain its existing subject and case, and verify hashes of all original files.
 Success requires six satisfied account-opening requirements and zero outstanding
 requirements. This is evidence completeness, not account approval.
+
+The live rerun on 2026-10-20 met that criterion in the existing main database:
+seven individual PDFs and seven groups from the combined PDF were automatically
+accepted, with classification scores of 95–99% against the unchanged 80% policies.
+The case evaluation reported six satisfied requirements and zero outstanding
+requirements. File hashes before and after the run were identical. OCR was
+explicitly disabled; no manual acceptance was used. Previous runs and case evidence
+were retained. This verifies the local workflow with the deployed parser, not a
+hosted Back Office deployment.
