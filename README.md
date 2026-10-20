@@ -1,24 +1,36 @@
-# Back Office backend
+# Back-office document controls · Komerční banka (Track 6)
 
-Document reconciliation contracts and persistence on the Main Sequence platform.
-Pydantic defines document attributes and form schemas. Main Sequence MetaTables
-own application storage. The planned reconciliation agent uses `ms-tau-sdk`.
+**An AI agent that checks client document packages and sends only the exceptions to a person, with a full audit trail.**
 
-Implemented:
+[![Watch the demo](docs/demo/demo-thumbnail.png)](docs/demo/kb-document-control-demo.mp4)
 
-- Thirteen documented document models, recursive drafts, and JSON Schema export.
-- Person profiles, explicit Cases and CaseTypes, pinned Document Sets, raw-source references,
-  and revision-specific reviews with derived read-only acceptance.
-- Twenty-one documented MetaTable declarations, a frozen initial migration, and an
-  explicit Main Sequence migration Job entry point.
-- People, assignments, bounded raw-source uploads, versioned drafts/submission,
-  authorized reviews, reconciliation findings, audit history and durable retry recovery.
-- Illustrative account-opening and loan evidence policies using one shared document/review engine, with offline contract/HTTP tests.
+▶️ [Watch the demo video](docs/demo/kb-document-control-demo.mp4)
 
-The business API is implemented and verified against local Main Sequence MetaTables.
-Read queries and approved case-building MCP commands are implemented at `/mcp`;
-the Tau helper uses their reviewed contracts through the same shared services. The deployment workflow
-gates the API on its explicit migration Job; hosted activation is verified separately.
+## How it works
+
+1. 👩‍💼 **Reviewer asks** in the assistant they already use (Claude, Copilot, ChatGPT), connected via MCP.
+2. 📂 **Agent reads the package**: recognises each document type and pulls out the key data, with page citations and confidence.
+3. ⚖️ **Bank rules check it**: complete per the Contract? consistent across documents? Clear status and next step.
+4. 🧑‍⚖️ **A person decides the exceptions**: cited control protocol, every step logged. AI suggests, people decide.
+
+## Results (synthetic Czech packages)
+
+- Never approved a package it should have stopped: **26/26**
+- Caught **13/13** planted problems (test set)
+- About **15 s** and **~$0.20** per package
+- Processed in the EU · GDPR
+
+## Repositories
+
+| Repo | Role |
+|---|---|
+| **BackofficeBackend** (this repo) | Business API, cases, reviews, audit and MCP tools on Main Sequence |
+| [BackofficeFrontEnd](https://github.com/mainsequence-projects/BackofficeFrontEnd) | Command Center app and agent chat |
+| [ParsingMotorBackend](https://github.com/mainsequence-projects/ParsingMotorBackend) | Document engine on AWS (EU): classify, extract, rules, cited protocol |
+
+All demo data is synthetic. No real client data is used.
+
+---
 
 ## Development
 
