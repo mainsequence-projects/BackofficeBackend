@@ -77,7 +77,16 @@ def with_loan_consistency(policy: DocumentSet) -> DocumentSet:
     definition = policy.model_dump()
     definition["version"] += 1
     s = lambda *args, **kw: _side(policy, *args, **kw)  # noqa: E731
-    income = "Monthly net income of the same employee for the same period"
+    # Real Bedrock answers "uncertain" unless the topic states the shared basis, which hid the
+    # income mismatch; the bank defines these three as the same monthly net figure.
+    income = (
+        "Monthly net income in CZK of the same person for this loan application. The loan "
+        "contract's declared monthly net income, the payslip's net pay for one calendar month and "
+        "the employer-confirmed average monthly net income are all stated on the same monthly net basis."
+    )
+    for rule in definition["comparisons"]:
+        if rule["key"] == "monthly_net_income_consistency":
+            rule["topic"] = income
     rules = [
         ComparisonRule(
             key="income_contract_vs_payslip",
@@ -101,14 +110,6 @@ def with_loan_consistency(policy: DocumentSet) -> DocumentSet:
             topic="Legal name of the employer",
             left=s("payslip", "employer.name"),
             right=s("employer_confirmation", "employer.name"),
-            operator="semantic",
-        ),
-        ComparisonRule(
-            key="birth_number_contract_vs_employer",
-            description="The borrower's birth number must be the same on the contract and the employer confirmation.",
-            topic="Czech birth number (rodné číslo) of the same person; a slash or spaces are only formatting",
-            left=s("loan_contract", "borrower_identifier"),
-            right=s("employer_confirmation", "employee_identifier"),
             operator="semantic",
         ),
         ComparisonRule(

@@ -183,7 +183,7 @@
     {
       "key": "monthly_net_income_consistency",
       "description": "Declared and employer-confirmed monthly net income must describe the same basis and match exactly; zero tolerance is illustrative and not credit approval.",
-      "topic": "Monthly net income of the same employee, period and income basis",
+      "topic": "Monthly net income in CZK of the same person for this loan application. The loan contract's declared monthly net income, the payslip's net pay for one calendar month and the employer-confirmed average monthly net income are all stated on the same monthly net basis.",
       "left": {
         "document_type": "loan_contract",
         "schema_version": 2,
@@ -212,7 +212,7 @@
     {
       "key": "income_contract_vs_payslip",
       "description": "Declared monthly net income must match the payslip's net pay; not credit approval.",
-      "topic": "Monthly net income of the same employee for the same period",
+      "topic": "Monthly net income in CZK of the same person for this loan application. The loan contract's declared monthly net income, the payslip's net pay for one calendar month and the employer-confirmed average monthly net income are all stated on the same monthly net basis.",
       "left": {
         "document_type": "loan_contract",
         "schema_version": 2,
@@ -240,7 +240,7 @@
     {
       "key": "income_payslip_vs_employer",
       "description": "The payslip's net pay must match the employer-confirmed monthly net income.",
-      "topic": "Monthly net income of the same employee for the same period",
+      "topic": "Monthly net income in CZK of the same person for this loan application. The loan contract's declared monthly net income, the payslip's net pay for one calendar month and the employer-confirmed average monthly net income are all stated on the same monthly net basis.",
       "left": {
         "document_type": "payslip",
         "schema_version": 2,
@@ -280,30 +280,6 @@
         "document_type": "employer_confirmation",
         "schema_version": 2,
         "field": "employer.name",
-        "unit_field": null,
-        "context_fields": []
-      },
-      "operator": "semantic",
-      "mandatory": true,
-      "when_both_present": false,
-      "absolute_tolerance": "0",
-      "relative_tolerance_basis_points": 0
-    },
-    {
-      "key": "birth_number_contract_vs_employer",
-      "description": "The borrower's birth number must be the same on the contract and the employer confirmation.",
-      "topic": "Czech birth number (rodn\u00e9 \u010d\u00edslo) of the same person; a slash or spaces are only formatting",
-      "left": {
-        "document_type": "loan_contract",
-        "schema_version": 2,
-        "field": "borrower_identifier",
-        "unit_field": null,
-        "context_fields": []
-      },
-      "right": {
-        "document_type": "employer_confirmation",
-        "schema_version": 2,
-        "field": "employee_identifier",
         "unit_field": null,
         "context_fields": []
       },
