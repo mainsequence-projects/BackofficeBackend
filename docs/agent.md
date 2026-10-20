@@ -81,6 +81,24 @@ effective runtime catalog. No hosted rollout or traffic-promotion/rollback test 
 claimed by the local tests. The ADR's predeployment live smoke gate and automated
 postdeployment rollback remain follow-up integration work.
 
+## Command Center icon
+
+The helper uses the approved **Casekeeper** folder character from
+[`assets/agents/casekeeper`](../assets/agents/casekeeper/README.md). The
+`backoffice_helper` resource in `.mainsequence/workflows/backoffice.yaml`
+declares its idle icon with preserved colors and pixelated scaling, plus four
+named poses. Command Center selects `thinking`, `working` and `error` from
+the run state; the `backoffice_api` application rule selects `casework` while
+that application's tools run. The rule covers the application, not individual
+business operations.
+
+These are static PNG poses that switch with activity, not looping animations.
+The platform reads the assets from the exact deployment event's repository
+commit and publishes them through its authenticated agent icon projection.
+They are presentation assets, not Agent Card metadata or runtime tools.
+The next deployment must include the workflow and all five PNGs in its source
+commit. Local validation does not establish that a hosted icon is already live.
+
 ## Chat file support
 
 The published SDK 2.0.20 still converts chat input to text before starting a turn.
