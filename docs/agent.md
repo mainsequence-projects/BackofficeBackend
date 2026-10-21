@@ -53,11 +53,12 @@ that image and the API deployment. The extraction Job follows its existing autom
 image deployment outside this graph, reusing a matching repository image. There is
 no worker-image prerequisite or hosted contract-verification Job in the rollout.
 
-Both the API and helper agent declare `min_scale: 1` and `max_scale: 5`.
-One warm replica of each avoids idle scale-to-zero startup delays, accepting the
-ongoing compute cost of those two instances. The floor applies after a successful
-workflow deployment; it does not bypass platform scheduling, readiness or runtime
-admission, or guarantee uninterrupted service during failures.
+Both the API and helper agent declare `min_scale: 0` and `max_scale: 5`.
+Idle services scale down to zero instances to avoid ongoing compute use. Requests
+start instances on demand and may incur a cold start. The zero-instance floor
+applies after a successful workflow deployment; it does not disable either service
+or bypass platform scheduling, readiness or runtime admission. Verify idle replica
+counts through the control plane without making runtime requests that wake them.
 
 Run `scripts/check_agent_contract.py` during development validation against the
 candidate API catalog without querying business storage. It verifies the pinned
