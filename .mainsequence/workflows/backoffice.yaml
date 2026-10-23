@@ -60,15 +60,15 @@ resources:
       mcp_applications:
         - resource: backoffice_api
       command_center_icon:
-        path: assets/agents/casekeeper/idle.png
+        path: assets/agents/sequence/assets/backoffice/neutral/idle.png
         rendering: color
-        image_rendering: pixelated
+        image_rendering: auto
       command_center_animations:
         poses:
-          thinking: {path: assets/agents/casekeeper/thinking.png}
-          working: {path: assets/agents/casekeeper/working.png}
-          casework: {path: assets/agents/casekeeper/casework.png}
-          error: {path: assets/agents/casekeeper/error.png}
+          thinking: {path: assets/agents/sequence/assets/backoffice/neutral/thinking.png}
+          working: {path: assets/agents/sequence/assets/backoffice/neutral/working.png}
+          casework: {path: assets/agents/sequence/assets/backoffice/neutral/working.png}
+          error: {path: assets/agents/sequence/assets/backoffice/neutral/error.png}
         tools:
           - application: backoffice_api
             pose: casework

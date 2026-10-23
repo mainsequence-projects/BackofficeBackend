@@ -1,0 +1,19 @@
+{
+  "name": "backoffice-agent-icon-authoring",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local authoring for this project's agent icon.",
+  "scripts": {
+    "render": "node scripts/render.mjs",
+    "package": "python3 scripts/package.py",
+    "build": "npm run render && npm run package",
+    "verify": "python3 scripts/verify.py"
+  },
+  "devDependencies": {
+    "sharp": "0.35.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

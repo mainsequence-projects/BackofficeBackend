@@ -1,0 +1,15 @@
+[
+  {
+    "key": "backoffice",
+    "name": "Back Office Helper",
+    "action": "Cases progressing",
+    "detail": "Cases \u00b7 documents \u00b7 approvals",
+    "sha256": "5107eb3951cef0ec16074cfac6832ad026607d49b4a1306a61fb61b2af9a503b",
+    "short": "Back Office",
+    "file": "source-assets/backoffice.svg",
+    "source": {
+      "project": "Back Office Helper",
+      "path": "public/backoffice-icon.svg"
+    }
+  }
+]
